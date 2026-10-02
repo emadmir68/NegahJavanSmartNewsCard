@@ -1,30 +1,24 @@
-# Project Status — 0.4.0
+# Project Status — 1.1.0
 
-نسخه 0.4.0 بازطراحی خروجی را بر اساس تست‌های واقعی انجام می‌دهد.
+## Done
+- Smart Composition
+- Smart Pagination با متن کامل
+- Face-aware crop
+- سه هویت بصری مستقل
+- Exact Preview با همان Renderer خروجی
+- چهار نسبت خروجی
+- Backend Hybrid AI
+- تولید تصویر AI آنلاین با fallback گرافیکی
+- ذخیره پیش‌نویس و URI عکس
+- نمایش وضعیت AI آنلاین/محلی
+- Backend test + Android unit test + lint
+- حذف permission غیرضروری READ_MEDIA_IMAGES
+- یکسان‌سازی منطق «هم‌اکنون»
 
-## Design
-- هدر ثابت: negahjavan.ir / negahjavaan / پایگاه خبری نگاه جوان
-- متن از بالا به پایین
-- بدون پنل سفید بزرگ
-- بدون N/J، تاریخ، 1/1 و @negahjavan
-- تصویر فول‌فریم با scrim کنترل‌شده
-- بدنه خبر در glass panel تیره و سبک
+## External dependency
+AI آنلاین زمانی فعال می‌شود که Backend HTTPS، OPENAI_API_KEY و AI_BASE_URL تنظیم شده باشند.
 
-## Smart engine
-- حذف ایموجی و بولت تزئینی
-- جلوگیری از تکرار تیتر در لید
-- تشخیص طول با تعداد کاراکتر و جمله
-- 4 اسلاید برای خبر بلند
-- تیتر موضوعی برای اسلایدهای جزئیات
-- دسته‌بندی و badge هوشمند
+Railway فعلی حساب به سقف provision پلن رایگان رسیده و ایجاد سرویس جدید را رد می‌کند؛ بنابراین کد Backend آماده است اما استقرار مستقل جدید نیازمند آزاد شدن یک resource یا میزبان دیگری است.
 
-## Image
-- ML Kit face detection
-- focal crop
-- fallback امن در نبود چهره
-
-## Export
-- Story 9:16
-- Post/Carousel 4:5
-- PNG
-- Share مستقیم
+## Signing
+برای انتشار نهایی با امکان Update مطمئن، keystore خصوصی دائمی باید در Secrets قرار بگیرد. CI فعلاً APK تستی می‌سازد.
