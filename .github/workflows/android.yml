@@ -85,12 +85,13 @@ jobs:
           ls -lh "$FINAL"
 
       - name: Upload tested APK artifact
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: NegahJavanSmartNewsCard-1.1.0
           path: build-final/NegahJavanSmartNewsCard-1.1.0-final.apk
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
 
       - name: Publish final APK to repository
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
