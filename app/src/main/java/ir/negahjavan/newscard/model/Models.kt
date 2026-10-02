@@ -3,23 +3,12 @@ package ir.negahjavan.newscard.model
 import android.net.Uri
 
 enum class NewsCategory(val fa: String) {
-    BREAKING("فوری"),
-    JUDICIAL("قضایی"),
-    POLITICS("سیاسی"),
-    SOCIAL("اجتماعی"),
-    LOCAL("محلی"),
-    ECONOMY("اقتصادی"),
-    SPORTS("ورزشی"),
-    CULTURE("فرهنگی"),
-    TECHNOLOGY("فناوری"),
-    GENERAL("خبر")
+    BREAKING("فوری"), JUDICIAL("قضایی"), POLITICS("سیاسی"), SOCIAL("اجتماعی"),
+    LOCAL("محلی"), ECONOMY("اقتصادی"), SPORTS("ورزشی"), CULTURE("فرهنگی"),
+    TECHNOLOGY("فناوری"), GENERAL("خبر")
 }
 
-enum class NewsLength(val fa: String) {
-    SHORT("کوتاه"),
-    MEDIUM("متوسط"),
-    LONG("بلند")
-}
+enum class NewsLength(val fa: String) { SHORT("کوتاه"), MEDIUM("متوسط"), LONG("بلند") }
 
 enum class CardFormat(val fa: String, val width: Int, val height: Int) {
     STORY("استوری 9:16", 1080, 1920),
@@ -29,34 +18,22 @@ enum class CardFormat(val fa: String, val width: Int, val height: Int) {
 }
 
 enum class CardTemplate(val fa: String) {
-    SIGNATURE("امضای نگاه"),
-    BREAKING_PLUS("فوری پلاس"),
-    EDITORIAL("ادیتوریال")
+    SIGNATURE("امضای نگاه"), BREAKING_PLUS("فوری پلاس"), EDITORIAL("ادیتوریال")
 }
 
-enum class PremiumTemplate(
-    val fa: String,
-    val shortFa: String
-) {
+enum class PremiumTemplate(val fa: String, val shortFa: String) {
     LUXURY_MINIMAL("امضای طلایی", "طلایی"),
     PHOTO_PREMIUM("استودیو بنفش", "بنفش"),
     EDITORIAL_GLASS("ردلاین ادیتوریال", "ردلاین")
 }
 
-data class NewsDraft(
-    val rawText: String = "",
-    val imageUri: Uri? = null,
-)
+data class NewsDraft(val rawText: String = "", val imageUri: Uri? = null)
 
-data class SmartSlide(
-    val title: String,
-    val body: String,
-    val badge: String = ""
-)
+data class SmartSlide(val title: String, val body: String, val badge: String = "")
 
 data class SmartPage(
     val title: String = "",
-    val body: String,
+    val body: String = "",
     val badge: String = "",
     val showImage: Boolean = false,
     val isFirst: Boolean = false,
@@ -71,6 +48,7 @@ data class SmartAnalysis(
     val badge: String,
     val length: NewsLength,
     val recommendedTemplate: CardTemplate,
+    val recommendedPremiumTemplate: PremiumTemplate? = null,
     val slides: List<SmartSlide> = emptyList(),
     val fullText: String = "",
     val bodyText: String = "",
@@ -78,5 +56,6 @@ data class SmartAnalysis(
     val accentWord: String = "",
     val hashtags: List<String> = emptyList(),
     val source: String = "local",
+    val confidence: Float = 0.65f,
     val decisionNote: String = ""
 )
