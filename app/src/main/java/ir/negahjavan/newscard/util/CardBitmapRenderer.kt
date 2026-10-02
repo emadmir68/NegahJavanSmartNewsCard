@@ -12,6 +12,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.graphics.text.LineBreaker
 import android.net.Uri
 import android.provider.MediaStore
 import android.text.Layout
@@ -1230,8 +1231,8 @@ paint.shader = LinearGradient(
             .obtain(text, 0, text.length, tp, width)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setTextDirection(TextDirectionHeuristics.RTL)
-            .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
-            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+            .setBreakStrategy(LineBreaker.BREAK_STRATEGY_HIGH_QUALITY)
+            .setHyphenationFrequency(LineBreaker.HYPHENATION_FREQUENCY_NONE)
             .setLineSpacing(0f, spacing)
             .build()
     }
