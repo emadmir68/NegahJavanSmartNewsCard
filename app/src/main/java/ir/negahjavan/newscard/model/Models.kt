@@ -45,6 +45,16 @@ data class SmartSlide(
     val badge: String = ""
 )
 
+data class SmartPage(
+    val title: String = "",
+    val body: String,
+    val badge: String = "",
+    val showImage: Boolean = false,
+    val isFirst: Boolean = false,
+    val isContinuation: Boolean = false,
+    val bodyTextSizePx: Float = 30f
+)
+
 data class SmartAnalysis(
     val title: String,
     val lead: String,
@@ -52,7 +62,10 @@ data class SmartAnalysis(
     val badge: String,
     val length: NewsLength,
     val recommendedTemplate: CardTemplate,
-    val slides: List<SmartSlide>,
+    val slides: List<SmartSlide> = emptyList(),
+    val fullText: String = "",
+    val bodyText: String = "",
+    val titleFromSource: Boolean = false,
     val accentWord: String = "",
     val hashtags: List<String> = emptyList(),
     val source: String = "local",

@@ -32,9 +32,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.SmartAnalysis
+import ir.negahjavan.newscard.model.SmartPage
 import ir.negahjavan.newscard.ui.components.NewsCardPreview
 import ir.negahjavan.newscard.ui.theme.BrandRed
 import ir.negahjavan.newscard.util.CardBitmapRenderer
+import ir.negahjavan.newscard.util.SmartPaginationEngine
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,7 +65,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "SMART NEWS CARD • 0.4",
+                            "SMART PAGINATION • 0.5",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -92,10 +94,12 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     text = it
                     vm.clear()
                 },
-                label = { Text("متن خبر") },
-                placeholder = { Text("متن کامل خبر را وارد کن؛ تیتر، خلاصه و تعداد اسلاید خودکار ساخته می‌شود.") },
-                minLines = 7,
-                maxLines = 15,
+                label = { Text("متن کامل خبر") },
+                placeholder = {
+                    Text("کل خبر را وارد کن؛ متن حذف یا خلاصه نمی‌شود و اگر جا نشود خودکار به کارت بعد می‌رود.")
+                },
+                minLines = 8,
+                maxLines = 16,
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
                 shape = RoundedCornerShape(18.dp),
@@ -159,47 +163,44 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 } else {
                     Icon(Icons.Outlined.AutoAwesome, null)
                 }
+
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (loading) "در حال ساخت هوشمند…" else "ساخت هوشمند کارت",
+                    if (loading) "در حال صفحه‌بندی کامل خبر…" else "ساخت هوشمند متن کامل",
                     fontWeight = FontWeight.Black
                 )
             }
 
             analysis?.let { result ->
-                LaunchedEffect(result.title, result.slides.size) {
+                val storyPages = remember(
+                    result.title,
+                    result.bodyText,
+                    result.badge,
+                    imageUri
+                ) {
+                    SmartPaginationEngine.paginate(
+                        analysis = result,
+                        format = CardFormat.STORY,
+                        hasImage = imageUri != null
+                    )
+                }
+
+                LaunchedEffect(storyPages.size, result.title) {
                     previewIndex = 0
                 }
 
-                DecisionStrip(
+                PaginationStatus(
                     result = result,
+                    storyPageCount = storyPages.size,
                     hasImage = imageUri != null
                 )
 
-                if (result.slides.size > 1) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        result.slides.forEachIndexed { index, _ ->
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { previewIndex = index },
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (previewIndex == index) BrandRed else Color(0xFF17171D)
-                            ) {
-                                Text(
-                                    text = "اسلاید " + (index + 1),
-                                    modifier = Modifier.padding(vertical = 9.dp),
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
+                if (storyPages.size > 1) {
+                    PageSelector(
+                        count = storyPages.size,
+                        selected = previewIndex,
+                        onSelect = { previewIndex = it }
+                    )
                 }
 
                 Text(
@@ -212,10 +213,9 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
 
                 NewsCardPreview(
                     analysis = result,
-                    slide = result.slides[previewIndex.coerceIn(0, result.slides.lastIndex)],
+                    page = storyPages[previewIndex.coerceIn(0, storyPages.lastIndex)],
                     imageUri = imageUri,
                     format = CardFormat.STORY,
-                    slideIndex = previewIndex.coerceIn(0, result.slides.lastIndex),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -223,7 +223,10 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     result = result,
                     imageUri = imageUri,
                     context = context,
-                    onLaunch = { action -> scope.launch { action() } }
+                    storyCount = storyPages.size,
+                    onLaunch = { action ->
+                        scope.launch { action() }
+                    }
                 )
             }
 
@@ -239,7 +242,7 @@ private fun IntroCard() {
             .fillMaxWidth()
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFF32090E), Color(0xFF17171C), Color(0xFF101014))
+                    listOf(Color(0xFF35090F), Color(0xFF17171D), Color(0xFF101014))
                 ),
                 RoundedCornerShape(22.dp)
             )
@@ -250,14 +253,14 @@ private fun IntroCard() {
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                "فقط خبر را بده.",
+                "متن کامل؛ بدون حذف.",
                 color = Color.White,
                 fontWeight = FontWeight.Black,
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(Modifier.height(5.dp))
             Text(
-                "تیتر، لید، برچسب، تعداد اسلاید، جای متن و کراپ عکس خودکار تنظیم می‌شود.",
+                "اپ اول تلاش می‌کند همه خبر را در یک کارت جا بدهد. اگر خوانایی حفظ نشود، ادامه متن خودکار به کارت‌های بعد منتقل می‌شود.",
                 color = Color(0xFFB7B7C0),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Right
@@ -267,8 +270,9 @@ private fun IntroCard() {
 }
 
 @Composable
-private fun DecisionStrip(
+private fun PaginationStatus(
     result: SmartAnalysis,
+    storyPageCount: Int,
     hasImage: Boolean
 ) {
     Surface(
@@ -277,29 +281,33 @@ private fun DecisionStrip(
         color = Color(0xFF131318)
     ) {
         Column(
-            Modifier.padding(13.dp),
+            Modifier.padding(14.dp),
             horizontalAlignment = Alignment.End
         ) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                SmallTag(result.length.fa, Modifier.weight(1f))
-                SmallTag(result.badge, Modifier.weight(1f))
-                SmallTag(
-                    if (result.slides.size > 1) result.slides.size.toString() + " اسلاید" else "یک کارت",
+                StatusTag("متن کامل", Modifier.weight(1f))
+                StatusTag(result.badge, Modifier.weight(1f))
+                StatusTag(
+                    if (storyPageCount == 1) "۱ کارت" else "$storyPageCount کارت",
                     Modifier.weight(1f)
                 )
             }
-            Spacer(Modifier.height(9.dp))
+
+            Spacer(Modifier.height(10.dp))
+
             Text(
-                if (hasImage) {
-                    result.decisionNote + " • کراپ چهره‌محور فعال"
+                if (storyPageCount == 1) {
+                    "کل متن با خوانایی مناسب روی یک کارت جا شد." +
+                        if (hasImage) " عکس در باکس بالای کارت قرار گرفت." else ""
                 } else {
-                    result.decisionNote + " • کاور متنی هوشمند"
+                    "هیچ بخشی از متن حذف نشده؛ ادامه خبر بین $storyPageCount کارت تقسیم شده است." +
+                        if (hasImage) " عکس فقط روی کارت اول نمایش داده می‌شود." else ""
                 },
-                color = Color(0xFFA5A6AF),
-                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFFB0B1B9),
+                style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Right,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -308,7 +316,7 @@ private fun DecisionStrip(
 }
 
 @Composable
-private fun SmallTag(
+private fun StatusTag(
     text: String,
     modifier: Modifier = Modifier
 ) {
@@ -329,21 +337,71 @@ private fun SmallTag(
 }
 
 @Composable
+private fun PageSelector(
+    count: Int,
+    selected: Int,
+    onSelect: (Int) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "کارت‌های خبر",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Right,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        val rows = (0 until count).chunked(4)
+        rows.forEach { row ->
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { index ->
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onSelect(index) },
+                        shape = RoundedCornerShape(11.dp),
+                        color = if (selected == index) BrandRed else Color(0xFF18181E)
+                    ) {
+                        Text(
+                            text = "کارت " + (index + 1),
+                            modifier = Modifier.padding(vertical = 9.dp),
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                repeat(4 - row.size) {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun OutputActions(
     result: SmartAnalysis,
     imageUri: Uri?,
     context: Context,
+    storyCount: Int,
     onLaunch: (suspend () -> Unit) -> Unit
 ) {
-    val storyLabel = if (result.slides.size > 1) {
-        "اشتراک " + result.slides.size + " استوری"
-    } else {
-        "اشتراک استوری"
-    }
-    val postLabel = if (result.slides.size > 1) {
-        "اشتراک کاروسل"
-    } else {
-        "اشتراک پست"
+    val portraitCount = remember(
+        result.title,
+        result.bodyText,
+        result.badge,
+        imageUri
+    ) {
+        SmartPaginationEngine.paginate(
+            analysis = result,
+            format = CardFormat.PORTRAIT,
+            hasImage = imageUri != null
+        ).size
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -355,41 +413,46 @@ private fun OutputActions(
                 onClick = {
                     onLaunch {
                         val uris = renderAndSaveSeries(
-                            context,
-                            result,
-                            imageUri,
-                            CardFormat.STORY
+                            context = context,
+                            result = result,
+                            imageUri = imageUri,
+                            format = CardFormat.STORY
                         )
                         shareImages(context, uris, "اشتراک استوری")
                     }
                 },
-                modifier = Modifier.weight(1f).height(54.dp),
+                modifier = Modifier.weight(1f).height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BrandRed)
             ) {
                 Icon(Icons.Outlined.Share, null)
                 Spacer(Modifier.width(6.dp))
-                Text(storyLabel, fontWeight = FontWeight.Bold)
+                Text(
+                    if (storyCount == 1) "استوری آماده" else "$storyCount استوری",
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             OutlinedButton(
                 onClick = {
                     onLaunch {
                         val uris = renderAndSaveSeries(
-                            context,
-                            result,
-                            imageUri,
-                            CardFormat.PORTRAIT
+                            context = context,
+                            result = result,
+                            imageUri = imageUri,
+                            format = CardFormat.PORTRAIT
                         )
-                        shareImages(context, uris, "اشتراک پست")
+                        shareImages(context, uris, "اشتراک کاروسل")
                     }
                 },
-                modifier = Modifier.weight(1f).height(54.dp),
+                modifier = Modifier.weight(1f).height(56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Outlined.Share, null)
                 Spacer(Modifier.width(6.dp))
-                Text(postLabel)
+                Text(
+                    if (portraitCount == 1) "پست آماده" else "$portraitCount کاروسل"
+                )
             }
         }
 
@@ -408,9 +471,11 @@ private fun OutputActions(
                         imageUri,
                         CardFormat.PORTRAIT
                     )
+
                     Toast.makeText(
                         context,
-                        (storyUris.size + postUris.size).toString() + " فایل در گالری ذخیره شد",
+                        (storyUris.size + postUris.size).toString() +
+                            " فایل کامل در گالری ذخیره شد",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -420,7 +485,7 @@ private fun OutputActions(
         ) {
             Icon(Icons.Outlined.Download, null)
             Spacer(Modifier.width(7.dp))
-            Text("ذخیره همه خروجی‌ها")
+            Text("ذخیره همه کارت‌های متن کامل")
         }
     }
 }
@@ -431,16 +496,21 @@ private suspend fun renderAndSaveSeries(
     imageUri: Uri?,
     format: CardFormat
 ): List<Uri> {
+    val pages = SmartPaginationEngine.paginate(
+        analysis = result,
+        format = format,
+        hasImage = imageUri != null
+    )
+
     val uris = mutableListOf<Uri>()
 
-    result.slides.forEachIndexed { index, slide ->
-        val bitmap = CardBitmapRenderer.renderSlide(
+    pages.forEachIndexed { index, page ->
+        val bitmap = CardBitmapRenderer.renderPage(
             context = context,
             analysis = result,
-            slide = slide,
+            page = page,
             imageUri = imageUri,
-            format = format,
-            slideIndex = index
+            format = format
         )
 
         CardBitmapRenderer.save(
@@ -448,9 +518,10 @@ private suspend fun renderAndSaveSeries(
             bitmap = bitmap,
             format = format,
             index = index,
-            total = result.slides.size
+            total = pages.size
         )?.let { uris += it }
     }
+
     return uris
 }
 

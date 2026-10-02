@@ -5,10 +5,8 @@ import ir.negahjavan.newscard.model.CardTemplate
 import ir.negahjavan.newscard.model.NewsCategory
 import ir.negahjavan.newscard.model.NewsLength
 import ir.negahjavan.newscard.model.SmartAnalysis
-import ir.negahjavan.newscard.model.SmartSlide
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -16,247 +14,261 @@ import java.net.URL
 class SmartNewsService {
 
     suspend fun analyze(text: String): SmartAnalysis = withContext(Dispatchers.IO) {
+        val parsed = parseSource(text)
         val base = BuildConfig.AI_BASE_URL.trim().trimEnd('/')
-        if (base.isBlank()) return@withContext localFallback(text)
+
+        if (base.isBlank()) {
+            return@withContext localAnalysis(parsed)
+        }
 
         try {
-            val connection = (URL("$base/analyze").openConnection() as HttpURLConnection).apply {
+            val connection = (URL(base + "/analyze").openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
-                connectTimeout = 12_000
-                readTimeout = 35_000
+                connectTimeout = 8_000
+                readTimeout = 22_000
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
             }
 
-            val body = JSONObject().put("text", text).toString()
+            val body = JSONObject().put("text", parsed.fullText).toString()
             connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
             if (connection.responseCode !in 200..299) {
-                return@withContext localFallback(text)
+                return@withContext localAnalysis(parsed)
             }
 
             val response = connection.inputStream.bufferedReader().use { it.readText() }
             val json = JSONObject(response)
 
-            val title = json.optString("title").ifBlank { smartTitle(text) }
-            val lead = json.optString("lead").ifBlank { smartLead(text) }
-            val category = parseCategory(json.optString("category"))
-            val length = parseLength(json.optString("length"), text)
+            val localCategory = detectCategory(parsed.fullText)
+            val localLength = detectLength(parsed.fullText)
+            val category = parseCategory(json.optString("category"), localCategory)
+            val length = parseLength(json.optString("length"), localLength)
+            val badge = cleanInline(json.optString("badge"))
+                .ifBlank { smartBadge(parsed.fullText, category) }
             val template = parseTemplate(json.optString("template"), category, length)
-            val badge = json.optString("badge").ifBlank { smartBadge(text, category) }
-            val slides = parseSlides(json.optJSONArray("slides"))
-                .ifEmpty { makeSlides(text, title, lead, badge, length) }
 
             SmartAnalysis(
-                title = title,
-                lead = lead,
+                title = parsed.title,
+                lead = firstUsefulSentence(parsed.bodyText),
                 category = category,
                 badge = badge,
                 length = length,
                 recommendedTemplate = template,
-                slides = slides,
-                accentWord = json.optString("accent_word").ifBlank { pickAccent(title) },
-                hashtags = json.optJSONArray("hashtags")?.toStringList().orEmpty(),
+                slides = emptyList(),
+                fullText = parsed.fullText,
+                bodyText = parsed.bodyText,
+                titleFromSource = parsed.titleFromSource,
+                accentWord = pickAccent(parsed.title),
+                hashtags = listOf("نگاه_جوان", category.fa.replace(' ', '_')),
                 source = "online",
-                decisionNote = json.optString("decision_note").ifBlank {
-                    autoDecisionNote(length, slides.size, template, category)
-                }
+                decisionNote = decisionNote(length, parsed.bodyText)
             )
         } catch (_: Exception) {
-            localFallback(text)
+            localAnalysis(parsed)
         }
     }
 
-    private fun localFallback(text: String): SmartAnalysis {
-        val clean = normalize(text)
-        val category = detectCategory(clean)
-        val length = detectLength(clean)
-        val title = smartTitle(text)
-        val lead = smartLead(text)
-        val badge = smartBadge(clean, category)
-        val template = chooseTemplate(category, length)
-        val slides = makeSlides(clean, title, lead, badge, length)
+    private fun localAnalysis(parsed: ParsedSource): SmartAnalysis {
+        val category = detectCategory(parsed.fullText)
+        val length = detectLength(parsed.fullText)
+        val badge = smartBadge(parsed.fullText, category)
 
         return SmartAnalysis(
-            title = title,
-            lead = lead,
+            title = parsed.title,
+            lead = firstUsefulSentence(parsed.bodyText),
             category = category,
             badge = badge,
             length = length,
-            recommendedTemplate = template,
-            slides = slides,
-            accentWord = pickAccent(title),
+            recommendedTemplate = chooseTemplate(category, length),
+            slides = emptyList(),
+            fullText = parsed.fullText,
+            bodyText = parsed.bodyText,
+            titleFromSource = parsed.titleFromSource,
+            accentWord = pickAccent(parsed.title),
             hashtags = listOf("نگاه_جوان", category.fa.replace(' ', '_')),
             source = "local",
-            decisionNote = autoDecisionNote(length, slides.size, template, category)
+            decisionNote = decisionNote(length, parsed.bodyText)
         )
     }
 
-    private fun normalize(text: String): String =
-        text.replace(Regex("[\\t ]+"), " ")
-            .replace(Regex("\\n{3,}"), "\n\n")
-            .trim()
+    private data class ParsedSource(
+        val fullText: String,
+        val title: String,
+        val bodyText: String,
+        val titleFromSource: Boolean
+    )
 
-    private fun smartTitle(text: String): String {
-        val paragraphs = text.lines().map { it.trim() }.filter { it.isNotBlank() }
-        val first = paragraphs.firstOrNull().orEmpty()
-        val clean = normalize(text).replace("\n", " ")
-
-        return when {
-            first.length in 12..115 -> first
-            first.length > 115 -> shortenAtBoundary(first, 108)
-            clean.length > 108 -> shortenAtBoundary(clean, 108)
-            clean.isNotBlank() -> clean
-            else -> "خبر جدید"
-        }
-    }
-
-    private fun smartLead(text: String): String {
-        val paragraphs = text.lines().map { it.trim() }.filter { it.isNotBlank() }
-        val source = when {
-            paragraphs.size >= 2 -> paragraphs[1]
-            else -> sentenceList(text).drop(1).firstOrNull().orEmpty()
-        }
-        return shortenAtBoundary(source, 190)
-    }
-
-    private fun detectLength(text: String): NewsLength {
-        val n = normalize(text).length
-        return when {
-            n < 420 -> NewsLength.SHORT
-            n < 1050 -> NewsLength.MEDIUM
-            else -> NewsLength.LONG
-        }
-    }
-
-    private fun makeSlides(
-        text: String,
-        title: String,
-        lead: String,
-        badge: String,
-        length: NewsLength
-    ): List<SmartSlide> {
-        if (length != NewsLength.LONG) {
-            val body = when {
-                length == NewsLength.SHORT && lead.isBlank() -> ""
-                length == NewsLength.SHORT && lead.trim() == title.trim() -> ""
-                length == NewsLength.SHORT -> lead
-                else -> mediumBody(text, lead)
-            }
-            return listOf(SmartSlide(title = title, body = body, badge = badge))
-        }
-
-        val sentences = sentenceList(text)
-            .filterNot { it.contains(title.take(40)) }
-            .map { it.replace("🔷", "").replace("▪", "").replace("•", "").trim() }
-            .filter { it.length > 25 }
-
-        val chunks = sequentialChunks(sentences, 3)
-        val headings = listOf("نکات اصلی", "ادامه خبر", "جمع‌بندی")
-
-        val result = mutableListOf(
-            SmartSlide(
-                title = title,
-                body = shortenAtBoundary(lead, 210),
-                badge = badge
-            )
-        )
-
-        chunks.take(3).forEachIndexed { index, chunk ->
-            result += SmartSlide(
-                title = headings[index],
-                body = shortenAtBoundary(chunk, 430),
-                badge = if (index == 2) "جمع‌بندی" else "ادامه"
-            )
-        }
-
-        while (result.size < 4) {
-            val i = (result.size - 1).coerceIn(0, 2)
-            result += SmartSlide(
-                title = headings[i],
-                body = shortenAtBoundary(lead, 300),
-                badge = if (i == 2) "جمع‌بندی" else "ادامه"
-            )
-        }
-
-        return result.take(4)
-    }
-
-    private fun mediumBody(text: String, lead: String): String {
-        val sentences = sentenceList(text)
-            .filter { it.length > 25 }
-            .drop(1)
-            .take(2)
-            .joinToString(" ")
-
-        return shortenAtBoundary(
-            listOf(lead, sentences).filter { it.isNotBlank() }.joinToString(" "),
-            330
-        )
-    }
-
-    private fun sequentialChunks(sentences: List<String>, count: Int): List<String> {
-        if (sentences.isEmpty()) return emptyList()
-        val result = MutableList(count) { mutableListOf<String>() }
-        val per = kotlin.math.ceil(sentences.size.toDouble() / count).toInt().coerceAtLeast(1)
-
-        sentences.forEachIndexed { index, sentence ->
-            val bucket = (index / per).coerceAtMost(count - 1)
-            result[bucket] += sentence
-        }
-
-        return result.map { it.joinToString(" ") }.filter { it.isNotBlank() }
-    }
-
-    private fun sentenceList(text: String): List<String> =
-        normalize(text)
-            .replace("\n", " ")
-            .split(Regex("(?<=[.!؟])\\s+|(?=🔷)|(?=▪)|(?=•)"))
+    private fun parseSource(text: String): ParsedSource {
+        val normalized = normalizePreservingParagraphs(text)
+        val lines = normalized.lines()
             .map { it.trim() }
             .filter { it.isNotBlank() }
 
-    private fun shortenAtBoundary(text: String, max: Int): String {
-        val clean = text.replace(Regex("\\s+"), " ").trim()
+        if (lines.isEmpty()) {
+            return ParsedSource(
+                fullText = "",
+                title = "خبر جدید",
+                bodyText = "",
+                titleFromSource = false
+            )
+        }
+
+        val first = cleanDecorativeMarks(lines.first())
+        val hasSeparateBody = lines.size >= 2
+
+        val firstLooksLikeTitle =
+            hasSeparateBody &&
+                first.length in 12..180 &&
+                !first.endsWith(".") &&
+                !first.endsWith("؛")
+
+        val title = if (firstLooksLikeTitle) {
+            first
+        } else {
+            deriveTitle(normalized)
+        }
+
+        val body = if (firstLooksLikeTitle) {
+            lines.drop(1)
+                .map(::cleanDecorativeMarks)
+                .filter { it.isNotBlank() }
+                .joinToString("\n\n")
+                .trim()
+        } else {
+            normalized
+                .lines()
+                .map(::cleanDecorativeMarks)
+                .filter { it.isNotBlank() }
+                .joinToString("\n\n")
+                .trim()
+        }
+
+        return ParsedSource(
+            fullText = normalized,
+            title = title,
+            bodyText = body,
+            titleFromSource = firstLooksLikeTitle
+        )
+    }
+
+    private fun normalizePreservingParagraphs(text: String): String =
+        text.replace("\r", "")
+            .lines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
+            .replace(Regex("[\\t ]+"), " ")
+            .trim()
+
+    private fun cleanDecorativeMarks(value: String): String =
+        value
+            .replace("⚖️", "")
+            .replace("⚖", "")
+            .replace("🔷️", "")
+            .replace("🔷", "")
+            .replace("🔹", "")
+            .replace("🔸", "")
+            .replace("▪️", "")
+            .replace("▪", "")
+            .replace("▫️", "")
+            .replace("▫", "")
+            .replace(Regex("^[-–—•]+\\s*"), "")
+            .replace(Regex("[\\t ]+"), " ")
+            .trim()
+
+    private fun deriveTitle(text: String): String {
+        val firstSentence = text
+            .replace("\n", " ")
+            .split(Regex("(?<=[.!؟])\\s+"))
+            .firstOrNull()
+            .orEmpty()
+            .let(::cleanDecorativeMarks)
+
+        return naturalCut(
+            firstSentence.ifBlank { cleanDecorativeMarks(text) },
+            118
+        ).ifBlank { "خبر جدید" }
+    }
+
+    private fun firstUsefulSentence(body: String): String {
+        if (body.isBlank()) return ""
+        return body
+            .replace("\n", " ")
+            .split(Regex("(?<=[.!؟])\\s+"))
+            .map(::cleanDecorativeMarks)
+            .firstOrNull { it.length >= 24 }
+            ?.let { naturalCut(it, 190) }
+            .orEmpty()
+    }
+
+    private fun naturalCut(text: String, max: Int): String {
+        val clean = cleanInline(text)
         if (clean.length <= max) return clean
 
-        val cut = clean.take(max)
-        val lastSpace = cut.lastIndexOf(' ')
-        val safe = if (lastSpace > (max * 0.65).toInt()) cut.take(lastSpace) else cut
+        val part = clean.take(max)
+        val punctuation = listOf('؟', '!', '.', '؛')
+            .map { part.lastIndexOf(it) }
+            .maxOrNull() ?: -1
+
+        if (punctuation >= (max * .62f).toInt()) {
+            return part.take(punctuation + 1).trim()
+        }
+
+        val lastSpace = part.lastIndexOf(' ')
+        val safe = if (lastSpace >= (max * .66f).toInt()) {
+            part.take(lastSpace)
+        } else {
+            part
+        }
+
         return safe.trimEnd(' ', '،', ',', ':', '؛') + "…"
+    }
+
+    private fun cleanInline(value: String): String =
+        cleanDecorativeMarks(value)
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    private fun detectLength(text: String): NewsLength {
+        val chars = text.replace("\n", " ").length
+        val sentences = text
+            .replace("\n", " ")
+            .split(Regex("[.!؟]+"))
+            .count { it.trim().length > 20 }
+
+        return when {
+            chars <= 360 && sentences <= 3 -> NewsLength.SHORT
+            chars <= 1050 && sentences <= 7 -> NewsLength.MEDIUM
+            else -> NewsLength.LONG
+        }
     }
 
     private fun smartBadge(text: String, category: NewsCategory): String {
         val t = text.lowercase()
         return when {
             category == NewsCategory.BREAKING -> "فوری"
-            "مطالبه" in t && ("مردم" in t || "شهرستان" in t || "روستا" in t) -> "مطالبه مردم"
-            category == NewsCategory.JUDICIAL -> "قضایی"
-            "گزارش" in t -> "گزارش"
+            "مطالبه" in t && ("مردم" in t || "شهرستان" in t || "روستا" in t) ->
+                "مطالبه مردم"
             "اطلاعیه" in t -> "اطلاعیه"
             "هشدار" in t -> "هشدار"
+            category == NewsCategory.JUDICIAL -> "قضایی"
             category == NewsCategory.POLITICS -> "سیاسی"
-            category == NewsCategory.ECONOMY -> "اقتصاد"
-            category == NewsCategory.SPORTS -> "ورزش"
-            category == NewsCategory.CULTURE -> "فرهنگ"
+            category == NewsCategory.ECONOMY -> "اقتصادی"
+            category == NewsCategory.SPORTS -> "ورزشی"
+            category == NewsCategory.CULTURE -> "فرهنگی"
             category == NewsCategory.TECHNOLOGY -> "فناوری"
             category == NewsCategory.LOCAL -> "محلی"
-            else -> "ویژه"
+            category == NewsCategory.SOCIAL -> "اجتماعی"
+            else -> "خبر"
         }
     }
-
-    private fun chooseTemplate(category: NewsCategory, length: NewsLength): CardTemplate =
-        when {
-            category == NewsCategory.BREAKING -> CardTemplate.BREAKING_PLUS
-            length == NewsLength.LONG -> CardTemplate.EDITORIAL
-            category in setOf(NewsCategory.JUDICIAL, NewsCategory.POLITICS, NewsCategory.ECONOMY) ->
-                CardTemplate.EDITORIAL
-            else -> CardTemplate.SIGNATURE
-        }
 
     private fun detectCategory(text: String): NewsCategory {
         val t = text.lowercase()
         return when {
-            listOf("فوری", "لحظاتی", "هشدار فوری").any(t::contains) -> NewsCategory.BREAKING
+            listOf("فوری", "لحظاتی پیش", "هم اکنون", "هم‌اکنون", "هشدار فوری").any(t::contains) ->
+                NewsCategory.BREAKING
             listOf("دادگستری", "دادگاه", "قوه قضایی", "قضایی", "دادستان", "حقوق عامه").any(t::contains) ->
                 NewsCategory.JUDICIAL
             listOf("انتخابات", "مجلس", "دولت", "وزیر", "سیاسی").any(t::contains) ->
@@ -277,21 +289,35 @@ class SmartNewsService {
         }
     }
 
-    private fun pickAccent(title: String): String =
-        title.split(' ')
-            .map { it.trim('،', ',', ':', '؛', '.', '!', '؟') }
-            .filter { it.length >= 5 }
-            .maxByOrNull { it.length }
-            .orEmpty()
+    private fun chooseTemplate(
+        category: NewsCategory,
+        length: NewsLength
+    ): CardTemplate =
+        when {
+            category == NewsCategory.BREAKING -> CardTemplate.BREAKING_PLUS
+            length == NewsLength.LONG -> CardTemplate.EDITORIAL
+            category in setOf(
+                NewsCategory.JUDICIAL,
+                NewsCategory.POLITICS,
+                NewsCategory.ECONOMY
+            ) -> CardTemplate.EDITORIAL
+            else -> CardTemplate.SIGNATURE
+        }
 
-    private fun parseCategory(value: String): NewsCategory =
+    private fun parseCategory(
+        value: String,
+        fallback: NewsCategory
+    ): NewsCategory =
         NewsCategory.entries.firstOrNull {
             value.equals(it.name, true) || value.contains(it.fa)
-        } ?: NewsCategory.GENERAL
+        } ?: fallback
 
-    private fun parseLength(value: String, text: String): NewsLength =
+    private fun parseLength(
+        value: String,
+        fallback: NewsLength
+    ): NewsLength =
         NewsLength.entries.firstOrNull { value.equals(it.name, true) }
-            ?: detectLength(text)
+            ?: fallback
 
     private fun parseTemplate(
         value: String,
@@ -301,39 +327,25 @@ class SmartNewsService {
         CardTemplate.entries.firstOrNull { value.equals(it.name, true) }
             ?: chooseTemplate(category, length)
 
-    private fun parseSlides(array: JSONArray?): List<SmartSlide> {
-        if (array == null) return emptyList()
-        return (0 until array.length()).mapNotNull { index ->
-            array.optJSONObject(index)?.let {
-                val title = it.optString("title")
-                val body = it.optString("body")
-                if (title.isBlank() && body.isBlank()) null
-                else SmartSlide(
-                    title = title.ifBlank { "ادامه خبر" },
-                    body = body,
-                    badge = it.optString("badge")
-                )
-            }
-        }
-    }
+    private fun pickAccent(title: String): String =
+        title.split(' ')
+            .map { it.trim('،', ',', ':', '؛', '.', '!', '؟') }
+            .filter { it.length >= 5 }
+            .maxByOrNull { it.length }
+            .orEmpty()
 
-    private fun JSONArray.toStringList(): List<String> =
-        (0 until length()).map { optString(it) }.filter { it.isNotBlank() }
-
-    private fun autoDecisionNote(
+    private fun decisionNote(
         length: NewsLength,
-        slideCount: Int,
-        template: CardTemplate,
-        category: NewsCategory
+        body: String
     ): String {
-        val base = when (length) {
+        val chars = body.length
+        return when (length) {
             NewsLength.SHORT ->
-                "خبر کوتاه تشخیص داده شد؛ یک کارت فشرده با قالب " + template.fa + " ساخته شد."
+                "متن کامل حفظ می‌شود؛ اگر در یک کارت جا شود همان یک کارت ساخته می‌شود."
             NewsLength.MEDIUM ->
-                "خبر متوسط تشخیص داده شد؛ یک کارت کامل با تیتر، لید و نکات اصلی ساخته شد."
+                "صفحه‌بندی با متن کامل انجام می‌شود؛ خلاصه‌سازی اجباری نیست."
             NewsLength.LONG ->
-                "خبر بلند تشخیص داده شد؛ متن به " + slideCount + " اسلاید تقسیم و قالب " + template.fa + " انتخاب شد."
+                "متن کامل $chars کاراکتری با محاسبه واقعی فضا بین کارت‌ها تقسیم می‌شود."
         }
-        return base + " دسته: " + category.fa
     }
 }

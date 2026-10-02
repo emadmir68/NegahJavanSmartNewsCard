@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
@@ -17,7 +18,6 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
-import android.text.TextUtils
 import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -25,322 +25,142 @@ import coil3.toBitmap
 import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.NewsCategory
 import ir.negahjavan.newscard.model.SmartAnalysis
-import ir.negahjavan.newscard.model.SmartSlide
+import ir.negahjavan.newscard.model.SmartPage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 object CardBitmapRenderer {
 
-    private val accentRed = Color.rgb(229, 24, 36)
+    private val accentRed = Color.rgb(231, 22, 34)
     private const val brandSocial = "negahjavaan"
     private const val brandSite = "negahjavan.ir"
     private const val brandTitle = "پایگاه خبری نگاه جوان"
 
-    suspend fun renderSlide(
+    suspend fun renderPage(
         context: Context,
         analysis: SmartAnalysis,
-        slide: SmartSlide,
+        page: SmartPage,
         imageUri: Uri?,
-        format: CardFormat,
-        slideIndex: Int
+        format: CardFormat
     ): Bitmap = withContext(Dispatchers.Default) {
         val w = format.width
         val h = format.height
         val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val pad = w * .055f
 
-        val photo = imageUri?.let { loadBitmap(context, it) }
-        if (photo != null) {
-            val focus = SmartImageFocus.detect(photo)
-            drawFocalCrop(
-                canvas = canvas,
-                bitmap = photo,
-                dest = Rect(0, 0, w, h),
-                paint = paint,
-                focusX = focus.x,
-                focusY = focus.y
-            )
-            drawPhotoScrim(canvas, paint, w, h)
+        drawPremiumBackground(canvas, paint, analysis.category, w, h)
+        drawBrandLockup(canvas, paint, w, h)
+
+        val photo = if (page.showImage) {
+            imageUri?.let { loadBitmap(context, it) }
         } else {
-            drawTextBackground(canvas, paint, analysis.category, w, h)
+            null
         }
 
-        drawBrandHeader(canvas, paint, w, h, pad, photo != null)
-        drawNewsFromTop(
+        val pad = w * .060f
+        val gap = max(18f, h * .018f)
+        val headerBottom = h * .115f
+        val imageTop = h * .135f
+        val imageHeight = imageHeight(format, h)
+        val safeBottom = h * .945f
+        val badgeHeight = h * .045f
+
+        var contentTop = headerBottom + gap
+
+        if (page.showImage && photo != null) {
+            val focus = SmartImageFocus.detect(photo)
+            val imageRect = RectF(
+                pad,
+                imageTop,
+                w - pad,
+                imageTop + imageHeight
+            )
+            drawRoundedFocalImage(
+                canvas = canvas,
+                bitmap = photo,
+                dest = imageRect,
+                paint = paint,
+                focusX = focus.x,
+                focusY = focus.y,
+                radius = w * .032f
+            )
+
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = max(2f, w * .0022f)
+            paint.color = Color.argb(120, 255, 255, 255)
+            canvas.drawRoundRect(
+                imageRect,
+                w * .032f,
+                w * .032f,
+                paint
+            )
+            paint.style = Paint.Style.FILL
+
+            contentTop = imageTop + imageHeight + gap
+        }
+
+        drawBadge(
             canvas = canvas,
             paint = paint,
-            analysis = analysis,
-            slide = slide,
-            format = format,
-            w = w,
-            h = h,
-            pad = pad,
-            hasImage = photo != null
+            text = page.badge.ifBlank {
+                if (page.isContinuation) "ادامه خبر" else analysis.badge
+            },
+            right = w - pad,
+            top = contentTop,
+            height = badgeHeight,
+            textSize = w * .025f
         )
+
+        if (page.isFirst) {
+            val titleTop = contentTop + badgeHeight + gap
+            val titleLayout = makeRtlLayout(
+                text = page.title,
+                width = (w - 2 * pad).toInt(),
+                size = titleSize(format, page.title.length),
+                color = Color.WHITE,
+                spacing = 1.08f,
+                bold = true
+            )
+
+            drawLayout(canvas, titleLayout, pad, titleTop)
+
+            if (page.body.isNotBlank()) {
+                val bodyTop = titleTop + titleLayout.height + gap
+                drawBody(
+                    canvas = canvas,
+                    paint = paint,
+                    body = page.body,
+                    x = pad,
+                    top = bodyTop,
+                    width = (w - 2 * pad).toInt(),
+                    textSize = page.bodyTextSizePx,
+                    safeBottom = safeBottom,
+                    w = w,
+                    h = h
+                )
+            }
+        } else {
+            val bodyTop = contentTop + badgeHeight + gap
+            drawBody(
+                canvas = canvas,
+                paint = paint,
+                body = page.body,
+                x = pad,
+                top = bodyTop,
+                width = (w - 2 * pad).toInt(),
+                textSize = page.bodyTextSizePx,
+                safeBottom = safeBottom,
+                w = w,
+                h = h
+            )
+        }
 
         bitmap
     }
 
-    private fun drawBrandHeader(
-        canvas: Canvas,
-        paint: Paint,
-        w: Int,
-        h: Int,
-        pad: Float,
-        hasImage: Boolean
-    ) {
-        if (hasImage) {
-            paint.shader = LinearGradient(
-                0f,
-                0f,
-                0f,
-                h * .13f,
-                intArrayOf(Color.argb(145, 0, 0, 0), Color.argb(45, 0, 0, 0)),
-                null,
-                Shader.TileMode.CLAMP
-            )
-            canvas.drawRect(0f, 0f, w.toFloat(), h * .13f, paint)
-            paint.shader = null
-        }
-
-        val sideSize = w * .0215f
-        val centerSize = w * .0245f
-        val y = h * .038f
-
-        drawText(
-            canvas,
-            brandSite,
-            pad,
-            y,
-            sideSize,
-            Color.WHITE,
-            true,
-            Paint.Align.LEFT,
-            shadow = hasImage
-        )
-        drawText(
-            canvas,
-            brandSocial,
-            w / 2f,
-            y,
-            centerSize,
-            Color.WHITE,
-            true,
-            Paint.Align.CENTER,
-            shadow = hasImage
-        )
-        drawText(
-            canvas,
-            brandTitle,
-            w - pad,
-            y,
-            sideSize,
-            Color.WHITE,
-            true,
-            Paint.Align.RIGHT,
-            shadow = hasImage
-        )
-    }
-
-    private fun drawNewsFromTop(
-        canvas: Canvas,
-        paint: Paint,
-        analysis: SmartAnalysis,
-        slide: SmartSlide,
-        format: CardFormat,
-        w: Int,
-        h: Int,
-        pad: Float,
-        hasImage: Boolean
-    ) {
-        val bodyVisible = slide.body.isNotBlank() &&
-            similarityKey(slide.body) != similarityKey(slide.title)
-
-        val startY = when (format) {
-            CardFormat.STORY -> h * .155f
-            CardFormat.PORTRAIT -> h * .145f
-            CardFormat.SQUARE -> h * .135f
-            CardFormat.LANDSCAPE -> h * .16f
-        }
-
-        val badgeText = slide.badge.ifBlank { analysis.badge }
-        val badgeSize = w * .027f
-        drawBadge(
-            canvas = canvas,
-            paint = paint,
-            text = badgeText,
-            right = w - pad,
-            top = startY,
-            textSize = badgeSize,
-            hasImage = hasImage
-        )
-
-        val titleTop = startY + h * .050f
-        val titleSize = titleSize(w, slide.title.length, format)
-        val titleMaxLines = when (format) {
-            CardFormat.LANDSCAPE -> 3
-            CardFormat.SQUARE -> 4
-            else -> 5
-        }
-
-        val titleLayout = makeRtlLayout(
-            text = slide.title,
-            width = (w - 2 * pad).toInt(),
-            size = titleSize,
-            color = Color.WHITE,
-            spacing = 1.09f,
-            bold = true,
-            maxLines = titleMaxLines
-        )
-        drawLayout(canvas, titleLayout, pad, titleTop)
-
-        if (!bodyVisible) return
-
-        val gap = h * .030f
-        val bodyTop = titleTop + titleLayout.height + gap
-        val safeBottom = when (format) {
-            CardFormat.STORY -> h * .91f
-            CardFormat.PORTRAIT -> h * .92f
-            CardFormat.SQUARE -> h * .93f
-            CardFormat.LANDSCAPE -> h * .91f
-        }
-
-        if (bodyTop >= safeBottom - h * .10f) return
-
-        val bodySize = bodySize(w, slide.body.length, format)
-        val availableHeight = (safeBottom - bodyTop - h * .02f).toInt()
-        val estimatedLineHeight = (bodySize * 1.35f).toInt().coerceAtLeast(1)
-        val maxLines = (availableHeight / estimatedLineHeight)
-            .coerceIn(2, if (format == CardFormat.STORY) 9 else 7)
-
-        val bodyWidth = (w - 2 * pad - w * .055f).toInt()
-        val bodyLayout = makeRtlLayout(
-            text = slide.body,
-            width = bodyWidth,
-            size = bodySize,
-            color = Color.rgb(239, 239, 242),
-            spacing = 1.24f,
-            bold = false,
-            maxLines = maxLines
-        )
-
-        val panelLeft = pad
-        val panelRight = w - pad
-        val panelTop = bodyTop - h * .010f
-        val panelBottom = minOf(
-            safeBottom,
-            bodyTop + bodyLayout.height + h * .035f
-        )
-
-        paint.color = if (hasImage) {
-            Color.argb(118, 4, 4, 7)
-        } else {
-            Color.argb(20, 255, 255, 255)
-        }
-        canvas.drawRoundRect(
-            panelLeft,
-            panelTop,
-            panelRight,
-            panelBottom,
-            w * .025f,
-            w * .025f,
-            paint
-        )
-
-        drawLayout(
-            canvas,
-            bodyLayout,
-            pad + w * .0275f,
-            bodyTop + h * .010f
-        )
-    }
-
-    private fun drawBadge(
-        canvas: Canvas,
-        paint: Paint,
-        text: String,
-        right: Float,
-        top: Float,
-        textSize: Float,
-        hasImage: Boolean
-    ) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.textSize = textSize
-            typeface = Typeface.create("sans", Typeface.BOLD)
-        }
-        val width = p.measureText(text).coerceAtLeast(textSize * 2.2f)
-        val padX = textSize * .75f
-        val height = textSize * 1.85f
-
-        paint.color = if (hasImage) {
-            Color.argb(220, 214, 18, 30)
-        } else {
-            accentRed
-        }
-        canvas.drawRoundRect(
-            right - width - padX * 2,
-            top,
-            right,
-            top + height,
-            height / 2f,
-            height / 2f,
-            paint
-        )
-
-        drawText(
-            canvas,
-            text,
-            right - padX,
-            top + height * .20f,
-            textSize,
-            Color.WHITE,
-            true,
-            Paint.Align.RIGHT,
-            shadow = false
-        )
-    }
-
-    private fun drawPhotoScrim(
-        canvas: Canvas,
-        paint: Paint,
-        w: Int,
-        h: Int
-    ) {
-        paint.shader = LinearGradient(
-            0f,
-            0f,
-            0f,
-            h.toFloat(),
-            intArrayOf(
-                Color.argb(55, 0, 0, 0),
-                Color.argb(72, 0, 0, 0),
-                Color.argb(112, 0, 0, 0),
-                Color.argb(188, 0, 0, 0),
-                Color.argb(230, 0, 0, 0)
-            ),
-            floatArrayOf(0f, .16f, .38f, .72f, 1f),
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
-        paint.shader = null
-
-        paint.shader = LinearGradient(
-            0f,
-            h * .12f,
-            w.toFloat(),
-            h * .75f,
-            intArrayOf(Color.argb(45, 0, 0, 0), Color.TRANSPARENT),
-            null,
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRect(0f, h * .10f, w.toFloat(), h * .80f, paint)
-        paint.shader = null
-    }
-
-    private fun drawTextBackground(
+    private fun drawPremiumBackground(
         canvas: Canvas,
         paint: Paint,
         category: NewsCategory,
@@ -349,19 +169,19 @@ object CardBitmapRenderer {
     ) {
         val colors = when (category) {
             NewsCategory.JUDICIAL ->
-                intArrayOf(Color.rgb(38, 44, 58), Color.rgb(16, 18, 24), Color.rgb(49, 8, 14))
+                intArrayOf(Color.rgb(28, 31, 40), Color.rgb(12, 13, 17), Color.rgb(48, 7, 12))
             NewsCategory.POLITICS ->
-                intArrayOf(Color.rgb(42, 47, 66), Color.rgb(16, 18, 25), Color.rgb(49, 8, 14))
+                intArrayOf(Color.rgb(31, 33, 45), Color.rgb(12, 13, 17), Color.rgb(48, 7, 12))
             NewsCategory.ECONOMY ->
-                intArrayOf(Color.rgb(31, 53, 46), Color.rgb(14, 21, 18), Color.rgb(47, 8, 13))
+                intArrayOf(Color.rgb(23, 40, 35), Color.rgb(11, 16, 14), Color.rgb(46, 7, 11))
             NewsCategory.SPORTS ->
-                intArrayOf(Color.rgb(24, 57, 44), Color.rgb(11, 21, 16), Color.rgb(47, 8, 13))
+                intArrayOf(Color.rgb(20, 44, 33), Color.rgb(10, 17, 13), Color.rgb(46, 7, 11))
             NewsCategory.CULTURE ->
-                intArrayOf(Color.rgb(61, 44, 63), Color.rgb(21, 16, 22), Color.rgb(51, 8, 14))
+                intArrayOf(Color.rgb(45, 32, 47), Color.rgb(16, 12, 17), Color.rgb(49, 7, 12))
             NewsCategory.TECHNOLOGY ->
-                intArrayOf(Color.rgb(29, 53, 75), Color.rgb(14, 21, 29), Color.rgb(48, 8, 13))
+                intArrayOf(Color.rgb(24, 43, 57), Color.rgb(11, 16, 21), Color.rgb(47, 7, 12))
             else ->
-                intArrayOf(Color.rgb(49, 54, 69), Color.rgb(17, 18, 24), Color.rgb(49, 8, 14))
+                intArrayOf(Color.rgb(35, 38, 49), Color.rgb(12, 13, 17), Color.rgb(48, 7, 12))
         }
 
         paint.shader = LinearGradient(
@@ -376,42 +196,196 @@ object CardBitmapRenderer {
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
         paint.shader = null
 
+        paint.color = Color.argb(14, 255, 255, 255)
+        canvas.drawCircle(w * .92f, h * .15f, w * .36f, paint)
+        paint.color = Color.argb(10, 229, 22, 34)
+        canvas.drawCircle(w * .10f, h * .88f, w * .44f, paint)
+
         paint.color = Color.argb(12, 255, 255, 255)
-        canvas.drawCircle(w * .88f, h * .18f, w * .42f, paint)
-        paint.color = Color.argb(8, 255, 255, 255)
-        canvas.drawCircle(w * .10f, h * .78f, w * .36f, paint)
+        canvas.drawRoundRect(
+            w * .055f,
+            h * .105f,
+            w * .945f,
+            h * .108f,
+            3f,
+            3f,
+            paint
+        )
     }
 
-    private fun titleSize(
+    private fun drawBrandLockup(
+        canvas: Canvas,
+        paint: Paint,
         w: Int,
-        length: Int,
-        format: CardFormat
-    ): Float {
-        val base = when {
-            length < 42 -> w * .071f
-            length < 76 -> w * .061f
-            length < 112 -> w * .052f
-            else -> w * .045f
+        h: Int
+    ) {
+        val pad = w * .060f
+
+        drawText(
+            canvas,
+            brandSocial,
+            pad,
+            h * .028f,
+            w * .033f,
+            Color.WHITE,
+            true,
+            Paint.Align.LEFT
+        )
+        drawText(
+            canvas,
+            brandSite,
+            pad,
+            h * .064f,
+            w * .0205f,
+            Color.rgb(191, 191, 198),
+            false,
+            Paint.Align.LEFT
+        )
+
+        paint.color = accentRed
+        canvas.drawRoundRect(
+            pad,
+            h * .091f,
+            pad + w * .13f,
+            h * .095f,
+            3f,
+            3f,
+            paint
+        )
+
+        drawText(
+            canvas,
+            brandTitle,
+            w - pad,
+            h * .035f,
+            w * .027f,
+            Color.WHITE,
+            true,
+            Paint.Align.RIGHT
+        )
+        drawText(
+            canvas,
+            "نگاه جوان",
+            w - pad,
+            h * .070f,
+            w * .019f,
+            Color.rgb(194, 194, 201),
+            false,
+            Paint.Align.RIGHT
+        )
+    }
+
+    private fun drawBadge(
+        canvas: Canvas,
+        paint: Paint,
+        text: String,
+        right: Float,
+        top: Float,
+        height: Float,
+        textSize: Float
+    ) {
+        val measure = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.textSize = textSize
+            typeface = Typeface.create("sans", Typeface.BOLD)
+        }
+        val padX = textSize * .80f
+        val width = measure.measureText(text) + padX * 2
+
+        paint.color = accentRed
+        canvas.drawRoundRect(
+            right - width,
+            top,
+            right,
+            top + height,
+            height / 2f,
+            height / 2f,
+            paint
+        )
+
+        drawText(
+            canvas,
+            text,
+            right - padX,
+            top + height * .16f,
+            textSize,
+            Color.WHITE,
+            true,
+            Paint.Align.RIGHT
+        )
+    }
+
+    private fun drawBody(
+        canvas: Canvas,
+        paint: Paint,
+        body: String,
+        x: Float,
+        top: Float,
+        width: Int,
+        textSize: Float,
+        safeBottom: Float,
+        w: Int,
+        h: Int
+    ) {
+        val layout = makeRtlLayout(
+            text = body,
+            width = width - (w * .050f).toInt(),
+            size = textSize,
+            color = Color.rgb(238, 238, 242),
+            spacing = 1.28f,
+            bold = false
+        )
+
+        val panelBottom = minOf(
+            safeBottom,
+            top + layout.height + h * .034f
+        )
+
+        paint.color = Color.argb(22, 255, 255, 255)
+        canvas.drawRoundRect(
+            x,
+            top - h * .010f,
+            x + width,
+            panelBottom,
+            w * .025f,
+            w * .025f,
+            paint
+        )
+
+        drawLayout(
+            canvas,
+            layout,
+            x + w * .025f,
+            top + h * .007f
+        )
+    }
+
+    private fun imageHeight(
+        format: CardFormat,
+        h: Int
+    ): Float =
+        when (format) {
+            CardFormat.STORY -> h * .255f
+            CardFormat.PORTRAIT -> h * .245f
+            CardFormat.SQUARE -> h * .225f
+            CardFormat.LANDSCAPE -> h * .29f
         }
 
+    private fun titleSize(
+        format: CardFormat,
+        length: Int
+    ): Float {
+        val w = format.width.toFloat()
+        val base = when {
+            length < 44 -> w * .068f
+            length < 78 -> w * .058f
+            length < 118 -> w * .049f
+            else -> w * .043f
+        }
         return when (format) {
-            CardFormat.LANDSCAPE -> base * .84f
+            CardFormat.LANDSCAPE -> base * .82f
             CardFormat.SQUARE -> base * .92f
             else -> base
         }
-    }
-
-    private fun bodySize(
-        w: Int,
-        length: Int,
-        format: CardFormat
-    ): Float {
-        val base = when {
-            length < 170 -> w * .0315f
-            length < 300 -> w * .0285f
-            else -> w * .026f
-        }
-        return if (format == CardFormat.LANDSCAPE) base * .88f else base
     }
 
     suspend fun save(
@@ -427,12 +401,13 @@ object CardBitmapRenderer {
             ""
         }
 
-        val name = "NegahJavan_" +
-            System.currentTimeMillis() +
-            "_" +
-            format.name +
-            suffix +
-            ".png"
+        val name =
+            "NegahJavan_" +
+                System.currentTimeMillis() +
+                "_" +
+                format.name +
+                suffix +
+                ".png"
 
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, name)
@@ -467,20 +442,23 @@ object CardBitmapRenderer {
         }.getOrNull()
     }
 
-    private fun drawFocalCrop(
+    private fun drawRoundedFocalImage(
         canvas: Canvas,
         bitmap: Bitmap,
-        dest: Rect,
+        dest: RectF,
         paint: Paint,
         focusX: Float,
-        focusY: Float
+        focusY: Float,
+        radius: Float
     ) {
+        val destW = dest.width()
+        val destH = dest.height()
         val scale = max(
-            dest.width().toFloat() / bitmap.width,
-            dest.height().toFloat() / bitmap.height
+            destW / bitmap.width,
+            destH / bitmap.height
         )
-        val srcW = dest.width() / scale
-        val srcH = dest.height() / scale
+        val srcW = destW / scale
+        val srcH = destH / scale
 
         val left = (bitmap.width * focusX - srcW / 2f)
             .coerceIn(0f, (bitmap.width - srcW).coerceAtLeast(0f))
@@ -493,7 +471,30 @@ object CardBitmapRenderer {
             (left + srcW).toInt(),
             (top + srcH).toInt()
         )
-        canvas.drawBitmap(bitmap, src, RectF(dest), paint)
+
+        val path = Path().apply {
+            addRoundRect(dest, radius, radius, Path.Direction.CW)
+        }
+
+        canvas.save()
+        canvas.clipPath(path)
+        canvas.drawBitmap(bitmap, src, dest, paint)
+
+        paint.shader = LinearGradient(
+            dest.left,
+            dest.top,
+            dest.left,
+            dest.bottom,
+            intArrayOf(
+                Color.argb(5, 0, 0, 0),
+                Color.argb(55, 0, 0, 0)
+            ),
+            null,
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(dest, paint)
+        paint.shader = null
+        canvas.restore()
     }
 
     private fun makeRtlLayout(
@@ -502,8 +503,7 @@ object CardBitmapRenderer {
         size: Float,
         color: Int,
         spacing: Float,
-        bold: Boolean,
-        maxLines: Int
+        bold: Boolean
     ): StaticLayout {
         val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
@@ -520,8 +520,6 @@ object CardBitmapRenderer {
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setTextDirection(TextDirectionHeuristics.RTL)
             .setLineSpacing(0f, spacing)
-            .setMaxLines(maxLines)
-            .setEllipsize(TextUtils.TruncateAt.END)
             .build()
     }
 
@@ -545,8 +543,7 @@ object CardBitmapRenderer {
         size: Float,
         color: Int,
         bold: Boolean,
-        align: Paint.Align,
-        shadow: Boolean
+        align: Paint.Align
     ) {
         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
@@ -557,17 +554,7 @@ object CardBitmapRenderer {
             } else {
                 Typeface.create("sans", Typeface.NORMAL)
             }
-            if (shadow) {
-                setShadowLayer(size * .22f, 0f, size * .07f, Color.argb(180, 0, 0, 0))
-            }
         }
         canvas.drawText(text, x, y - p.ascent(), p)
     }
-
-    private fun similarityKey(value: String): String =
-        value.lowercase()
-            .replace(Regex("[^آ-یa-z0-9 ]"), "")
-            .replace(Regex("\\s+"), " ")
-            .trim()
-            .take(80)
 }
