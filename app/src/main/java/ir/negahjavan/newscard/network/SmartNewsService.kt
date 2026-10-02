@@ -4,9 +4,11 @@ import ir.negahjavan.newscard.BuildConfig
 import ir.negahjavan.newscard.model.CardTemplate
 import ir.negahjavan.newscard.model.NewsCategory
 import ir.negahjavan.newscard.model.NewsLength
+import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -30,7 +32,10 @@ class SmartNewsService {
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
             }
 
-            val body = JSONObject().put("text", parsed.fullText).toString()
+            val body = JSONObject()
+                .put("text", parsed.fullText)
+                .put("client_version", "1.1.0")
+                .toString()
             connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
             if (connection.responseCode !in 200..299) {
@@ -47,21 +52,38 @@ class SmartNewsService {
             val badge = cleanInline(json.optString("badge"))
                 .ifBlank { smartBadge(parsed.fullText, category) }
             val template = parseTemplate(json.optString("template"), category, length)
+            val remoteTitle = cleanInline(json.optString("title"))
+            val remoteLead = cleanInline(json.optString("lead"))
+            val title = when {
+                parsed.titleFromSource -> parsed.title
+                remoteTitle.length in 12..180 -> remoteTitle
+                else -> parsed.title
+            }
 
             SmartAnalysis(
-                title = parsed.title,
-                lead = firstUsefulSentence(parsed.bodyText),
+                title = title,
+                lead = remoteLead.ifBlank { firstUsefulSentence(parsed.bodyText) },
                 category = category,
                 badge = badge,
                 length = length,
                 recommendedTemplate = template,
+                recommendedPremiumTemplate = parsePremiumTemplate(
+                    json.optString("premium_template"),
+                    category,
+                    length,
+                    parsed.bodyText.isNotBlank()
+                ),
                 slides = emptyList(),
                 fullText = parsed.fullText,
                 bodyText = parsed.bodyText,
                 titleFromSource = parsed.titleFromSource,
-                accentWord = pickAccent(parsed.title),
-                hashtags = listOf("نگاه_جوان", category.fa.replace(' ', '_')),
-                source = "online",
+                accentWord = cleanInline(json.optString("accent_word"))
+                    .ifBlank { pickAccent(title) },
+                hashtags = parseHashtags(json.optJSONArray("hashtags"), category),
+                source = json.optString("source").ifBlank { "online" },
+                confidence = json.optDouble("confidence", 0.82)
+                    .toFloat()
+                    .coerceIn(0f, 1f),
                 decisionNote = decisionNote(length, parsed.bodyText)
             )
         } catch (_: Exception) {
@@ -81,6 +103,11 @@ class SmartNewsService {
             badge = badge,
             length = length,
             recommendedTemplate = chooseTemplate(category, length),
+            recommendedPremiumTemplate = choosePremiumTemplate(
+                category = category,
+                length = length,
+                hasBody = parsed.bodyText.isNotBlank()
+            ),
             slides = emptyList(),
             fullText = parsed.fullText,
             bodyText = parsed.bodyText,
@@ -88,6 +115,7 @@ class SmartNewsService {
             accentWord = pickAccent(parsed.title),
             hashtags = listOf("نگاه_جوان", category.fa.replace(' ', '_')),
             source = "local",
+            confidence = 0.66f,
             decisionNote = decisionNote(length, parsed.bodyText)
         )
     }
@@ -394,6 +422,62 @@ class SmartNewsService {
     ): CardTemplate =
         CardTemplate.entries.firstOrNull { value.equals(it.name, true) }
             ?: chooseTemplate(category, length)
+
+    private fun choosePremiumTemplate(
+        category: NewsCategory,
+        length: NewsLength,
+        hasBody: Boolean
+    ): PremiumTemplate =
+        when {
+            category == NewsCategory.BREAKING ||
+                category == NewsCategory.SOCIAL ->
+                PremiumTemplate.EDITORIAL_GLASS
+
+            length == NewsLength.LONG ||
+                category in setOf(
+                    NewsCategory.JUDICIAL,
+                    NewsCategory.POLITICS,
+                    NewsCategory.ECONOMY
+                ) ->
+                PremiumTemplate.LUXURY_MINIMAL
+
+            hasBody ->
+                PremiumTemplate.PHOTO_PREMIUM
+
+            else ->
+                PremiumTemplate.LUXURY_MINIMAL
+        }
+
+    private fun parsePremiumTemplate(
+        value: String,
+        category: NewsCategory,
+        length: NewsLength,
+        hasBody: Boolean
+    ): PremiumTemplate =
+        PremiumTemplate.entries.firstOrNull { value.equals(it.name, true) }
+            ?: choosePremiumTemplate(category, length, hasBody)
+
+    private fun parseHashtags(
+        array: JSONArray?,
+        category: NewsCategory
+    ): List<String> {
+        if (array == null) {
+            return listOf("نگاه_جوان", category.fa.replace(' ', '_'))
+        }
+
+        val values = buildList {
+            for (index in 0 until array.length()) {
+                val value = cleanInline(array.optString(index))
+                    .removePrefix("#")
+                    .replace(' ', '_')
+                if (value.isNotBlank()) add(value)
+            }
+        }.distinct().take(5)
+
+        return values.ifEmpty {
+            listOf("نگاه_جوان", category.fa.replace(' ', '_'))
+        }
+    }
 
     private fun pickAccent(title: String): String =
         title.split(' ')
