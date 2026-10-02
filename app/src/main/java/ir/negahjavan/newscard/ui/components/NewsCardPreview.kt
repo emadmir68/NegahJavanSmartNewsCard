@@ -23,6 +23,10 @@ import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartSlide
 import ir.negahjavan.newscard.ui.theme.BrandRed
 
+private const val BRAND_SOCIAL = "negahjavaan"
+private const val BRAND_SITE = "negahjavan.ir"
+private const val BRAND_TITLE = "پایگاه خبری نگاه جوان"
+
 @Composable
 fun NewsCardPreview(
     analysis: SmartAnalysis,
@@ -33,6 +37,7 @@ fun NewsCardPreview(
     modifier: Modifier = Modifier
 ) {
     val ratio = format.width.toFloat() / format.height
+    val hasImage = imageUri != null
 
     Box(
         modifier = modifier
@@ -40,35 +45,148 @@ fun NewsCardPreview(
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0xFF0B0B0E))
     ) {
-        if (imageUri != null) {
+        if (hasImage) {
             AsyncImage(
                 model = imageUri,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-
             Box(
-                Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color(0x26000000),
-                            Color(0xD9000000),
-                            Color(0xF508080A)
-                        ),
-                        startY = 120f
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Black.copy(alpha = .20f),
+                                Color.Black.copy(alpha = .25f),
+                                Color.Black.copy(alpha = .48f),
+                                Color.Black.copy(alpha = .82f)
+                            )
+                        )
                     )
-                )
             )
         } else {
             TextOnlyBackground(analysis.category)
         }
 
-        NewsContent(
-            analysis = analysis,
-            slide = slide,
-            hasImage = imageUri != null
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 16.dp)
+        ) {
+            BrandHeader()
+            Spacer(Modifier.height(34.dp))
+
+            Badge(slide.badge.ifBlank { analysis.badge })
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                text = slide.title,
+                color = Color.White,
+                fontSize = when {
+                    slide.title.length < 42 -> 28.sp
+                    slide.title.length < 76 -> 24.sp
+                    slide.title.length < 112 -> 21.sp
+                    else -> 18.sp
+                },
+                lineHeight = when {
+                    slide.title.length < 42 -> 36.sp
+                    slide.title.length < 76 -> 31.sp
+                    slide.title.length < 112 -> 27.sp
+                    else -> 24.sp
+                },
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Right,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            val bodyVisible = slide.body.isNotBlank() &&
+                compactKey(slide.body) != compactKey(slide.title)
+
+            if (bodyVisible) {
+                Spacer(Modifier.height(16.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (hasImage) Color.Black.copy(alpha = .38f)
+                            else Color.White.copy(alpha = .055f)
+                        )
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = slide.body,
+                        color = Color(0xFFEDEDF0),
+                        fontSize = when {
+                            slide.body.length < 170 -> 14.sp
+                            slide.body.length < 300 -> 13.sp
+                            else -> 12.sp
+                        },
+                        lineHeight = when {
+                            slide.body.length < 170 -> 22.sp
+                            slide.body.length < 300 -> 21.sp
+                            else -> 19.sp
+                        },
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrandHeader() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            BRAND_SITE,
+            color = Color.White,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Left,
+            maxLines = 1
+        )
+        Text(
+            BRAND_SOCIAL,
+            color = Color.White,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+        Text(
+            BRAND_TITLE,
+            color = Color.White,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1.35f),
+            textAlign = TextAlign.Right,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun Badge(text: String) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(BrandRed)
+            .padding(horizontal = 13.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black
         )
     }
 }
@@ -76,89 +194,32 @@ fun NewsCardPreview(
 @Composable
 private fun TextOnlyBackground(category: NewsCategory) {
     val colors = when (category) {
-        NewsCategory.JUDICIAL -> listOf(Color(0xFF242936), Color(0xFF101217), Color(0xFF2C080C))
-        NewsCategory.ECONOMY -> listOf(Color(0xFF20352F), Color(0xFF0F1714), Color(0xFF2C080C))
-        NewsCategory.SPORTS -> listOf(Color(0xFF17372A), Color(0xFF0C1611), Color(0xFF2C080C))
-        NewsCategory.TECHNOLOGY -> listOf(Color(0xFF1D3549), Color(0xFF0E161D), Color(0xFF2C080C))
-        else -> listOf(Color(0xFF303542), Color(0xFF121318), Color(0xFF2C080C))
+        NewsCategory.JUDICIAL ->
+            listOf(Color(0xFF262C3A), Color(0xFF101218), Color(0xFF31080E))
+        NewsCategory.POLITICS ->
+            listOf(Color(0xFF2A2F42), Color(0xFF101219), Color(0xFF31080E))
+        NewsCategory.ECONOMY ->
+            listOf(Color(0xFF1F352E), Color(0xFF0E1512), Color(0xFF2F080D))
+        NewsCategory.SPORTS ->
+            listOf(Color(0xFF18392C), Color(0xFF0B1510), Color(0xFF2F080D))
+        NewsCategory.CULTURE ->
+            listOf(Color(0xFF3D2C40), Color(0xFF151016), Color(0xFF33080E))
+        NewsCategory.TECHNOLOGY ->
+            listOf(Color(0xFF1D354B), Color(0xFF0E151D), Color(0xFF30080D))
+        else ->
+            listOf(Color(0xFF313645), Color(0xFF111218), Color(0xFF31080E))
     }
 
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(colors))
+            .background(Brush.linearGradient(colors))
     )
 }
 
-@Composable
-private fun NewsContent(
-    analysis: SmartAnalysis,
-    slide: SmartSlide,
-    hasImage: Boolean
-) {
-    val bodyVisible = slide.body.isNotBlank() && slide.body.trim() != slide.title.trim()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 22.dp),
-        verticalArrangement = if (bodyVisible) Arrangement.Bottom else Arrangement.Center,
-        horizontalAlignment = Alignment.End
-    ) {
-        Text(
-            text = slide.badge.ifBlank { analysis.badge },
-            color = BrandRed,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Right
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = slide.title,
-            color = Color.White,
-            fontSize = when {
-                slide.title.length < 45 -> 30.sp
-                slide.title.length < 80 -> 26.sp
-                slide.title.length < 115 -> 22.sp
-                else -> 19.sp
-            },
-            fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Right,
-            lineHeight = when {
-                slide.title.length < 45 -> 39.sp
-                slide.title.length < 80 -> 34.sp
-                slide.title.length < 115 -> 29.sp
-                else -> 25.sp
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        if (bodyVisible) {
-            Spacer(Modifier.height(18.dp))
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        if (hasImage) Color.Black.copy(alpha = .36f)
-                        else Color.White.copy(alpha = .055f),
-                        RoundedCornerShape(16.dp)
-                    )
-                    .padding(horizontal = 14.dp, vertical = 13.dp)
-            ) {
-                Text(
-                    text = slide.body,
-                    color = Color(0xFFE9E9ED),
-                    fontSize = 14.sp,
-                    lineHeight = 23.sp,
-                    textAlign = TextAlign.Right,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-
-        Spacer(Modifier.height(if (bodyVisible) 18.dp else 0.dp))
-    }
-}
+private fun compactKey(value: String): String =
+    value.lowercase()
+        .replace(Regex("[^آ-یa-z0-9 ]"), "")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+        .take(80)

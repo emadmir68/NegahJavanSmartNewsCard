@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Share
@@ -41,7 +42,6 @@ import kotlinx.coroutines.launch
 fun NewsCardApp(vm: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
     val analysis by vm.analysis.collectAsState()
     val loading by vm.loading.collectAsState()
 
@@ -52,7 +52,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
     val imagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
-        imageUri = uri
+        if (uri != null) imageUri = uri
     }
 
     Scaffold(
@@ -63,7 +63,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "AUTO NEWS STUDIO • 0.3",
+                            "SMART NEWS CARD • 0.4",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -84,7 +84,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            AutoHero()
+            IntroCard()
 
             OutlinedTextField(
                 value = text,
@@ -92,10 +92,10 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     text = it
                     vm.clear()
                 },
-                label = { Text("متن کامل خبر") },
-                placeholder = { Text("فقط متن خبر را اینجا بده؛ بقیه کار با اپ.") },
+                label = { Text("متن خبر") },
+                placeholder = { Text("متن کامل خبر را وارد کن؛ تیتر، خلاصه و تعداد اسلاید خودکار ساخته می‌شود.") },
                 minLines = 7,
-                maxLines = 14,
+                maxLines = 15,
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
                 shape = RoundedCornerShape(18.dp),
@@ -106,21 +106,41 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 )
             )
 
-            OutlinedButton(
-                onClick = { imagePicker.launch("image/*") },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF34343B))
-            ) {
-                Icon(Icons.Outlined.Image, null)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (imageUri == null) {
-                        "عکس داری؟ اضافه کن — اجباری نیست"
-                    } else {
-                        "عکس انتخاب شد • کراپ هوشمند فعال"
+            if (imageUri == null) {
+                OutlinedButton(
+                    onClick = { imagePicker.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color(0xFF34343B))
+                ) {
+                    Icon(Icons.Outlined.Image, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("افزودن عکس خبر — اختیاری")
+                }
+            } else {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { imagePicker.launch("image/*") },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Outlined.Image, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("تغییر عکس")
                     }
-                )
+                    OutlinedButton(
+                        onClick = { imageUri = null },
+                        modifier = Modifier.weight(.72f).height(50.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Outlined.Close, null)
+                        Spacer(Modifier.width(5.dp))
+                        Text("حذف عکس")
+                    }
+                }
             }
 
             Button(
@@ -139,14 +159,9 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 } else {
                     Icon(Icons.Outlined.AutoAwesome, null)
                 }
-
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (loading) {
-                        "در حال تحلیل و ساخت خودکار…"
-                    } else {
-                        "بساز؛ همه تصمیم‌ها با نگاه جوان"
-                    },
+                    if (loading) "در حال ساخت هوشمند…" else "ساخت هوشمند کارت",
                     fontWeight = FontWeight.Black
                 )
             }
@@ -156,17 +171,9 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     previewIndex = 0
                 }
 
-                SmartDecisionCard(
+                DecisionStrip(
                     result = result,
                     hasImage = imageUri != null
-                )
-
-                Text(
-                    "پیش‌نمایش خروجی",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Right
                 )
 
                 if (result.slides.size > 1) {
@@ -180,23 +187,28 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                                     .weight(1f)
                                     .clickable { previewIndex = index },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (previewIndex == index) {
-                                    BrandRed
-                                } else {
-                                    Color(0xFF17171D)
-                                }
+                                color = if (previewIndex == index) BrandRed else Color(0xFF17171D)
                             ) {
                                 Text(
-                                    (index + 1).toString(),
-                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    text = "اسلاید " + (index + 1),
+                                    modifier = Modifier.padding(vertical = 9.dp),
                                     color = Color.White,
                                     textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
                     }
                 }
+
+                Text(
+                    "پیش‌نمایش استوری",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 NewsCardPreview(
                     analysis = result,
@@ -211,33 +223,27 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     result = result,
                     imageUri = imageUri,
                     context = context,
-                    onLaunch = { block ->
-                        scope.launch { block() }
-                    }
+                    onLaunch = { action -> scope.launch { action() } }
                 )
             }
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(28.dp))
         }
     }
 }
 
 @Composable
-private fun AutoHero() {
+private fun IntroCard() {
     Box(
         Modifier
             .fillMaxWidth()
             .background(
                 Brush.linearGradient(
-                    listOf(
-                        Color(0xFF34090E),
-                        Color(0xFF17171C),
-                        Color(0xFF101014)
-                    )
+                    listOf(Color(0xFF32090E), Color(0xFF17171C), Color(0xFF101014))
                 ),
-                RoundedCornerShape(24.dp)
+                RoundedCornerShape(22.dp)
             )
-            .padding(18.dp)
+            .padding(17.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -249,10 +255,10 @@ private fun AutoHero() {
                 fontWeight = FontWeight.Black,
                 style = MaterialTheme.typography.titleMedium
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(5.dp))
             Text(
-                "طول متن، تیتر، لید، برچسب، قالب، تعداد اسلاید، کاور و کراپ عکس خودکار تصمیم‌گیری می‌شود.",
-                color = Color(0xFFB8B8C0),
+                "تیتر، لید، برچسب، تعداد اسلاید، جای متن و کراپ عکس خودکار تنظیم می‌شود.",
+                color = Color(0xFFB7B7C0),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Right
             )
@@ -261,67 +267,38 @@ private fun AutoHero() {
 }
 
 @Composable
-private fun SmartDecisionCard(
+private fun DecisionStrip(
     result: SmartAnalysis,
     hasImage: Boolean
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = Color(0xFF131318)
     ) {
         Column(
-            Modifier.padding(16.dp),
+            Modifier.padding(13.dp),
             horizontalAlignment = Alignment.End
         ) {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                Text(
-                    if (result.source == "online") "AI ONLINE" else "SMART LOCAL",
-                    color = if (result.source == "online") Color(0xFF74DB9B) else Color(0xFF9D9EA7),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "تصمیم خودکار",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black
+                SmallTag(result.length.fa, Modifier.weight(1f))
+                SmallTag(result.badge, Modifier.weight(1f))
+                SmallTag(
+                    if (result.slides.size > 1) result.slides.size.toString() + " اسلاید" else "یک کارت",
+                    Modifier.weight(1f)
                 )
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SmartTag(result.length.fa, Modifier.weight(1f))
-                SmartTag(result.badge, Modifier.weight(1f))
-                SmartTag(result.recommendedTemplate.fa, Modifier.weight(1f))
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                result.decisionNote,
-                color = Color(0xFFD7D7DC),
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Right,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(7.dp))
-
+            Spacer(Modifier.height(9.dp))
             Text(
                 if (hasImage) {
-                    "عکس تشخیص داده شد؛ کراپ چهره‌محور در خروجی اصلی اعمال می‌شود."
+                    result.decisionNote + " • کراپ چهره‌محور فعال"
                 } else {
-                    "عکس ندادی؛ کاور موضوعی هوشمند بر اساس نوع خبر ساخته می‌شود."
+                    result.decisionNote + " • کاور متنی هوشمند"
                 },
-                color = Color(0xFF9798A1),
+                color = Color(0xFFA5A6AF),
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Right,
                 modifier = Modifier.fillMaxWidth()
@@ -331,23 +308,21 @@ private fun SmartDecisionCard(
 }
 
 @Composable
-private fun SmartTag(
+private fun SmallTag(
     text: String,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier
-            .background(
-                Color(0xFF202027),
-                RoundedCornerShape(10.dp)
-            )
-            .padding(horizontal = 7.dp, vertical = 8.dp),
+            .background(Color(0xFF202027), RoundedCornerShape(10.dp))
+            .padding(horizontal = 6.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text,
+            text = text,
             color = Color.White,
             style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
             maxLines = 1
         )
     }
@@ -361,15 +336,14 @@ private fun OutputActions(
     onLaunch: (suspend () -> Unit) -> Unit
 ) {
     val storyLabel = if (result.slides.size > 1) {
-        result.slides.size.toString() + " استوری آماده"
+        "اشتراک " + result.slides.size + " استوری"
     } else {
-        "استوری آماده"
+        "اشتراک استوری"
     }
-
     val postLabel = if (result.slides.size > 1) {
-        result.slides.size.toString() + " کاروسل آماده"
+        "اشتراک کاروسل"
     } else {
-        "پست آماده"
+        "اشتراک پست"
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -381,10 +355,10 @@ private fun OutputActions(
                 onClick = {
                     onLaunch {
                         val uris = renderAndSaveSeries(
-                            context = context,
-                            result = result,
-                            imageUri = imageUri,
-                            format = CardFormat.STORY
+                            context,
+                            result,
+                            imageUri,
+                            CardFormat.STORY
                         )
                         shareImages(context, uris, "اشتراک استوری")
                     }
@@ -402,10 +376,10 @@ private fun OutputActions(
                 onClick = {
                     onLaunch {
                         val uris = renderAndSaveSeries(
-                            context = context,
-                            result = result,
-                            imageUri = imageUri,
-                            format = CardFormat.PORTRAIT
+                            context,
+                            result,
+                            imageUri,
+                            CardFormat.PORTRAIT
                         )
                         shareImages(context, uris, "اشتراک پست")
                     }
@@ -422,22 +396,21 @@ private fun OutputActions(
         OutlinedButton(
             onClick = {
                 onLaunch {
-                    val story = renderAndSaveSeries(
+                    val storyUris = renderAndSaveSeries(
                         context,
                         result,
                         imageUri,
                         CardFormat.STORY
                     )
-                    val post = renderAndSaveSeries(
+                    val postUris = renderAndSaveSeries(
                         context,
                         result,
                         imageUri,
                         CardFormat.PORTRAIT
                     )
-
                     Toast.makeText(
                         context,
-                        (story.size + post.size).toString() + " خروجی در گالری ذخیره شد",
+                        (storyUris.size + postUris.size).toString() + " فایل در گالری ذخیره شد",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -447,7 +420,7 @@ private fun OutputActions(
         ) {
             Icon(Icons.Outlined.Download, null)
             Spacer(Modifier.width(7.dp))
-            Text("ذخیره همه خروجی‌های هوشمند")
+            Text("ذخیره همه خروجی‌ها")
         }
     }
 }
@@ -478,7 +451,6 @@ private suspend fun renderAndSaveSeries(
             total = result.slides.size
         )?.let { uris += it }
     }
-
     return uris
 }
 

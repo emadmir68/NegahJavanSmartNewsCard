@@ -25,23 +25,26 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      - name: Validate backend syntax
+        run: python -m py_compile server/main.py
+
       - name: Make Gradle executable
         run: chmod +x gradlew
 
-      - name: Build debug APK
+      - name: Build final installable APK
         run: ./gradlew assembleDebug
 
-      - name: Publish APK to repository
+      - name: Publish final APK to repository
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/NegahJavanSmartNewsCard-0.3.2-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/NegahJavanSmartNewsCard-0.4.0-final.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/NegahJavanSmartNewsCard-0.3.2-debug.apk
+          git add dist/NegahJavanSmartNewsCard-0.4.0-final.apk
           if git diff --cached --quiet; then
             echo "APK unchanged; nothing to commit."
           else
-            git commit -m "build: publish APK 0.3.2 [skip ci]"
+            git commit -m "build: publish final APK 0.4.0 [skip ci]"
             git push origin HEAD:main
           fi
