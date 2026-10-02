@@ -420,7 +420,7 @@ object SmartPaginationEngine {
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setTextDirection(TextDirectionHeuristics.RTL)
             .setBreakStrategy(LineBreaker.BREAK_STRATEGY_HIGH_QUALITY)
-            .setHyphenationFrequency(LineBreaker.HYPHENATION_FREQUENCY_NONE)
+            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
             .setLineSpacing(0f, lineSpacing)
             .build()
             .height
