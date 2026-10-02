@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test-cloud": "node scripts/test-cloud-engine.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
-  }
+  },
+  "type": "module"
 }
