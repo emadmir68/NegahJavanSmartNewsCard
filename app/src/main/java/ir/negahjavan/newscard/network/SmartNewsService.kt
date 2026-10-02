@@ -269,12 +269,47 @@ class SmartNewsService {
 
     private fun smartBadge(text: String, category: NewsCategory): String {
         val t = text.lowercase()
+
+        val weatherWords = listOf(
+            "باران", "بارش", "رعدوبرق", "رعد و برق",
+            "طوفان", "گرد و غبار", "هواشناسی", "برف"
+        )
+        val roadWords = listOf(
+            "جاده", "محور", "راه", "لغزندگی", "رانندگان", "ترافیک"
+        )
+
         return when {
-            category == NewsCategory.BREAKING -> "فوری"
-            "مطالبه" in t && ("مردم" in t || "شهرستان" in t || "روستا" in t) ->
-                "مطالبه مردم"
+            "گزارش تصویری" in t -> "گزارش تصویری"
+
+            "انتصاب" in t ||
+                "منصوب شد" in t ||
+                "معارفه" in t ->
+                "انتصاب"
+
             "اطلاعیه" in t -> "اطلاعیه"
-            "هشدار" in t -> "هشدار"
+
+            "هشدار" in t && weatherWords.any(t::contains) ->
+                "هشدار جوی"
+
+            weatherWords.any(t::contains) &&
+                ("احتیاط" in t || "پراکنده" in t || "شدید" in t) ->
+                "وضعیت جوی"
+
+            roadWords.any(t::contains) &&
+                ("احتیاط" in t || "لغزندگی" in t || "مسدود" in t) ->
+                "وضعیت راه"
+
+            "مطالبه" in t &&
+                ("مردم" in t || "شهرستان" in t || "روستا" in t) ->
+                "مطالبه مردم"
+
+            "افتتاح" in t || "بهره‌برداری" in t ->
+                "افتتاح"
+
+            "جلسه" in t || "نشست" in t ->
+                "نشست"
+
+            category == NewsCategory.BREAKING -> "فوری"
             category == NewsCategory.JUDICIAL -> "قضایی"
             category == NewsCategory.POLITICS -> "سیاسی"
             category == NewsCategory.ECONOMY -> "اقتصادی"
@@ -290,7 +325,13 @@ class SmartNewsService {
     private fun detectCategory(text: String): NewsCategory {
         val t = text.lowercase()
         return when {
-            listOf("فوری", "لحظاتی پیش", "هم اکنون", "هم‌اکنون", "هشدار فوری").any(t::contains) ->
+            listOf(
+                "خبر فوری",
+                "فوری:",
+                "فوری؛",
+                "هشدار فوری",
+                "لحظاتی پیش"
+            ).any(t::contains) ->
                 NewsCategory.BREAKING
             listOf("دادگستری", "دادگاه", "قوه قضایی", "قضایی", "دادستان", "حقوق عامه").any(t::contains) ->
                 NewsCategory.JUDICIAL
@@ -306,7 +347,11 @@ class SmartNewsService {
                 NewsCategory.CULTURE
             listOf("ساردوئیه", "جیرفت", "کهنوج", "عنبرآباد", "روستا", "شهرستان").any(t::contains) ->
                 NewsCategory.LOCAL
-            listOf("شهرداری", "شهروند", "اجتماعی", "آموزش", "مدرسه").any(t::contains) ->
+            listOf(
+                "شهرداری", "شهروند", "اجتماعی", "آموزش", "مدرسه",
+                "هواشناسی", "بارش", "باران", "رعدوبرق", "رعد و برق",
+                "جاده", "محور", "ترافیک", "رانندگان"
+            ).any(t::contains) ->
                 NewsCategory.SOCIAL
             else -> NewsCategory.GENERAL
         }

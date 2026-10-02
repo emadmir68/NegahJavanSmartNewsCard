@@ -55,6 +55,11 @@ object CardBitmapRenderer {
         val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        val composition = SmartCompositionEngine.profile(
+            analysis = analysis,
+            format = format,
+            hasImage = page.showImage && imageUri != null
+        )
 
         drawPremiumBackground(
             canvas = canvas,
@@ -70,20 +75,25 @@ object CardBitmapRenderer {
 
         drawBrandLockup(canvas, paint, w, h, template)
 
-        val pad = w * .060f
-        val gap = max(18f, h * .017f)
-        val headerBottom = h * .118f
-        val imageTop = h * .137f
-        val imageHeight = imageHeight(
-            format = format,
-            h = h,
-            length = analysis.length,
-            hasImage = page.showImage
-        )
-        val safeBottom = h * .948f
-        val badgeHeight = h * .043f
+        val pad = w * composition.horizontalPadRatio
+        val gap = max(18f, h * composition.gapRatio)
+        val headerBottom = h * composition.headerBottomRatio
+        val imageTop = h * composition.imageTopRatio
+        val imageHeight = h * composition.imageHeightRatio
+        val safeBottom = h * composition.safeBottomRatio
+        val badgeHeight = h * composition.badgeHeightRatio
 
-        var contentTop = headerBottom + gap
+        var contentTop = if (
+            !page.showImage &&
+            composition.shortContentStartRatio > 0f
+        ) {
+            max(
+                headerBottom + gap,
+                h * composition.shortContentStartRatio
+            )
+        } else {
+            headerBottom + gap
+        }
 
         val photo = if (page.showImage) {
             imageUri?.let { loadBitmap(context, it) }
@@ -125,7 +135,11 @@ object CardBitmapRenderer {
             right = w - pad,
             top = contentTop,
             height = badgeHeight,
-            textSize = w * .0245f,
+            textSize = when {
+                page.badge.length >= 18 -> w * .0205f
+                page.badge.length >= 12 -> w * .0225f
+                else -> w * .0245f
+            },
             outlined = shortNoImage,
             template = template
         )
@@ -135,16 +149,13 @@ object CardBitmapRenderer {
             val titleLayout = makeRtlLayout(
                 text = page.title,
                 width = (w - 2 * pad).toInt(),
-                size = SmartPaginationEngine.titleSize(
-                    format = format,
-                    length = page.title.length
-                ),
+                size = composition.titleSizePx,
                 color = when (template) {
                     PremiumTemplate.LUXURY_MINIMAL -> warmIvory
                     PremiumTemplate.PHOTO_PREMIUM -> Color.WHITE
                     PremiumTemplate.EDITORIAL_GLASS -> Color.WHITE
                 },
-                spacing = 1.07f,
+                spacing = composition.titleLineSpacing,
                 bold = true
             )
 
@@ -165,7 +176,9 @@ object CardBitmapRenderer {
                     w = w,
                     h = h,
                     shortCover = shortNoImage,
-                    template = template
+                    template = template,
+                    lineSpacing = composition.bodyLineSpacing,
+                    density = composition.density
                 )
             }
         } else {
@@ -183,7 +196,9 @@ object CardBitmapRenderer {
                 w = w,
                 h = h,
                 shortCover = false,
-                template = template
+                template = template,
+                lineSpacing = composition.bodyLineSpacing,
+                density = composition.density
             )
         }
 
@@ -928,15 +943,21 @@ paint.shader = LinearGradient(
         w: Int,
         h: Int,
         shortCover: Boolean,
-        template: PremiumTemplate
+        template: PremiumTemplate,
+        lineSpacing: Float,
+        density: SmartCompositionEngine.Density
     ) {
-        val innerInset = w * .027f
+        val innerInset = when (density) {
+            SmartCompositionEngine.Density.AIRY -> w * .018f
+            SmartCompositionEngine.Density.BALANCED -> w * .024f
+            SmartCompositionEngine.Density.DENSE -> w * .027f
+        }
         val layout = makeRtlLayout(
             text = body,
             width = width - (w * .054f).toInt(),
             size = textSize,
             color = Color.rgb(239, 239, 243),
-            spacing = 1.30f,
+            spacing = lineSpacing,
             bold = false
         )
 
@@ -970,7 +991,11 @@ paint.shader = LinearGradient(
 
         val panelBottom = minOf(
             safeBottom,
-            top + layout.height + h * .032f
+            top + layout.height + when (density) {
+                SmartCompositionEngine.Density.AIRY -> h * .026f
+                SmartCompositionEngine.Density.BALANCED -> h * .030f
+                SmartCompositionEngine.Density.DENSE -> h * .034f
+            }
         )
 
         val panelRadius = when (template) {
@@ -980,9 +1005,21 @@ paint.shader = LinearGradient(
         }
 
         paint.color = when (template) {
-            PremiumTemplate.LUXURY_MINIMAL -> Color.argb(18, 255, 255, 255)
-            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(84, 0, 0, 0)
-            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(31, 255, 255, 255)
+            PremiumTemplate.LUXURY_MINIMAL -> when (density) {
+                SmartCompositionEngine.Density.AIRY -> Color.argb(8, 255, 255, 255)
+                SmartCompositionEngine.Density.BALANCED -> Color.argb(16, 255, 255, 255)
+                SmartCompositionEngine.Density.DENSE -> Color.argb(23, 255, 255, 255)
+            }
+            PremiumTemplate.PHOTO_PREMIUM -> when (density) {
+                SmartCompositionEngine.Density.AIRY -> Color.argb(62, 0, 0, 0)
+                SmartCompositionEngine.Density.BALANCED -> Color.argb(82, 0, 0, 0)
+                SmartCompositionEngine.Density.DENSE -> Color.argb(96, 0, 0, 0)
+            }
+            PremiumTemplate.EDITORIAL_GLASS -> when (density) {
+                SmartCompositionEngine.Density.AIRY -> Color.argb(22, 255, 255, 255)
+                SmartCompositionEngine.Density.BALANCED -> Color.argb(31, 255, 255, 255)
+                SmartCompositionEngine.Density.DENSE -> Color.argb(39, 255, 255, 255)
+            }
         }
         canvas.drawRoundRect(
             x,
@@ -1193,6 +1230,8 @@ paint.shader = LinearGradient(
             .obtain(text, 0, text.length, tp, width)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setTextDirection(TextDirectionHeuristics.RTL)
+            .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
+            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
             .setLineSpacing(0f, spacing)
             .build()
     }

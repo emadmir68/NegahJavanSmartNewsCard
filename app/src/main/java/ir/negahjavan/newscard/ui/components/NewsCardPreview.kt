@@ -24,6 +24,7 @@ import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
 import ir.negahjavan.newscard.ui.theme.BrandRed
+import ir.negahjavan.newscard.util.SmartCompositionEngine
 
 private const val BRAND_SOCIAL = "negahjavaan"
 private const val BRAND_SITE = "negahjavan.ir"
@@ -39,6 +40,11 @@ fun NewsCardPreview(
     modifier: Modifier = Modifier
 ) {
     val ratio = format.width.toFloat() / format.height
+    val composition = SmartCompositionEngine.profile(
+        analysis = analysis,
+        format = format,
+        hasImage = page.showImage && imageUri != null
+    )
     val shortCover =
         page.isFirst &&
             analysis.length == NewsLength.SHORT &&
@@ -67,13 +73,21 @@ fun NewsCardPreview(
                 .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
             BrandLockup(template)
-            Spacer(Modifier.height(14.dp))
+            Spacer(
+                Modifier.height(
+                    when (composition.density) {
+                        SmartCompositionEngine.Density.AIRY -> 16.dp
+                        SmartCompositionEngine.Density.BALANCED -> 13.dp
+                        SmartCompositionEngine.Density.DENSE -> 10.dp
+                    }
+                )
+            )
 
             if (page.showImage && imageUri != null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(imageFraction(format, analysis.length))
+                        .fillMaxHeight(composition.imageHeightRatio.coerceIn(.16f, .35f))
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color(0xFF101014))
                         .border(
@@ -116,18 +130,8 @@ fun NewsCardPreview(
                 Text(
                     text = page.title,
                     color = Color.White,
-                    fontSize = when {
-                        page.title.length < 38 -> 30.sp
-                        page.title.length < 68 -> 26.sp
-                        page.title.length < 105 -> 22.sp
-                        else -> 19.sp
-                    },
-                    lineHeight = when {
-                        page.title.length < 38 -> 38.sp
-                        page.title.length < 68 -> 33.sp
-                        page.title.length < 105 -> 28.sp
-                        else -> 25.sp
-                    },
+                    fontSize = (composition.titleSizePx / 2.75f).sp,
+                    lineHeight = (composition.titleSizePx / 2.75f * composition.titleLineSpacing * 1.18f).sp,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Right,
                     modifier = Modifier.fillMaxWidth()
@@ -147,8 +151,8 @@ fun NewsCardPreview(
                         Text(
                             text = page.body,
                             color = Color(0xFFEDEDF1),
-                            fontSize = 14.sp,
-                            lineHeight = 23.sp,
+                            fontSize = (page.bodyTextSizePx / 3.0f).sp,
+                            lineHeight = (page.bodyTextSizePx / 3.0f * composition.bodyLineSpacing * 1.18f).sp,
                             textAlign = TextAlign.Right,
                             modifier = Modifier.weight(1f)
                         )
@@ -188,16 +192,8 @@ fun NewsCardPreview(
                         Text(
                             text = page.body,
                             color = Color(0xFFEDEDF1),
-                            fontSize = when {
-                                page.bodyTextSizePx >= 40f -> 14.sp
-                                page.bodyTextSizePx >= 34f -> 13.sp
-                                else -> 12.sp
-                            },
-                            lineHeight = when {
-                                page.bodyTextSizePx >= 40f -> 23.sp
-                                page.bodyTextSizePx >= 34f -> 21.sp
-                                else -> 19.sp
-                            },
+                            fontSize = (page.bodyTextSizePx / 3.0f).sp,
+                            lineHeight = (page.bodyTextSizePx / 3.0f * composition.bodyLineSpacing * 1.18f).sp,
                             textAlign = TextAlign.Right,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -398,141 +394,6 @@ private fun Badge(
             fontSize = 10.sp,
             fontWeight = FontWeight.Black
         )
-    }
-}
-
-private fun imageFraction(
-    format: CardFormat,
-    length: NewsLength
-): Float =
-    when (length) {
-        NewsLength.SHORT -> when (format) {
-            CardFormat.STORY -> .30f
-            CardFormat.PORTRAIT -> .28f
-            CardFormat.SQUARE -> .25f
-            CardFormat.LANDSCAPE -> .31f
-        }
-        NewsLength.MEDIUM -> when (format) {
-            CardFormat.STORY -> .245f
-            CardFormat.PORTRAIT -> .23f
-            CardFormat.SQUARE -> .21f
-            CardFormat.LANDSCAPE -> .27f
-        }
-        NewsLength.LONG -> when (format) {
-            CardFormat.STORY -> .205f
-            CardFormat.PORTRAIT -> .19f
-            CardFormat.SQUARE -> .17f
-            CardFormat.LANDSCAPE -> .23f
-        }
-    }
-
-@Composable
-private fun BoxScope.TemplateChrome(template: PremiumTemplate) {
-    when (template) {
-        PremiumTemplate.LUXURY_MINIMAL -> {
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 12.dp, end = 14.dp)
-                    .width(86.dp)
-                    .height(2.dp)
-                    .background(Color(0xFFD6B168).copy(alpha = .55f))
-            )
-        }
-
-        PremiumTemplate.PHOTO_PREMIUM -> {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .background(Color(0xFF745BE0))
-            )
-            Column(
-                Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth(.88f),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                repeat(5) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color(0xFF745BE0).copy(alpha = .08f))
-                    )
-                }
-            }
-        }
-
-        PremiumTemplate.EDITORIAL_GLASS -> {
-            Box(
-                Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 16.dp)
-                    .width(3.dp)
-                    .fillMaxHeight(.52f)
-                    .background(BrandRed.copy(alpha = .78f))
-            )
-        }
-    }
-}
-
-@Composable
-private fun FooterBrand(
-    template: PremiumTemplate,
-    modifier: Modifier = Modifier
-) {
-    when (template) {
-        PremiumTemplate.LUXURY_MINIMAL -> {
-            Column(
-                modifier = modifier,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    BRAND_SITE.uppercase(),
-                    color = Color(0xFFA6A8AE),
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Black
-                )
-                Spacer(Modifier.height(5.dp))
-                Box(
-                    Modifier
-                        .width(82.dp)
-                        .height(2.dp)
-                        .background(Color(0xFFD6B168))
-                )
-            }
-        }
-
-        PremiumTemplate.PHOTO_PREMIUM -> {
-            Text(
-                BRAND_SITE.uppercase(),
-                color = Color(0xFFBDB3E6),
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Black,
-                modifier = modifier
-            )
-        }
-
-        PremiumTemplate.EDITORIAL_GLASS -> {
-            Row(
-                modifier = modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    BRAND_SOCIAL,
-                    color = Color.White,
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Black
-                )
-                Text(
-                    BRAND_SITE,
-                    color = Color(0xFFC7C7CD),
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
     }
 }
 

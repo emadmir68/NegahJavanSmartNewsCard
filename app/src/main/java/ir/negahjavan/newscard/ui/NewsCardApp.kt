@@ -38,6 +38,7 @@ import ir.negahjavan.newscard.ui.components.NewsCardPreview
 import ir.negahjavan.newscard.ui.theme.BrandRed
 import ir.negahjavan.newscard.util.AutoNewsImageGenerator
 import ir.negahjavan.newscard.util.CardBitmapRenderer
+import ir.negahjavan.newscard.util.SmartCompositionEngine
 import ir.negahjavan.newscard.util.SmartPaginationEngine
 import kotlinx.coroutines.launch
 
@@ -73,7 +74,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "VISUAL IDENTITY STUDIO • 0.9",
+                            "SMART COMPOSITION STUDIO • 1.0",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -251,6 +252,23 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     )
                 }
 
+                val recommendedTemplate = remember(
+                    result.title,
+                    result.category,
+                    result.length,
+                    imageUri
+                ) {
+                    SmartCompositionEngine.recommendTemplate(
+                        analysis = result,
+                        hasImage = imageUri != null
+                    )
+                }
+
+                LaunchedEffect(result.title, imageUri) {
+                    selectedTemplate = recommendedTemplate
+                    previewIndex = 0
+                }
+
                 val storyPages = remember(
                     result.title,
                     result.bodyText,
@@ -292,6 +310,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
 
                 TemplateSelector(
                     selected = selectedTemplate,
+                    recommended = recommendedTemplate,
                     onSelect = { selectedTemplate = it }
                 )
 
@@ -354,7 +373,7 @@ private fun IntroCard() {
             )
             Spacer(Modifier.height(5.dp))
             Text(
-                "تمرکز این نسخه روی هویت بصری نگاه جوان است؛ سه استایل مستقل و ثابت داری که به نوع خبر وابسته نیستند. واترمارک و حباب‌های دایره‌ای حذف شده‌اند.",
+                "نسخه هوشمند ترکیب‌بندی: اندازه تیتر، متن، فاصله‌ها، فضای عکس، لیبل، تعداد کارت و قالب پیشنهادی با توجه به خود خبر تنظیم می‌شوند؛ انتخاب نهایی قالب همچنان دست خودت است.",
                 color = Color(0xFFB7B7C0),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Right
@@ -480,6 +499,7 @@ private fun PageSelector(
 @Composable
 private fun TemplateSelector(
     selected: PremiumTemplate,
+    recommended: PremiumTemplate,
     onSelect: (PremiumTemplate) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -503,19 +523,23 @@ private fun TemplateSelector(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (active) {
+                    Column(horizontalAlignment = Alignment.Start) {
                         Text(
-                            "انتخاب شده",
-                            color = BrandRed,
+                            if (active) "انتخاب شده" else "نمایش",
+                            color = if (active) BrandRed else Color(0xFF8F8F98),
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Black
+                            fontWeight = if (active) FontWeight.Black else FontWeight.Normal
                         )
-                    } else {
-                        Text(
-                            "نمایش",
-                            color = Color(0xFF8F8F98),
-                            style = MaterialTheme.typography.labelSmall
-                        )
+
+                        if (template == recommended) {
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                "پیشنهاد هوشمند",
+                                color = Color(0xFFD6B168),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
                     }
 
                     Column(horizontalAlignment = Alignment.End) {

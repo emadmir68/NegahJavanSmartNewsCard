@@ -8,7 +8,6 @@ import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import ir.negahjavan.newscard.model.CardFormat
-import ir.negahjavan.newscard.model.NewsLength
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
 import kotlin.math.max
@@ -24,7 +23,8 @@ object SmartPaginationEngine {
         val imageHeight: Int,
         val safeBottom: Int,
         val badgeHeight: Int,
-        val gap: Int
+        val gap: Int,
+        val profile: SmartCompositionEngine.Profile
     )
 
     fun paginate(
@@ -32,7 +32,12 @@ object SmartPaginationEngine {
         format: CardFormat,
         hasImage: Boolean
     ): List<SmartPage> {
-        val metrics = metrics(format, analysis.length, hasImage)
+        val metrics = metrics(
+            analysis = analysis,
+            format = format,
+            hasImage = hasImage
+        )
+
         val title = analysis.title.trim()
         val body = analysis.bodyText.trim()
 
@@ -44,19 +49,17 @@ object SmartPaginationEngine {
                     badge = analysis.badge,
                     showImage = hasImage,
                     isFirst = true,
-                    bodyTextSizePx = preferredBodySize(format, analysis.length)
+                    bodyTextSizePx = metrics.profile.preferredBodySizePx
                 )
             )
         }
 
-        val candidates = bodyCandidates(format)
+        val candidates = SmartCompositionEngine.bodyCandidates(metrics.profile)
 
-        // Try one premium card first. We reduce font only to the readability floor;
-        // after that we paginate instead of making tiny text.
+        // First try a single card while respecting a readability floor.
         candidates.forEach { candidate ->
             val capacity = firstPageBodyHeight(
                 title = title,
-                format = format,
                 hasImage = hasImage,
                 bodyTextSize = candidate,
                 metrics = metrics
@@ -64,7 +67,12 @@ object SmartPaginationEngine {
 
             if (
                 capacity > 0 &&
-                textHeight(body, bodyWidth(metrics), candidate) <= capacity
+                textHeight(
+                    text = body,
+                    width = bodyWidth(metrics),
+                    textSize = candidate,
+                    lineSpacing = metrics.profile.bodyLineSpacing
+                ) <= capacity
             ) {
                 return listOf(
                     SmartPage(
@@ -79,23 +87,25 @@ object SmartPaginationEngine {
             }
         }
 
-        val bodySize = preferredBodySize(format, analysis.length)
+        val bodySize = metrics.profile.preferredBodySizePx
+            .coerceAtLeast(metrics.profile.minimumBodySizePx)
+
         val pages = mutableListOf<SmartPage>()
         var remaining = body
 
         val firstCapacity = firstPageBodyHeight(
             title = title,
-            format = format,
             hasImage = hasImage,
             bodyTextSize = bodySize,
             metrics = metrics
-        ).coerceAtLeast((bodySize * 3.8f).toInt())
+        ).coerceAtLeast((bodySize * 4.2f).toInt())
 
         val firstSplit = splitToFit(
             text = remaining,
             width = bodyWidth(metrics),
             textSize = bodySize,
-            maxHeight = firstCapacity
+            maxHeight = firstCapacity,
+            lineSpacing = metrics.profile.bodyLineSpacing
         )
 
         pages += SmartPage(
@@ -119,7 +129,8 @@ object SmartPaginationEngine {
                 text = remaining,
                 width = bodyWidth(metrics),
                 textSize = bodySize,
-                maxHeight = continuationHeight
+                maxHeight = continuationHeight,
+                lineSpacing = metrics.profile.bodyLineSpacing
             )
 
             pages += SmartPage(
@@ -140,93 +151,45 @@ object SmartPaginationEngine {
             }
         }
 
-        return pages
+        return rebalanceLastPage(
+            pages = pages,
+            width = bodyWidth(metrics),
+            textSize = bodySize,
+            continuationHeight = continuationHeight,
+            lineSpacing = metrics.profile.bodyLineSpacing
+        )
     }
 
     private fun metrics(
+        analysis: SmartAnalysis,
         format: CardFormat,
-        length: NewsLength,
         hasImage: Boolean
     ): Metrics {
+        val profile = SmartCompositionEngine.profile(
+            analysis = analysis,
+            format = format,
+            hasImage = hasImage
+        )
+
         val w = format.width
         val h = format.height
-
-        val imageRatio = if (!hasImage) {
-            0f
-        } else {
-            when (length) {
-                NewsLength.SHORT -> when (format) {
-                    CardFormat.STORY -> .30f
-                    CardFormat.PORTRAIT -> .28f
-                    CardFormat.SQUARE -> .25f
-                    CardFormat.LANDSCAPE -> .31f
-                }
-                NewsLength.MEDIUM -> when (format) {
-                    CardFormat.STORY -> .245f
-                    CardFormat.PORTRAIT -> .23f
-                    CardFormat.SQUARE -> .21f
-                    CardFormat.LANDSCAPE -> .27f
-                }
-                NewsLength.LONG -> when (format) {
-                    CardFormat.STORY -> .205f
-                    CardFormat.PORTRAIT -> .19f
-                    CardFormat.SQUARE -> .17f
-                    CardFormat.LANDSCAPE -> .23f
-                }
-            }
-        }
 
         return Metrics(
             width = w,
             height = h,
-            horizontalPad = (w * .060f).toInt(),
-            headerBottom = (h * .118f).toInt(),
-            imageTop = (h * .137f).toInt(),
-            imageHeight = (h * imageRatio).toInt(),
-            safeBottom = (h * .948f).toInt(),
-            badgeHeight = (h * .043f).toInt(),
-            gap = max(18, (h * .017f).toInt())
+            horizontalPad = (w * profile.horizontalPadRatio).toInt(),
+            headerBottom = (h * profile.headerBottomRatio).toInt(),
+            imageTop = (h * profile.imageTopRatio).toInt(),
+            imageHeight = (h * profile.imageHeightRatio).toInt(),
+            safeBottom = (h * profile.safeBottomRatio).toInt(),
+            badgeHeight = (h * profile.badgeHeightRatio).toInt(),
+            gap = max(18, (h * profile.gapRatio).toInt()),
+            profile = profile
         )
     }
 
-    private fun bodyCandidates(format: CardFormat): List<Float> =
-        when (format) {
-            CardFormat.STORY -> listOf(42f, 40f, 38f, 36f)
-            CardFormat.PORTRAIT -> listOf(38f, 36f, 34f, 32f)
-            CardFormat.SQUARE -> listOf(34f, 32f, 30f, 28f)
-            CardFormat.LANDSCAPE -> listOf(36f, 34f, 32f, 30f)
-        }
-
-    private fun preferredBodySize(
-        format: CardFormat,
-        length: NewsLength
-    ): Float =
-        when (format) {
-            CardFormat.STORY -> when (length) {
-                NewsLength.SHORT -> 42f
-                NewsLength.MEDIUM -> 40f
-                NewsLength.LONG -> 38f
-            }
-            CardFormat.PORTRAIT -> when (length) {
-                NewsLength.SHORT -> 38f
-                NewsLength.MEDIUM -> 36f
-                NewsLength.LONG -> 34f
-            }
-            CardFormat.SQUARE -> when (length) {
-                NewsLength.SHORT -> 34f
-                NewsLength.MEDIUM -> 32f
-                NewsLength.LONG -> 30f
-            }
-            CardFormat.LANDSCAPE -> when (length) {
-                NewsLength.SHORT -> 36f
-                NewsLength.MEDIUM -> 34f
-                NewsLength.LONG -> 32f
-            }
-        }
-
     private fun firstPageBodyHeight(
         title: String,
-        format: CardFormat,
         hasImage: Boolean,
         bodyTextSize: Float,
         metrics: Metrics
@@ -234,14 +197,20 @@ object SmartPaginationEngine {
         val titleHeight = textHeight(
             text = title,
             width = contentWidth(metrics),
-            textSize = titleSize(format, title.length),
-            bold = true
+            textSize = metrics.profile.titleSizePx,
+            bold = true,
+            lineSpacing = metrics.profile.titleLineSpacing
         )
 
-        val contentStart = if (hasImage && metrics.imageHeight > 0) {
-            metrics.imageTop + metrics.imageHeight + metrics.gap
-        } else {
-            metrics.headerBottom + metrics.gap
+        val contentStart = when {
+            hasImage && metrics.imageHeight > 0 ->
+                metrics.imageTop + metrics.imageHeight + metrics.gap
+
+            metrics.profile.shortContentStartRatio > 0f ->
+                (metrics.height * metrics.profile.shortContentStartRatio).toInt()
+
+            else ->
+                metrics.headerBottom + metrics.gap
         }
 
         val bodyTop =
@@ -264,29 +233,29 @@ object SmartPaginationEngine {
         format: CardFormat,
         length: Int
     ): Float {
-        val w = format.width.toFloat()
-        val base = when {
-            length < 38 -> w * .076f
-            length < 68 -> w * .066f
-            length < 105 -> w * .056f
-            else -> w * .047f
+        // Backward-compatible helper for callers that don't have the full title.
+        val placeholder = buildString {
+            repeat(length.coerceAtLeast(1)) { append('ن') }
         }
-
-        return when (format) {
-            CardFormat.LANDSCAPE -> base * .82f
-            CardFormat.SQUARE -> base * .91f
-            else -> base
-        }
+        return SmartCompositionEngine.smartTitleSize(format, placeholder)
     }
 
     private fun splitToFit(
         text: String,
         width: Int,
         textSize: Float,
-        maxHeight: Int
+        maxHeight: Int,
+        lineSpacing: Float
     ): Pair<String, String> {
         if (text.isBlank()) return "" to ""
-        if (textHeight(text, width, textSize) <= maxHeight) {
+        if (
+            textHeight(
+                text = text,
+                width = width,
+                textSize = textSize,
+                lineSpacing = lineSpacing
+            ) <= maxHeight
+        ) {
             return text.trim() to ""
         }
 
@@ -297,7 +266,15 @@ object SmartPaginationEngine {
         while (low <= high) {
             val mid = (low + high) / 2
             val probe = text.substring(0, mid)
-            if (textHeight(probe, width, textSize) <= maxHeight) {
+
+            if (
+                textHeight(
+                    text = probe,
+                    width = width,
+                    textSize = textSize,
+                    lineSpacing = lineSpacing
+                ) <= maxHeight
+            ) {
                 best = mid
                 low = mid + 1
             } else {
@@ -305,36 +282,139 @@ object SmartPaginationEngine {
             }
         }
 
-        val minimumUsefulCut = (best * .60f).toInt().coerceAtLeast(1)
-        var cut = best.coerceAtMost(text.length)
+        val lowerBound = (best * .55f).toInt().coerceAtLeast(1)
+        val candidateBoundaries = mutableListOf<Int>()
 
-        // Prefer paragraph and sentence boundaries. This keeps cards feeling
-        // editorial instead of mechanically cut in the middle of a thought.
-        val boundaryCandidates = listOf(
-            text.lastIndexOf("\n\n", cut - 1),
-            text.lastIndexOf('؟', cut - 1),
-            text.lastIndexOf('.', cut - 1),
-            text.lastIndexOf('!', cut - 1),
-            text.lastIndexOf('؛', cut - 1),
-            text.lastIndexOf('،', cut - 1),
-            text.lastIndexOf(' ', cut - 1)
-        ).filter { it >= minimumUsefulCut }
-
-        boundaryCandidates.maxOrNull()?.let {
-            cut = if (text.startsWith("\n\n", it)) it + 2 else it + 1
+        fun addBoundary(index: Int) {
+            if (index in lowerBound until best) {
+                candidateBoundaries += index
+            }
         }
 
-        val first = text.substring(0, cut).trimEnd()
-        val rest = text.substring(cut).trimStart()
+        var searchFrom = best - 1
+        repeat(8) {
+            val paragraph = text.lastIndexOf("
+
+", searchFrom)
+            val question = text.lastIndexOf('؟', searchFrom)
+            val dot = text.lastIndexOf('.', searchFrom)
+            val exclamation = text.lastIndexOf('!', searchFrom)
+            val semicolon = text.lastIndexOf('؛', searchFrom)
+            val comma = text.lastIndexOf('،', searchFrom)
+            val space = text.lastIndexOf(' ', searchFrom)
+
+            listOf(
+                paragraph,
+                question,
+                dot,
+                exclamation,
+                semicolon,
+                comma,
+                space
+            ).forEach(::addBoundary)
+
+            val nearest = listOf(
+                paragraph,
+                question,
+                dot,
+                exclamation,
+                semicolon,
+                comma,
+                space
+            ).filter { it >= lowerBound }
+                .maxOrNull()
+                ?: return@repeat
+
+            searchFrom = nearest - 1
+        }
+
+        var cut = candidateBoundaries.maxOrNull() ?: best
+
+        // Avoid tiny orphan fragments on the next card.
+        val initialRest = text.substring(cut.coerceAtMost(text.length)).trimStart()
+        if (initialRest.length in 1..170) {
+            val preferredRest = 220
+            val desiredCut = (text.length - preferredRest)
+                .coerceAtLeast(lowerBound)
+
+            val earlier = candidateBoundaries
+                .filter { it in lowerBound..desiredCut }
+                .maxOrNull()
+
+            if (earlier != null) {
+                cut = earlier
+            }
+        }
+
+        if (text.startsWith("
+
+", cut)) {
+            cut += 2
+        } else if (
+            cut < text.length &&
+            text[cut] in listOf('؟', '.', '!', '؛', '،')
+        ) {
+            cut += 1
+        }
+
+        val first = text.substring(0, cut.coerceAtMost(text.length)).trimEnd()
+        val rest = text.substring(cut.coerceAtMost(text.length)).trimStart()
 
         return first to rest
+    }
+
+    private fun rebalanceLastPage(
+        pages: List<SmartPage>,
+        width: Int,
+        textSize: Float,
+        continuationHeight: Int,
+        lineSpacing: Float
+    ): List<SmartPage> {
+        if (pages.size < 3) return pages
+
+        val last = pages.last()
+        if (last.body.length >= 170) return pages
+
+        val previousIndex = pages.lastIndex - 1
+        val previous = pages[previousIndex]
+
+        val previousSentences = previous.body
+            .split(Regex("(?<=[.!؟؛])\s+"))
+            .filter { it.isNotBlank() }
+
+        if (previousSentences.size < 2) return pages
+
+        val moved = previousSentences.last()
+        val shortenedPrevious = previousSentences
+            .dropLast(1)
+            .joinToString(" ")
+            .trim()
+
+        val enlargedLast = (moved + " " + last.body).trim()
+
+        if (shortenedPrevious.length < 120) return pages
+
+        val lastHeight = textHeight(
+            text = enlargedLast,
+            width = width,
+            textSize = textSize,
+            lineSpacing = lineSpacing
+        )
+
+        if (lastHeight > continuationHeight) return pages
+
+        return pages.toMutableList().apply {
+            this[previousIndex] = previous.copy(body = shortenedPrevious)
+            this[lastIndex] = last.copy(body = enlargedLast)
+        }
     }
 
     private fun textHeight(
         text: String,
         width: Int,
         textSize: Float,
-        bold: Boolean = false
+        bold: Boolean = false,
+        lineSpacing: Float = 1.30f
     ): Int {
         if (text.isBlank()) return 0
 
@@ -352,7 +432,9 @@ object SmartPaginationEngine {
             .obtain(text, 0, text.length, paint, width)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setTextDirection(TextDirectionHeuristics.RTL)
-            .setLineSpacing(0f, if (bold) 1.07f else 1.30f)
+            .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
+            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+            .setLineSpacing(0f, lineSpacing)
             .build()
             .height
     }
