@@ -10,7 +10,6 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
-import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.net.Uri
@@ -324,22 +323,6 @@ paint.shader = LinearGradient(
             )
             paint.style = Paint.Style.FILL
 
-            val watermark = analysis.accentWord
-                .takeIf { it.length >= 4 }
-                ?: analysis.category.fa
-
-            drawText(
-                canvas = canvas,
-                text = watermark,
-                x = w * .50f,
-                y = h * .72f,
-                size = w * .095f,
-                color = Color.argb(18, 255, 255, 255),
-                bold = true,
-                align = Paint.Align.CENTER
-            )
-        }
-
         paint.color = Color.argb(15, 255, 255, 255)
         canvas.drawRoundRect(
             w * .060f,
@@ -407,66 +390,85 @@ paint.shader = LinearGradient(
         h: Int
     ) {
         val pad = w * .060f
+        val top = h * .014f
+        val bottom = h * .102f
+        val radius = w * .022f
+
+        paint.color = Color.argb(58, 0, 0, 0)
+        canvas.drawRoundRect(
+            pad,
+            top,
+            w - pad,
+            bottom,
+            radius,
+            radius,
+            paint
+        )
+
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = max(1.5f, w * .0016f)
+        paint.color = Color.argb(30, 255, 255, 255)
+        canvas.drawRoundRect(
+            pad,
+            top,
+            w - pad,
+            bottom,
+            radius,
+            radius,
+            paint
+        )
+        paint.style = Paint.Style.FILL
 
         drawText(
             canvas = canvas,
             text = brandSocial,
-            x = pad,
-            y = h * .023f,
-            size = w * .036f,
+            x = pad + w * .026f,
+            y = h * .022f,
+            size = w * .045f,
             color = Color.WHITE,
             bold = true,
             align = Paint.Align.LEFT
         )
 
-        val sitePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = w * .019f
-            typeface = Typeface.create("sans", Typeface.BOLD)
-        }
-        val siteWidth = sitePaint.measureText(brandSite)
-        val pillTop = h * .069f
-        val pillHeight = h * .025f
-        val pillRight = pad + siteWidth + w * .030f
-
-        paint.color = Color.argb(24, 255, 255, 255)
-        canvas.drawRoundRect(
-            pad,
-            pillTop,
-            pillRight,
-            pillTop + pillHeight,
-            pillHeight / 2f,
-            pillHeight / 2f,
-            paint
-        )
-
         drawText(
             canvas = canvas,
             text = brandSite,
-            x = pad + w * .015f,
-            y = pillTop + h * .001f,
-            size = w * .019f,
-            color = Color.rgb(205, 205, 211),
+            x = pad + w * .026f,
+            y = h * .061f,
+            size = w * .023f,
+            color = Color.rgb(228, 228, 233),
             bold = true,
             align = Paint.Align.LEFT
         )
 
         paint.color = accentRed
         canvas.drawRoundRect(
-            w - pad - w * .014f,
-            h * .021f,
-            w - pad,
-            h * .078f,
-            w * .007f,
-            w * .007f,
+            pad + w * .026f,
+            h * .090f,
+            pad + w * .135f,
+            h * .094f,
+            w * .003f,
+            w * .003f,
+            paint
+        )
+
+        paint.color = accentRed
+        canvas.drawRoundRect(
+            w - pad - w * .015f,
+            h * .026f,
+            w - pad - w * .006f,
+            h * .088f,
+            w * .005f,
+            w * .005f,
             paint
         )
 
         drawText(
             canvas = canvas,
             text = brandTitle,
-            x = w - pad - w * .032f,
-            y = h * .031f,
-            size = w * .029f,
+            x = w - pad - w * .038f,
+            y = h * .034f,
+            size = w * .036f,
             color = Color.WHITE,
             bold = true,
             align = Paint.Align.RIGHT

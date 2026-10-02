@@ -49,19 +49,6 @@ fun NewsCardPreview(
             .clip(RoundedCornerShape(24.dp))
             .background(backgroundBrush(analysis.category))
     ) {
-        if (shortCover) {
-            Text(
-                text = analysis.accentWord.takeIf { it.length >= 4 }
-                    ?: analysis.category.fa,
-                color = Color.White.copy(alpha = .045f),
-                fontSize = 52.sp,
-                fontWeight = FontWeight.Black,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(bottom = 28.dp)
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -191,8 +178,17 @@ fun NewsCardPreview(
 @Composable
 private fun BrandLockup() {
     Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.Black.copy(alpha = .22f))
+            .border(
+                1.dp,
+                Color.White.copy(alpha = .08f),
+                RoundedCornerShape(14.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
             modifier = Modifier.weight(1f),
@@ -201,42 +197,45 @@ private fun BrandLockup() {
             Text(
                 BRAND_SOCIAL,
                 color = Color.White,
-                fontSize = 14.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Black
             )
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(2.dp))
+            Text(
+                BRAND_SITE,
+                color = Color(0xFFE3E3E8),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(5.dp))
             Box(
                 Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Color.White.copy(alpha = .07f))
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
-            ) {
-                Text(
-                    BRAND_SITE,
-                    color = Color(0xFFD0D0D5),
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                    .width(42.dp)
+                    .height(3.dp)
+                    .background(BrandRed, RoundedCornerShape(50))
+            )
         }
 
+        Spacer(Modifier.width(10.dp))
+
         Row(
-            modifier = Modifier.weight(1.35f),
+            modifier = Modifier.weight(1.55f),
             horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 BRAND_TITLE,
                 color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Right
             )
-            Spacer(Modifier.width(7.dp))
+            Spacer(Modifier.width(9.dp))
             Box(
                 Modifier
                     .width(4.dp)
-                    .height(31.dp)
+                    .height(38.dp)
                     .background(BrandRed, RoundedCornerShape(50))
             )
         }
