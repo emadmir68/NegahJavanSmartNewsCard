@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "ai-studio-1.1" ]
     paths-ignore:
       - "dist/**"
   pull_request:
@@ -14,11 +14,27 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      AI_BASE_URL: ${{ vars.AI_BASE_URL }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Validate backend
+        working-directory: server
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m py_compile main.py
+          python test_main.py
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -27,30 +43,32 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Validate backend syntax
-        run: python -m py_compile server/main.py
-
       - name: Make Gradle executable
         run: chmod +x gradlew
 
-      - name: Build final installable APK
+      - name: Unit tests and lint
+        run: |
+          ./gradlew testDebugUnitTest
+          ./gradlew lintDebug
+
+      - name: Build installable APK
         run: ./gradlew assembleDebug
 
       - name: Publish final APK to repository
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p /tmp/negahjavan-apk
-          cp app/build/outputs/apk/debug/app-debug.apk /tmp/negahjavan-apk/NegahJavanSmartNewsCard-1.0.0-final.apk
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/negahjavan-apk/NegahJavanSmartNewsCard-1.1.0-final.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git rebase origin/main
           mkdir -p dist
-          cp /tmp/negahjavan-apk/NegahJavanSmartNewsCard-1.0.0-final.apk dist/NegahJavanSmartNewsCard-1.0.0-final.apk
-          git add dist/NegahJavanSmartNewsCard-1.0.0-final.apk
+          cp /tmp/negahjavan-apk/NegahJavanSmartNewsCard-1.1.0-final.apk dist/NegahJavanSmartNewsCard-1.1.0-final.apk
+          git add dist/NegahJavanSmartNewsCard-1.1.0-final.apk
           if git diff --cached --quiet; then
             echo "APK unchanged; nothing to commit."
           else
-            git commit -m "build: publish final APK 1.0.0 [skip ci]"
+            git commit -m "build: publish final APK 1.1.0 [skip ci]"
             git push origin HEAD:main
           fi
