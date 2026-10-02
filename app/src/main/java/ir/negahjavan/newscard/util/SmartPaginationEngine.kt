@@ -3,6 +3,7 @@ package ir.negahjavan.newscard.util
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.graphics.text.LineBreaker
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
@@ -418,8 +419,8 @@ object SmartPaginationEngine {
             .obtain(text, 0, text.length, paint, width)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setTextDirection(TextDirectionHeuristics.RTL)
-            .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
-            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+            .setBreakStrategy(LineBreaker.BREAK_STRATEGY_HIGH_QUALITY)
+            .setHyphenationFrequency(LineBreaker.HYPHENATION_FREQUENCY_NONE)
             .setLineSpacing(0f, lineSpacing)
             .build()
             .height
