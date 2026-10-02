@@ -14,6 +14,12 @@ enum class CardFormat(val fa: String, val width: Int, val height: Int) {
     SQUARE("مربع 1:1", 1080, 1080)
 }
 
+enum class CardTemplate(val fa: String, val subtitle: String) {
+    SIGNATURE("امضای نگاه", "لوکس، تمیز و مناسب اکثر خبرها"),
+    BREAKING_PLUS("فوری پلاس", "پرقدرت برای خبر فوری و تیترهای مهم"),
+    EDITORIAL("ادیتوریال", "مجله‌ای، مینیمال و مناسب گزارش و تحلیل")
+}
+
 data class NewsDraft(
     val rawText: String = "",
     val imageUri: Uri? = null,

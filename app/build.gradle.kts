@@ -14,10 +14,10 @@ android {
         applicationId = "ir.negahjavan.newscard"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
 
-        buildConfigField("String", "AI_BASE_URL", "\"${aiBaseUrl}\"")
+        buildConfigField("String", "AI_BASE_URL", "\u0022" + aiBaseUrl + "\u0022")
     }
 
     buildFeatures {
@@ -39,6 +39,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
