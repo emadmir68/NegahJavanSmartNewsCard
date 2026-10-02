@@ -2,6 +2,7 @@ package ir.negahjavan.newscard.ui.components
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.NewsCategory
+import ir.negahjavan.newscard.model.NewsLength
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
 import ir.negahjavan.newscard.ui.theme.BrandRed
@@ -36,97 +38,150 @@ fun NewsCardPreview(
     modifier: Modifier = Modifier
 ) {
     val ratio = format.width.toFloat() / format.height
+    val shortCover =
+        page.isFirst &&
+            analysis.length == NewsLength.SHORT &&
+            !page.showImage
 
     Box(
         modifier = modifier
             .aspectRatio(ratio)
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF0B0B0E))
+            .background(backgroundBrush(analysis.category))
     ) {
-        Background(analysis.category)
+        if (shortCover) {
+            Text(
+                text = analysis.accentWord.takeIf { it.length >= 4 }
+                    ?: analysis.category.fa,
+                color = Color.White.copy(alpha = .045f),
+                fontSize = 52.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(bottom = 28.dp)
+            )
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 18.dp, vertical = 16.dp)
+                .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
             BrandLockup()
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             if (page.showImage && imageUri != null) {
-                AsyncImage(
-                    model = imageUri,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(
-                            when (format) {
-                                CardFormat.STORY -> .255f
-                                CardFormat.PORTRAIT -> .245f
-                                CardFormat.SQUARE -> .225f
-                                CardFormat.LANDSCAPE -> .29f
-                            }
-                        )
+                        .fillMaxHeight(imageFraction(format, analysis.length))
                         .clip(RoundedCornerShape(18.dp))
-                )
+                        .background(Color(0xFF101014))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = .16f),
+                            shape = RoundedCornerShape(18.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 Spacer(Modifier.height(14.dp))
             }
 
-            Badge(page.badge.ifBlank {
-                if (page.isContinuation) "ادامه خبر" else analysis.badge
-            })
-            Spacer(Modifier.height(12.dp))
+            Badge(
+                text = page.badge.ifBlank {
+                    if (page.isContinuation) "ادامه خبر" else analysis.badge
+                },
+                outlined = shortCover
+            )
+            Spacer(Modifier.height(11.dp))
 
             if (page.isFirst && page.title.isNotBlank()) {
                 Text(
                     text = page.title,
                     color = Color.White,
                     fontSize = when {
-                        page.title.length < 44 -> 27.sp
-                        page.title.length < 78 -> 24.sp
-                        page.title.length < 118 -> 21.sp
-                        else -> 18.sp
+                        page.title.length < 38 -> 30.sp
+                        page.title.length < 68 -> 26.sp
+                        page.title.length < 105 -> 22.sp
+                        else -> 19.sp
                     },
                     lineHeight = when {
-                        page.title.length < 44 -> 35.sp
-                        page.title.length < 78 -> 31.sp
-                        page.title.length < 118 -> 27.sp
-                        else -> 24.sp
+                        page.title.length < 38 -> 38.sp
+                        page.title.length < 68 -> 33.sp
+                        page.title.length < 105 -> 28.sp
+                        else -> 25.sp
                     },
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Right,
                     modifier = Modifier.fillMaxWidth()
                 )
+
                 if (page.body.isNotBlank()) {
                     Spacer(Modifier.height(14.dp))
                 }
             }
 
             if (page.body.isNotBlank()) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = .055f))
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        text = page.body,
-                        color = Color(0xFFEDEDF1),
-                        fontSize = when {
-                            page.bodyTextSizePx >= 32f -> 14.sp
-                            page.bodyTextSizePx >= 29f -> 13.sp
-                            else -> 12.sp
-                        },
-                        lineHeight = when {
-                            page.bodyTextSizePx >= 32f -> 22.sp
-                            page.bodyTextSizePx >= 29f -> 21.sp
-                            else -> 19.sp
-                        },
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                if (shortCover) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = page.body,
+                            color = Color(0xFFEDEDF1),
+                            fontSize = 14.sp,
+                            lineHeight = 23.sp,
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Box(
+                            Modifier
+                                .width(3.dp)
+                                .heightIn(min = 56.dp)
+                                .background(
+                                    BrandRed,
+                                    RoundedCornerShape(50)
+                                )
+                        )
+                    }
+                } else {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(alpha = .055f))
+                            .border(
+                                1.dp,
+                                Color.White.copy(alpha = .07f),
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = page.body,
+                            color = Color(0xFFEDEDF1),
+                            fontSize = when {
+                                page.bodyTextSizePx >= 40f -> 14.sp
+                                page.bodyTextSizePx >= 34f -> 13.sp
+                                else -> 12.sp
+                            },
+                            lineHeight = when {
+                                page.bodyTextSizePx >= 40f -> 23.sp
+                                page.bodyTextSizePx >= 34f -> 21.sp
+                                else -> 19.sp
+                            },
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -146,26 +201,29 @@ private fun BrandLockup() {
             Text(
                 BRAND_SOCIAL,
                 color = Color.White,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Black
             )
-            Text(
-                BRAND_SITE,
-                color = Color(0xFFBFC0C6),
-                fontSize = 9.sp
-            )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
             Box(
                 Modifier
-                    .width(42.dp)
-                    .height(2.dp)
-                    .background(BrandRed, RoundedCornerShape(50))
-            )
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = .07f))
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    BRAND_SITE,
+                    color = Color(0xFFD0D0D5),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
-        Column(
-            modifier = Modifier.weight(1.25f),
-            horizontalAlignment = Alignment.End
+        Row(
+            modifier = Modifier.weight(1.35f),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.Top
         ) {
             Text(
                 BRAND_TITLE,
@@ -174,22 +232,33 @@ private fun BrandLockup() {
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Right
             )
-            Text(
-                "نگاه جوان",
-                color = Color(0xFFC3C3C9),
-                fontSize = 9.sp,
-                textAlign = TextAlign.Right
+            Spacer(Modifier.width(7.dp))
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .height(31.dp)
+                    .background(BrandRed, RoundedCornerShape(50))
             )
         }
     }
 }
 
 @Composable
-private fun Badge(text: String) {
+private fun Badge(
+    text: String,
+    outlined: Boolean
+) {
+    val shape = RoundedCornerShape(50)
+
     Box(
         Modifier
-            .clip(RoundedCornerShape(50))
-            .background(BrandRed)
+            .then(
+                if (outlined) {
+                    Modifier.border(1.dp, BrandRed, shape)
+                } else {
+                    Modifier.background(BrandRed, shape)
+                }
+            )
             .padding(horizontal = 13.dp, vertical = 6.dp)
     ) {
         Text(
@@ -201,28 +270,49 @@ private fun Badge(text: String) {
     }
 }
 
-@Composable
-private fun Background(category: NewsCategory) {
-    val colors = when (category) {
-        NewsCategory.JUDICIAL ->
-            listOf(Color(0xFF1D2029), Color(0xFF0D0E12), Color(0xFF30070C))
-        NewsCategory.POLITICS ->
-            listOf(Color(0xFF20232E), Color(0xFF0D0E12), Color(0xFF30070C))
-        NewsCategory.ECONOMY ->
-            listOf(Color(0xFF172822), Color(0xFF0B100E), Color(0xFF2E070B))
-        NewsCategory.SPORTS ->
-            listOf(Color(0xFF152B21), Color(0xFF0A110D), Color(0xFF2E070B))
-        NewsCategory.CULTURE ->
-            listOf(Color(0xFF2C202E), Color(0xFF100D11), Color(0xFF31070C))
-        NewsCategory.TECHNOLOGY ->
-            listOf(Color(0xFF192C3A), Color(0xFF0B1015), Color(0xFF2F070B))
-        else ->
-            listOf(Color(0xFF252832), Color(0xFF0D0E12), Color(0xFF30070C))
+private fun imageFraction(
+    format: CardFormat,
+    length: NewsLength
+): Float =
+    when (length) {
+        NewsLength.SHORT -> when (format) {
+            CardFormat.STORY -> .30f
+            CardFormat.PORTRAIT -> .28f
+            CardFormat.SQUARE -> .25f
+            CardFormat.LANDSCAPE -> .31f
+        }
+        NewsLength.MEDIUM -> when (format) {
+            CardFormat.STORY -> .245f
+            CardFormat.PORTRAIT -> .23f
+            CardFormat.SQUARE -> .21f
+            CardFormat.LANDSCAPE -> .27f
+        }
+        NewsLength.LONG -> when (format) {
+            CardFormat.STORY -> .205f
+            CardFormat.PORTRAIT -> .19f
+            CardFormat.SQUARE -> .17f
+            CardFormat.LANDSCAPE -> .23f
+        }
     }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Brush.linearGradient(colors))
-    )
+private fun backgroundBrush(
+    category: NewsCategory
+): Brush {
+    val colors = when (category) {
+        NewsCategory.JUDICIAL ->
+            listOf(Color(0xFF1F222C), Color(0xFF0B0C10), Color(0xFF34070D))
+        NewsCategory.POLITICS ->
+            listOf(Color(0xFF232532), Color(0xFF0B0C11), Color(0xFF34070D))
+        NewsCategory.ECONOMY ->
+            listOf(Color(0xFF162B24), Color(0xFF09100D), Color(0xFF31070C))
+        NewsCategory.SPORTS ->
+            listOf(Color(0xFF132F23), Color(0xFF08110C), Color(0xFF31070C))
+        NewsCategory.CULTURE ->
+            listOf(Color(0xFF312133), Color(0xFF0E0A0F), Color(0xFF35070D))
+        NewsCategory.TECHNOLOGY ->
+            listOf(Color(0xFF172F3F), Color(0xFF090F15), Color(0xFF32070C))
+        else ->
+            listOf(Color(0xFF262935), Color(0xFF0B0C10), Color(0xFF34070D))
+    }
+    return Brush.linearGradient(colors)
 }

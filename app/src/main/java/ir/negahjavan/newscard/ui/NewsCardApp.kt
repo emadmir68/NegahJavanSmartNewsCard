@@ -65,7 +65,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "SMART PAGINATION • 0.5",
+                            "PREMIUM SMART STUDIO • 0.6",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -253,14 +253,14 @@ private fun IntroCard() {
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                "متن کامل؛ بدون حذف.",
+                "طراحی هوشمند؛ متن کامل.",
                 color = Color.White,
                 fontWeight = FontWeight.Black,
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(Modifier.height(5.dp))
             Text(
-                "اپ اول تلاش می‌کند همه خبر را در یک کارت جا بدهد. اگر خوانایی حفظ نشود، ادامه متن خودکار به کارت‌های بعد منتقل می‌شود.",
+                "متن کامل حفظ می‌شود؛ عکس با Crop/Fit هوشمند تنظیم می‌شود و خبر بدون عکس کاور اختصاصی خودش را می‌گیرد.",
                 color = Color(0xFFB7B7C0),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Right
@@ -301,10 +301,10 @@ private fun PaginationStatus(
             Text(
                 if (storyPageCount == 1) {
                     "کل متن با خوانایی مناسب روی یک کارت جا شد." +
-                        if (hasImage) " عکس در باکس بالای کارت قرار گرفت." else ""
+                        if (hasImage) " عکس با قاب‌بندی هوشمند استفاده می‌شود." else " کاور هوشمند متناسب با خبر ساخته می‌شود."
                 } else {
                     "هیچ بخشی از متن حذف نشده؛ ادامه خبر بین $storyPageCount کارت تقسیم شده است." +
-                        if (hasImage) " عکس فقط روی کارت اول نمایش داده می‌شود." else ""
+                        if (hasImage) " عکس فقط روی کارت اول و با قاب‌بندی هوشمند نمایش داده می‌شود." else " کارت اول کاور هوشمند خبر است."
                 },
                 color = Color(0xFFB0B1B9),
                 style = MaterialTheme.typography.bodySmall,

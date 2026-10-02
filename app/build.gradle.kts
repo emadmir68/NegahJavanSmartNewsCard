@@ -16,8 +16,8 @@ android {
         applicationId = "ir.negahjavan.newscard"
         minSdk = 31
         targetSdk = 36
-        versionCode = 7
-        versionName = "0.5.0"
+        versionCode = 8
+        versionName = "0.6.0"
 
         buildConfigField("String", "AI_BASE_URL", "\u0022" + aiBaseUrl + "\u0022")
     }

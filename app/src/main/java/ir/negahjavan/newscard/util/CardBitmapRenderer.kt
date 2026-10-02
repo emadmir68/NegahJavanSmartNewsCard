@@ -10,6 +10,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.net.Uri
@@ -24,6 +25,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.NewsCategory
+import ir.negahjavan.newscard.model.NewsLength
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +34,7 @@ import kotlin.math.max
 
 object CardBitmapRenderer {
 
-    private val accentRed = Color.rgb(231, 22, 34)
+    private val accentRed = Color.rgb(232, 21, 35)
     private const val brandSocial = "negahjavaan"
     private const val brandSite = "negahjavan.ir"
     private const val brandTitle = "پایگاه خبری نگاه جوان"
@@ -48,10 +50,35 @@ object CardBitmapRenderer {
         val h = format.height
         val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-        drawPremiumBackground(canvas, paint, analysis.category, w, h)
+        drawPremiumBackground(
+            canvas = canvas,
+            paint = paint,
+            analysis = analysis,
+            w = w,
+            h = h,
+            shortCover = page.isFirst &&
+                analysis.length == NewsLength.SHORT &&
+                !page.showImage
+        )
+
         drawBrandLockup(canvas, paint, w, h)
+
+        val pad = w * .060f
+        val gap = max(18f, h * .017f)
+        val headerBottom = h * .118f
+        val imageTop = h * .137f
+        val imageHeight = imageHeight(
+            format = format,
+            h = h,
+            length = analysis.length,
+            hasImage = page.showImage
+        )
+        val safeBottom = h * .948f
+        val badgeHeight = h * .043f
+
+        var contentTop = headerBottom + gap
 
         val photo = if (page.showImage) {
             imageUri?.let { loadBitmap(context, it) }
@@ -59,47 +86,29 @@ object CardBitmapRenderer {
             null
         }
 
-        val pad = w * .060f
-        val gap = max(18f, h * .018f)
-        val headerBottom = h * .115f
-        val imageTop = h * .135f
-        val imageHeight = imageHeight(format, h)
-        val safeBottom = h * .945f
-        val badgeHeight = h * .045f
-
-        var contentTop = headerBottom + gap
-
-        if (page.showImage && photo != null) {
-            val focus = SmartImageFocus.detect(photo)
+        if (photo != null && imageHeight > 0f) {
             val imageRect = RectF(
                 pad,
                 imageTop,
                 w - pad,
                 imageTop + imageHeight
             )
-            drawRoundedFocalImage(
+
+            drawSmartImagePanel(
                 canvas = canvas,
+                paint = paint,
                 bitmap = photo,
                 dest = imageRect,
-                paint = paint,
-                focusX = focus.x,
-                focusY = focus.y,
                 radius = w * .032f
             )
 
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = max(2f, w * .0022f)
-            paint.color = Color.argb(120, 255, 255, 255)
-            canvas.drawRoundRect(
-                imageRect,
-                w * .032f,
-                w * .032f,
-                paint
-            )
-            paint.style = Paint.Style.FILL
-
-            contentTop = imageTop + imageHeight + gap
+            contentTop = imageRect.bottom + gap
         }
+
+        val shortNoImage =
+            page.isFirst &&
+                analysis.length == NewsLength.SHORT &&
+                photo == null
 
         drawBadge(
             canvas = canvas,
@@ -110,7 +119,8 @@ object CardBitmapRenderer {
             right = w - pad,
             top = contentTop,
             height = badgeHeight,
-            textSize = w * .025f
+            textSize = w * .0245f,
+            outlined = shortNoImage
         )
 
         if (page.isFirst) {
@@ -118,9 +128,12 @@ object CardBitmapRenderer {
             val titleLayout = makeRtlLayout(
                 text = page.title,
                 width = (w - 2 * pad).toInt(),
-                size = titleSize(format, page.title.length),
+                size = SmartPaginationEngine.titleSize(
+                    format = format,
+                    length = page.title.length
+                ),
                 color = Color.WHITE,
-                spacing = 1.08f,
+                spacing = 1.07f,
                 bold = true
             )
 
@@ -128,6 +141,7 @@ object CardBitmapRenderer {
 
             if (page.body.isNotBlank()) {
                 val bodyTop = titleTop + titleLayout.height + gap
+
                 drawBody(
                     canvas = canvas,
                     paint = paint,
@@ -138,11 +152,13 @@ object CardBitmapRenderer {
                     textSize = page.bodyTextSizePx,
                     safeBottom = safeBottom,
                     w = w,
-                    h = h
+                    h = h,
+                    shortCover = shortNoImage
                 )
             }
         } else {
             val bodyTop = contentTop + badgeHeight + gap
+
             drawBody(
                 canvas = canvas,
                 paint = paint,
@@ -153,36 +169,129 @@ object CardBitmapRenderer {
                 textSize = page.bodyTextSizePx,
                 safeBottom = safeBottom,
                 w = w,
-                h = h
+                h = h,
+                shortCover = false
             )
         }
 
         bitmap
     }
 
+    private suspend fun drawSmartImagePanel(
+        canvas: Canvas,
+        paint: Paint,
+        bitmap: Bitmap,
+        dest: RectF,
+        radius: Float
+    ) {
+        val plan = SmartImageEngine.plan(
+            bitmap = bitmap,
+            destinationAspect = dest.width() / dest.height()
+        )
+
+        val clipPath = Path().apply {
+            addRoundRect(dest, radius, radius, Path.Direction.CW)
+        }
+
+        canvas.save()
+        canvas.clipPath(clipPath)
+
+        when (plan.mode) {
+            SmartImageEngine.Mode.SMART_CROP -> {
+                drawFocalCrop(
+                    canvas = canvas,
+                    bitmap = bitmap,
+                    dest = dest,
+                    paint = paint,
+                    focusX = plan.focusX,
+                    focusY = plan.focusY
+                )
+            }
+
+            SmartImageEngine.Mode.FIT_BLUR -> {
+                paint.renderEffect = RenderEffect.createBlurEffect(
+                    34f,
+                    34f,
+                    Shader.TileMode.CLAMP
+                )
+
+                drawFocalCrop(
+                    canvas = canvas,
+                    bitmap = bitmap,
+                    dest = dest,
+                    paint = paint,
+                    focusX = .5f,
+                    focusY = .5f
+                )
+
+                paint.renderEffect = null
+                paint.color = Color.argb(105, 0, 0, 0)
+                canvas.drawRect(dest, paint)
+
+                val innerPad = dest.width() * .018f
+                val fitBounds = RectF(
+                    dest.left + innerPad,
+                    dest.top + innerPad,
+                    dest.right - innerPad,
+                    dest.bottom - innerPad
+                )
+                val fitRect = fitInside(
+                    bitmap = bitmap,
+                    bounds = fitBounds
+                )
+
+                paint.color = Color.BLACK
+                canvas.drawRoundRect(
+                    fitRect,
+                    radius * .58f,
+                    radius * .58f,
+                    paint
+                )
+
+                canvas.drawBitmap(
+                    bitmap,
+                    null,
+                    fitRect,
+                    paint
+                )
+            }
+        }
+
+        paint.renderEffect = null
+
+        paint.shader = LinearGradient(
+            dest.left,
+            dest.top,
+            dest.left,
+            dest.bottom,
+            intArrayOf(
+                Color.argb(0, 0, 0, 0),
+                Color.argb(48, 0, 0, 0)
+            ),
+            null,
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(dest, paint)
+        paint.shader = null
+
+        canvas.restore()
+
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = max(2f, dest.width() * .0022f)
+        paint.color = Color.argb(88, 255, 255, 255)
+        canvas.drawRoundRect(dest, radius, radius, paint)
+        paint.style = Paint.Style.FILL
+    }
+
     private fun drawPremiumBackground(
         canvas: Canvas,
         paint: Paint,
-        category: NewsCategory,
+        analysis: SmartAnalysis,
         w: Int,
-        h: Int
+        h: Int,
+        shortCover: Boolean
     ) {
-        val colors = when (category) {
-            NewsCategory.JUDICIAL ->
-                intArrayOf(Color.rgb(28, 31, 40), Color.rgb(12, 13, 17), Color.rgb(48, 7, 12))
-            NewsCategory.POLITICS ->
-                intArrayOf(Color.rgb(31, 33, 45), Color.rgb(12, 13, 17), Color.rgb(48, 7, 12))
-            NewsCategory.ECONOMY ->
-                intArrayOf(Color.rgb(23, 40, 35), Color.rgb(11, 16, 14), Color.rgb(46, 7, 11))
-            NewsCategory.SPORTS ->
-                intArrayOf(Color.rgb(20, 44, 33), Color.rgb(10, 17, 13), Color.rgb(46, 7, 11))
-            NewsCategory.CULTURE ->
-                intArrayOf(Color.rgb(45, 32, 47), Color.rgb(16, 12, 17), Color.rgb(49, 7, 12))
-            NewsCategory.TECHNOLOGY ->
-                intArrayOf(Color.rgb(24, 43, 57), Color.rgb(11, 16, 21), Color.rgb(47, 7, 12))
-            else ->
-                intArrayOf(Color.rgb(35, 38, 49), Color.rgb(12, 13, 17), Color.rgb(48, 7, 12))
-        }
+        val colors = categoryColors(analysis.category)
 
         paint.shader = LinearGradient(
             0f,
@@ -196,22 +305,99 @@ object CardBitmapRenderer {
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
         paint.shader = null
 
-        paint.color = Color.argb(14, 255, 255, 255)
-        canvas.drawCircle(w * .92f, h * .15f, w * .36f, paint)
-        paint.color = Color.argb(10, 229, 22, 34)
-        canvas.drawCircle(w * .10f, h * .88f, w * .44f, paint)
+        paint.color = Color.argb(if (shortCover) 19 else 11, 255, 255, 255)
+        canvas.drawCircle(w * .93f, h * .17f, w * .40f, paint)
 
-        paint.color = Color.argb(12, 255, 255, 255)
+        paint.color = Color.argb(if (shortCover) 17 else 9, 232, 21, 35)
+        canvas.drawCircle(w * .08f, h * .86f, w * .48f, paint)
+
+        if (shortCover) {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = w * .004f
+            paint.color = Color.argb(28, 255, 255, 255)
+            canvas.drawCircle(
+                w * .12f,
+                h * .44f,
+                w * .30f,
+                paint
+            )
+            paint.style = Paint.Style.FILL
+
+            val watermark = analysis.accentWord
+                .takeIf { it.length >= 4 }
+                ?: analysis.category.fa
+
+            drawText(
+                canvas = canvas,
+                text = watermark,
+                x = w * .50f,
+                y = h * .72f,
+                size = w * .095f,
+                color = Color.argb(18, 255, 255, 255),
+                bold = true,
+                align = Paint.Align.CENTER
+            )
+        }
+
+        paint.color = Color.argb(15, 255, 255, 255)
         canvas.drawRoundRect(
-            w * .055f,
-            h * .105f,
-            w * .945f,
-            h * .108f,
+            w * .060f,
+            h * .109f,
+            w * .940f,
+            h * .112f,
             3f,
             3f,
             paint
         )
     }
+
+    private fun categoryColors(
+        category: NewsCategory
+    ): IntArray =
+        when (category) {
+            NewsCategory.JUDICIAL ->
+                intArrayOf(
+                    Color.rgb(31, 34, 44),
+                    Color.rgb(11, 12, 16),
+                    Color.rgb(52, 7, 13)
+                )
+            NewsCategory.POLITICS ->
+                intArrayOf(
+                    Color.rgb(35, 37, 50),
+                    Color.rgb(11, 12, 17),
+                    Color.rgb(52, 7, 13)
+                )
+            NewsCategory.ECONOMY ->
+                intArrayOf(
+                    Color.rgb(22, 43, 36),
+                    Color.rgb(9, 16, 13),
+                    Color.rgb(49, 7, 12)
+                )
+            NewsCategory.SPORTS ->
+                intArrayOf(
+                    Color.rgb(19, 47, 35),
+                    Color.rgb(8, 17, 12),
+                    Color.rgb(49, 7, 12)
+                )
+            NewsCategory.CULTURE ->
+                intArrayOf(
+                    Color.rgb(49, 33, 51),
+                    Color.rgb(14, 10, 15),
+                    Color.rgb(53, 7, 13)
+                )
+            NewsCategory.TECHNOLOGY ->
+                intArrayOf(
+                    Color.rgb(23, 47, 63),
+                    Color.rgb(9, 15, 21),
+                    Color.rgb(50, 7, 12)
+                )
+            else ->
+                intArrayOf(
+                    Color.rgb(38, 41, 53),
+                    Color.rgb(11, 12, 16),
+                    Color.rgb(52, 7, 13)
+                )
+        }
 
     private fun drawBrandLockup(
         canvas: Canvas,
@@ -222,56 +408,67 @@ object CardBitmapRenderer {
         val pad = w * .060f
 
         drawText(
-            canvas,
-            brandSocial,
-            pad,
-            h * .028f,
-            w * .033f,
-            Color.WHITE,
-            true,
-            Paint.Align.LEFT
-        )
-        drawText(
-            canvas,
-            brandSite,
-            pad,
-            h * .064f,
-            w * .0205f,
-            Color.rgb(191, 191, 198),
-            false,
-            Paint.Align.LEFT
+            canvas = canvas,
+            text = brandSocial,
+            x = pad,
+            y = h * .023f,
+            size = w * .036f,
+            color = Color.WHITE,
+            bold = true,
+            align = Paint.Align.LEFT
         )
 
-        paint.color = accentRed
+        val sitePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = w * .019f
+            typeface = Typeface.create("sans", Typeface.BOLD)
+        }
+        val siteWidth = sitePaint.measureText(brandSite)
+        val pillTop = h * .069f
+        val pillHeight = h * .025f
+        val pillRight = pad + siteWidth + w * .030f
+
+        paint.color = Color.argb(24, 255, 255, 255)
         canvas.drawRoundRect(
             pad,
-            h * .091f,
-            pad + w * .13f,
-            h * .095f,
-            3f,
-            3f,
+            pillTop,
+            pillRight,
+            pillTop + pillHeight,
+            pillHeight / 2f,
+            pillHeight / 2f,
             paint
         )
 
         drawText(
-            canvas,
-            brandTitle,
-            w - pad,
-            h * .035f,
-            w * .027f,
-            Color.WHITE,
-            true,
-            Paint.Align.RIGHT
+            canvas = canvas,
+            text = brandSite,
+            x = pad + w * .015f,
+            y = pillTop + h * .001f,
+            size = w * .019f,
+            color = Color.rgb(205, 205, 211),
+            bold = true,
+            align = Paint.Align.LEFT
         )
-        drawText(
-            canvas,
-            "نگاه جوان",
+
+        paint.color = accentRed
+        canvas.drawRoundRect(
+            w - pad - w * .014f,
+            h * .021f,
             w - pad,
-            h * .070f,
-            w * .019f,
-            Color.rgb(194, 194, 201),
-            false,
-            Paint.Align.RIGHT
+            h * .078f,
+            w * .007f,
+            w * .007f,
+            paint
+        )
+
+        drawText(
+            canvas = canvas,
+            text = brandTitle,
+            x = w - pad - w * .032f,
+            y = h * .031f,
+            size = w * .029f,
+            color = Color.WHITE,
+            bold = true,
+            align = Paint.Align.RIGHT
         )
     }
 
@@ -282,35 +479,53 @@ object CardBitmapRenderer {
         right: Float,
         top: Float,
         height: Float,
-        textSize: Float
+        textSize: Float,
+        outlined: Boolean
     ) {
         val measure = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.textSize = textSize
             typeface = Typeface.create("sans", Typeface.BOLD)
         }
-        val padX = textSize * .80f
+        val padX = textSize * .82f
         val width = measure.measureText(text) + padX * 2
+        val left = right - width
 
-        paint.color = accentRed
-        canvas.drawRoundRect(
-            right - width,
-            top,
-            right,
-            top + height,
-            height / 2f,
-            height / 2f,
-            paint
-        )
+        if (outlined) {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = max(2f, textSize * .08f)
+            paint.color = Color.argb(210, 232, 21, 35)
+            canvas.drawRoundRect(
+                left,
+                top,
+                right,
+                top + height,
+                height / 2f,
+                height / 2f,
+                paint
+            )
+            paint.style = Paint.Style.FILL
+        } else {
+            paint.color = accentRed
+            canvas.drawRoundRect(
+                left,
+                top,
+                right,
+                top + height,
+                height / 2f,
+                height / 2f,
+                paint
+            )
+        }
 
         drawText(
-            canvas,
-            text,
-            right - padX,
-            top + height * .16f,
-            textSize,
-            Color.WHITE,
-            true,
-            Paint.Align.RIGHT
+            canvas = canvas,
+            text = text,
+            x = right - padX,
+            y = top + height * .16f,
+            size = textSize,
+            color = Color.WHITE,
+            bold = true,
+            align = Paint.Align.RIGHT
         )
     }
 
@@ -324,68 +539,111 @@ object CardBitmapRenderer {
         textSize: Float,
         safeBottom: Float,
         w: Int,
-        h: Int
+        h: Int,
+        shortCover: Boolean
     ) {
+        val innerInset = w * .027f
         val layout = makeRtlLayout(
             text = body,
-            width = width - (w * .050f).toInt(),
+            width = width - (w * .054f).toInt(),
             size = textSize,
-            color = Color.rgb(238, 238, 242),
-            spacing = 1.28f,
+            color = Color.rgb(239, 239, 243),
+            spacing = 1.30f,
             bold = false
         )
 
+        if (shortCover) {
+            paint.color = accentRed
+            canvas.drawRoundRect(
+                w - x - w * .010f,
+                top,
+                w - x,
+                minOf(
+                    safeBottom,
+                    top + layout.height
+                ),
+                w * .005f,
+                w * .005f,
+                paint
+            )
+
+            drawLayout(
+                canvas = canvas,
+                layout = layout,
+                x = x + innerInset,
+                y = top
+            )
+            return
+        }
+
         val panelBottom = minOf(
             safeBottom,
-            top + layout.height + h * .034f
+            top + layout.height + h * .032f
         )
 
-        paint.color = Color.argb(22, 255, 255, 255)
+        paint.color = Color.argb(21, 255, 255, 255)
         canvas.drawRoundRect(
             x,
-            top - h * .010f,
+            top - h * .009f,
             x + width,
             panelBottom,
-            w * .025f,
-            w * .025f,
+            w * .023f,
+            w * .023f,
             paint
         )
 
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = max(1.5f, w * .0015f)
+        paint.color = Color.argb(28, 255, 255, 255)
+        canvas.drawRoundRect(
+            x,
+            top - h * .009f,
+            x + width,
+            panelBottom,
+            w * .023f,
+            w * .023f,
+            paint
+        )
+        paint.style = Paint.Style.FILL
+
         drawLayout(
-            canvas,
-            layout,
-            x + w * .025f,
-            top + h * .007f
+            canvas = canvas,
+            layout = layout,
+            x = x + innerInset,
+            y = top + h * .006f
         )
     }
 
     private fun imageHeight(
         format: CardFormat,
-        h: Int
-    ): Float =
-        when (format) {
-            CardFormat.STORY -> h * .255f
-            CardFormat.PORTRAIT -> h * .245f
-            CardFormat.SQUARE -> h * .225f
-            CardFormat.LANDSCAPE -> h * .29f
+        h: Int,
+        length: NewsLength,
+        hasImage: Boolean
+    ): Float {
+        if (!hasImage) return 0f
+
+        val ratio = when (length) {
+            NewsLength.SHORT -> when (format) {
+                CardFormat.STORY -> .30f
+                CardFormat.PORTRAIT -> .28f
+                CardFormat.SQUARE -> .25f
+                CardFormat.LANDSCAPE -> .31f
+            }
+            NewsLength.MEDIUM -> when (format) {
+                CardFormat.STORY -> .245f
+                CardFormat.PORTRAIT -> .23f
+                CardFormat.SQUARE -> .21f
+                CardFormat.LANDSCAPE -> .27f
+            }
+            NewsLength.LONG -> when (format) {
+                CardFormat.STORY -> .205f
+                CardFormat.PORTRAIT -> .19f
+                CardFormat.SQUARE -> .17f
+                CardFormat.LANDSCAPE -> .23f
+            }
         }
 
-    private fun titleSize(
-        format: CardFormat,
-        length: Int
-    ): Float {
-        val w = format.width.toFloat()
-        val base = when {
-            length < 44 -> w * .068f
-            length < 78 -> w * .058f
-            length < 118 -> w * .049f
-            else -> w * .043f
-        }
-        return when (format) {
-            CardFormat.LANDSCAPE -> base * .82f
-            CardFormat.SQUARE -> base * .92f
-            else -> base
-        }
+        return h * ratio
     }
 
     suspend fun save(
@@ -442,23 +700,20 @@ object CardBitmapRenderer {
         }.getOrNull()
     }
 
-    private fun drawRoundedFocalImage(
+    private fun drawFocalCrop(
         canvas: Canvas,
         bitmap: Bitmap,
         dest: RectF,
         paint: Paint,
         focusX: Float,
-        focusY: Float,
-        radius: Float
+        focusY: Float
     ) {
-        val destW = dest.width()
-        val destH = dest.height()
         val scale = max(
-            destW / bitmap.width,
-            destH / bitmap.height
+            dest.width() / bitmap.width,
+            dest.height() / bitmap.height
         )
-        val srcW = destW / scale
-        val srcH = destH / scale
+        val srcW = dest.width() / scale
+        val srcH = dest.height() / scale
 
         val left = (bitmap.width * focusX - srcW / 2f)
             .coerceIn(0f, (bitmap.width - srcW).coerceAtLeast(0f))
@@ -472,29 +727,42 @@ object CardBitmapRenderer {
             (top + srcH).toInt()
         )
 
-        val path = Path().apply {
-            addRoundRect(dest, radius, radius, Path.Direction.CW)
-        }
-
-        canvas.save()
-        canvas.clipPath(path)
-        canvas.drawBitmap(bitmap, src, dest, paint)
-
-        paint.shader = LinearGradient(
-            dest.left,
-            dest.top,
-            dest.left,
-            dest.bottom,
-            intArrayOf(
-                Color.argb(5, 0, 0, 0),
-                Color.argb(55, 0, 0, 0)
-            ),
-            null,
-            Shader.TileMode.CLAMP
+        canvas.drawBitmap(
+            bitmap,
+            src,
+            dest,
+            paint
         )
-        canvas.drawRect(dest, paint)
-        paint.shader = null
-        canvas.restore()
+    }
+
+    private fun fitInside(
+        bitmap: Bitmap,
+        bounds: RectF
+    ): RectF {
+        val sourceAspect =
+            bitmap.width.toFloat() / bitmap.height.toFloat()
+        val destAspect =
+            bounds.width() / bounds.height()
+
+        return if (sourceAspect > destAspect) {
+            val height = bounds.width() / sourceAspect
+            val top = bounds.centerY() - height / 2f
+            RectF(
+                bounds.left,
+                top,
+                bounds.right,
+                top + height
+            )
+        } else {
+            val width = bounds.height() * sourceAspect
+            val left = bounds.centerX() - width / 2f
+            RectF(
+                left,
+                bounds.top,
+                left + width,
+                bounds.bottom
+            )
+        }
     }
 
     private fun makeRtlLayout(
@@ -555,6 +823,12 @@ object CardBitmapRenderer {
                 Typeface.create("sans", Typeface.NORMAL)
             }
         }
-        canvas.drawText(text, x, y - p.ascent(), p)
+
+        canvas.drawText(
+            text,
+            x,
+            y - p.ascent(),
+            p
+        )
     }
 }

@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Negah Javan Smart News API", version="0.5.0")
+app = FastAPI(title="Negah Javan Smart News API", version="0.6.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,7 +27,7 @@ def health():
     return {
         "ok": True,
         "ai": bool(os.getenv("OPENAI_API_KEY")),
-        "version": "0.5.0",
+        "version": "0.6.0",
         "mode": "metadata-only; full text pagination is performed on-device",
     }
 

@@ -136,12 +136,17 @@ class SmartNewsService {
                 .joinToString("\n\n")
                 .trim()
         } else {
-            normalized
+            val cleanedBody = normalized
                 .lines()
                 .map(::cleanDecorativeMarks)
                 .filter { it.isNotBlank() }
                 .joinToString("\n\n")
                 .trim()
+
+            removeDerivedTitlePrefix(
+                body = cleanedBody,
+                derivedTitle = title
+            )
         }
 
         return ParsedSource(
@@ -150,6 +155,24 @@ class SmartNewsService {
             bodyText = body,
             titleFromSource = firstLooksLikeTitle
         )
+    }
+
+    private fun removeDerivedTitlePrefix(
+        body: String,
+        derivedTitle: String
+    ): String {
+        if (body.isBlank() || derivedTitle.isBlank()) return body
+
+        val normalizedBody = body.trim()
+        val normalizedTitle = derivedTitle.trim().trimEnd('…')
+
+        return when {
+            normalizedBody == normalizedTitle -> ""
+            normalizedBody.startsWith(normalizedTitle) ->
+                normalizedBody.removePrefix(normalizedTitle)
+                    .trimStart(' ', '\n', '،', ',', ':', '؛', '.', '!', '؟')
+            else -> normalizedBody
+        }
     }
 
     private fun normalizePreservingParagraphs(text: String): String =
@@ -341,11 +364,11 @@ class SmartNewsService {
         val chars = body.length
         return when (length) {
             NewsLength.SHORT ->
-                "متن کامل حفظ می‌شود؛ اگر در یک کارت جا شود همان یک کارت ساخته می‌شود."
+                "خبر کوتاه با چیدمان اختصاصی و متن کامل ساخته می‌شود."
             NewsLength.MEDIUM ->
-                "صفحه‌بندی با متن کامل انجام می‌شود؛ خلاصه‌سازی اجباری نیست."
+                "متن کامل با چیدمان هوشمند و بدون خلاصه‌سازی اجباری صفحه‌بندی می‌شود."
             NewsLength.LONG ->
-                "متن کامل $chars کاراکتری با محاسبه واقعی فضا بین کارت‌ها تقسیم می‌شود."
+                "متن کامل $chars کاراکتری با حفظ خوانایی بین کارت‌های لازم تقسیم می‌شود."
         }
     }
 }
