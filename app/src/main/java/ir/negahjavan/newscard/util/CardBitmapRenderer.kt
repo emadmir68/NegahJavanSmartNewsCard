@@ -401,7 +401,12 @@ object CardBitmapRenderer {
         val srcH = dest.height() / scale
         val left = (bitmap.width - srcW) / 2f
         val top = (bitmap.height - srcH) / 2f
-        val src = RectF(left, top, left + srcW, top + srcH)
+        val src = Rect(
+            left.toInt(),
+            top.toInt(),
+            (left + srcW).toInt(),
+            (top + srcH).toInt()
+        )
         canvas.drawBitmap(bitmap, src, RectF(dest), paint)
     }
 
