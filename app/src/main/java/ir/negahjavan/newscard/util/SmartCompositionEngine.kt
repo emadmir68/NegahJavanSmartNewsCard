@@ -144,8 +144,9 @@ object SmartCompositionEngine {
     fun recommendTemplate(
         analysis: SmartAnalysis,
         hasImage: Boolean
-    ): PremiumTemplate =
-        when {
+    ): PremiumTemplate {
+        analysis.recommendedPremiumTemplate?.let { return it }
+        return when {
             hasImage && analysis.length == NewsLength.SHORT ->
                 PremiumTemplate.PHOTO_PREMIUM
 
@@ -166,6 +167,7 @@ object SmartCompositionEngine {
             else ->
                 PremiumTemplate.LUXURY_MINIMAL
         }
+    }
 
     fun smartTitleSize(
         format: CardFormat,
