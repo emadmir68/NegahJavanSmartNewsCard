@@ -275,6 +275,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     result.title,
                     result.category,
                     result.length,
+                    result.recommendedPremiumTemplate,
                     imageUri
                 ) {
                     SmartCompositionEngine.recommendTemplate(
@@ -464,10 +465,10 @@ private fun PaginationStatus(
             Text(
                 if (storyPageCount == 1) {
                     "کل متن با خوانایی مناسب روی یک کارت جا شد." +
-                        if (hasImage) " عکس با قاب‌بندی هوشمند استفاده می‌شود." else " کاور هوشمند متناسب با خبر ساخته می‌شود."
+                        if (hasImage) " عکس با قاب‌بندی هوشمند استفاده می‌شود." else " کارت متنی هوشمند باقی می‌ماند."
                 } else {
                     "هیچ بخشی از متن حذف نشده؛ ادامه خبر بین $storyPageCount کارت تقسیم شده است." +
-                        if (hasImage) " عکس فقط روی کارت اول و با قاب‌بندی هوشمند نمایش داده می‌شود." else " کارت اول کاور هوشمند خبر است."
+                        if (hasImage) " عکس فقط روی کارت اول و با قاب‌بندی هوشمند نمایش داده می‌شود." else " کارت‌ها بدون عکس و با چیدمان متنی ساخته می‌شوند."
                 },
                 color = Color(0xFFB0B1B9),
                 style = MaterialTheme.typography.bodySmall,
