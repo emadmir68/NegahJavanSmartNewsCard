@@ -6,7 +6,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val aiBaseUrl = providers.gradleProperty("AI_BASE_URL").orElse("").get()
+val aiBaseUrl = providers.gradleProperty("AI_BASE_URL")
+    .orElse(providers.environmentVariable("AI_BASE_URL"))
+    .orElse("")
+    .get()
 
 android {
     namespace = "ir.negahjavan.newscard"
@@ -16,9 +19,8 @@ android {
         applicationId = "ir.negahjavan.newscard"
         minSdk = 31
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.0.0"
-
+        versionCode = 13
+        versionName = "1.1.0"
         buildConfigField("String", "AI_BASE_URL", "\u0022" + aiBaseUrl + "\u0022")
     }
 
@@ -67,5 +69,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.google.mlkit:face-detection:16.1.7")
 
+    testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
