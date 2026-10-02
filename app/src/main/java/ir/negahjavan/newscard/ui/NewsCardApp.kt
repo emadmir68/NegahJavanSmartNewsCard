@@ -87,7 +87,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "SMART COMPOSITION STUDIO • 1.0",
+                            "HYBRID AI STUDIO • 1.1",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
