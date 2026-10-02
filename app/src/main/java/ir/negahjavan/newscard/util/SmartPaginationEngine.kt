@@ -202,7 +202,7 @@ object SmartPaginationEngine {
     }
 
     private fun bodyWidth(metrics: Metrics): Int =
-        metrics.width - metrics.horizontalPad * 2
+        metrics.width - metrics.horizontalPad * 2 - (metrics.width * .050f).toInt()
 
     private fun titleSize(format: CardFormat, length: Int): Float {
         val w = format.width.toFloat()
