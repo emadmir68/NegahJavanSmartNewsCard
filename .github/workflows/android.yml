@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main", "ai-studio-1.1" ]
+    branches: [ "main", "ai-studio-1.1", "online-backend-1.2" ]
     paths-ignore:
       - "dist/**"
   pull_request:
@@ -31,6 +31,17 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate Webflow Cloud backend
+        run: |
+          npm install --no-audit --no-fund
+          npm run test-cloud
+          npm run build
 
       - name: Validate backend
         working-directory: server
