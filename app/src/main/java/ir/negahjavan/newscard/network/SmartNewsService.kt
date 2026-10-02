@@ -143,7 +143,7 @@ class SmartNewsService {
 
         val sentences = sentenceList(text)
             .filterNot { it.contains(title.take(40)) }
-            .map { it.trim(' ', '🔷', '▪', '•') }
+            .map { it.replace("🔷", "").replace("▪", "").replace("•", "").trim() }
             .filter { it.length > 25 }
 
         val chunks = sequentialChunks(sentences, 3)
