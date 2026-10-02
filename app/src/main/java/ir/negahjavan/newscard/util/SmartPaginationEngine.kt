@@ -346,9 +346,7 @@ object SmartPaginationEngine {
             }
         }
 
-        if (text.startsWith("
-
-", cut)) {
+        if (text.startsWith("\\n\\n", cut)) {
             cut += 2
         } else if (
             cut < text.length &&
@@ -379,7 +377,7 @@ object SmartPaginationEngine {
         val previous = pages[previousIndex]
 
         val previousSentences = previous.body
-            .split(Regex("(?<=[.!؟؛])\s+"))
+            .split(Regex("""(?<=[.!؟؛])\\s+"""))
             .filter { it.isNotBlank() }
 
         if (previousSentences.size < 2) return pages

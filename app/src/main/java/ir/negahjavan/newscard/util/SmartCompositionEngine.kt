@@ -46,7 +46,7 @@ object SmartCompositionEngine {
         val body = analysis.bodyText.trim()
         val bodyChars = body.length
         val paragraphCount = body
-            .split(Regex("\n\s*\n"))
+            .split(Regex("""\\n\\s*\\n"""))
             .count { it.isNotBlank() }
             .coerceAtLeast(1)
 
@@ -192,7 +192,7 @@ object SmartCompositionEngine {
     ): Float {
         val width = format.width.toFloat()
         val chars = title.length
-        val words = title.split(Regex("\s+")).filter { it.isNotBlank() }
+        val words = title.split(Regex("""\\s+""")).filter { it.isNotBlank() }
         val longestWord = words.maxOfOrNull { it.length } ?: 0
 
         val base = when {
