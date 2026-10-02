@@ -51,6 +51,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
     val scope = rememberCoroutineScope()
     val analysis by vm.analysis.collectAsState()
     val loading by vm.loading.collectAsState()
+    val analysisError by vm.error.collectAsState()
 
     val savedDraft = remember { DraftStore.load(context) }
     var text by rememberSaveable { mutableStateOf(savedDraft.text) }
@@ -200,6 +201,36 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     if (loading) "در حال صفحه‌بندی کامل خبر…" else "ساخت هوشمند متن کامل",
                     fontWeight = FontWeight.Black
                 )
+            }
+
+
+            analysisError?.let { message ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF35191D),
+                    border = BorderStroke(1.dp, Color(0xFF8F343D))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "متوجه شدم",
+                            color = Color(0xFFFFB7B7),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.clickable { vm.dismissError() }
+                        )
+                        Text(
+                            message,
+                            color = Color.White,
+                            textAlign = TextAlign.Right,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f).padding(end = 10.dp)
+                        )
+                    }
+                }
             }
 
             analysis?.let { result ->
