@@ -154,7 +154,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
-                        onClick = { imagePicker.launch("image/*") },
+                        onClick = { imagePicker.launch(arrayOf("image/*")) },
                         modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
