@@ -209,22 +209,26 @@ object CardBitmapRenderer {
             }
 
             SmartImageEngine.Mode.FIT_BLUR -> {
-                paint.setRenderEffect(RenderEffect.createBlurEffect(
-                    34f,
-                    34f,
-                    Shader.TileMode.CLAMP
-                ))
+                val softenedWidth = 72
+                val softenedHeight = max(
+                    40,
+                    (72f * bitmap.height / bitmap.width).toInt()
+                )
+                val softened = Bitmap.createScaledBitmap(
+                    bitmap,
+                    softenedWidth,
+                    softenedHeight,
+                    true
+                )
 
                 drawFocalCrop(
                     canvas = canvas,
-                    bitmap = bitmap,
+                    bitmap = softened,
                     dest = dest,
                     paint = paint,
                     focusX = .5f,
                     focusY = .5f
                 )
-
-                paint.setRenderEffect(null)
                 paint.color = Color.argb(105, 0, 0, 0)
                 canvas.drawRect(dest, paint)
 
