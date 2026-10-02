@@ -35,6 +35,9 @@ import kotlin.math.max
 object CardBitmapRenderer {
 
     private val accentRed = Color.rgb(232, 21, 35)
+    private val accentGold = Color.rgb(214, 177, 104)
+    private val accentViolet = Color.rgb(116, 91, 224)
+    private val warmIvory = Color.rgb(247, 242, 233)
     private const val brandSocial = "negahjavaan"
     private const val brandSite = "negahjavan.ir"
     private const val brandTitle = "پایگاه خبری نگاه جوان"
@@ -101,7 +104,8 @@ object CardBitmapRenderer {
                 paint = paint,
                 bitmap = photo,
                 dest = imageRect,
-                radius = w * .032f
+                radius = w * .032f,
+                template = template
             )
 
             contentTop = imageRect.bottom + gap
@@ -122,7 +126,8 @@ object CardBitmapRenderer {
             top = contentTop,
             height = badgeHeight,
             textSize = w * .0245f,
-            outlined = shortNoImage
+            outlined = shortNoImage,
+            template = template
         )
 
         if (page.isFirst) {
@@ -134,7 +139,11 @@ object CardBitmapRenderer {
                     format = format,
                     length = page.title.length
                 ),
-                color = Color.WHITE,
+                color = when (template) {
+                    PremiumTemplate.LUXURY_MINIMAL -> warmIvory
+                    PremiumTemplate.PHOTO_PREMIUM -> Color.WHITE
+                    PremiumTemplate.EDITORIAL_GLASS -> Color.WHITE
+                },
                 spacing = 1.07f,
                 bold = true
             )
@@ -178,6 +187,14 @@ object CardBitmapRenderer {
             )
         }
 
+        drawBrandFooter(
+            canvas = canvas,
+            paint = paint,
+            w = w,
+            h = h,
+            template = template
+        )
+
         bitmap
     }
 
@@ -186,7 +203,8 @@ object CardBitmapRenderer {
         paint: Paint,
         bitmap: Bitmap,
         dest: RectF,
-        radius: Float
+        radius: Float,
+        template: PremiumTemplate
     ) {
         val plan = SmartImageEngine.plan(
             bitmap = bitmap,
@@ -283,8 +301,35 @@ paint.shader = LinearGradient(
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = max(2f, dest.width() * .0022f)
-        paint.color = Color.argb(88, 255, 255, 255)
+        paint.color = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> Color.argb(190, 214, 177, 104)
+            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(190, 116, 91, 224)
+            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(145, 255, 255, 255)
+        }
         canvas.drawRoundRect(dest, radius, radius, paint)
+
+        if (template == PremiumTemplate.LUXURY_MINIMAL) {
+            val inner = RectF(
+                dest.left + dest.width() * .018f,
+                dest.top + dest.height() * .025f,
+                dest.right - dest.width() * .018f,
+                dest.bottom - dest.height() * .025f
+            )
+            paint.strokeWidth = max(1.5f, dest.width() * .0014f)
+            paint.color = Color.argb(70, 214, 177, 104)
+            canvas.drawRoundRect(inner, radius * .72f, radius * .72f, paint)
+        } else if (template == PremiumTemplate.EDITORIAL_GLASS) {
+            paint.strokeWidth = max(5f, dest.width() * .004f)
+            paint.color = accentRed
+            canvas.drawLine(
+                dest.right - dest.width() * .16f,
+                dest.top,
+                dest.right,
+                dest.top,
+                paint
+            )
+        }
+
         paint.style = Paint.Style.FILL
     }
 
@@ -297,7 +342,23 @@ paint.shader = LinearGradient(
         h: Int,
         shortCover: Boolean
     ) {
-        val colors = categoryColors(analysis.category)
+        val colors = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> intArrayOf(
+                Color.rgb(9, 18, 29),
+                Color.rgb(7, 13, 22),
+                Color.rgb(11, 14, 19)
+            )
+            PremiumTemplate.PHOTO_PREMIUM -> intArrayOf(
+                Color.rgb(20, 17, 48),
+                Color.rgb(10, 12, 25),
+                Color.rgb(11, 13, 20)
+            )
+            PremiumTemplate.EDITORIAL_GLASS -> intArrayOf(
+                Color.rgb(17, 18, 22),
+                Color.rgb(8, 9, 12),
+                Color.rgb(18, 7, 10)
+            )
+        }
 
         paint.shader = LinearGradient(
             0f,
@@ -313,42 +374,100 @@ paint.shader = LinearGradient(
 
         when (template) {
             PremiumTemplate.LUXURY_MINIMAL -> {
-                paint.color = Color.argb(18, 255, 255, 255)
+                // Thin signature frame inspired by luxury editorial identity.
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = max(2f, w * .002f)
+                paint.color = Color.argb(112, 214, 177, 104)
                 canvas.drawRoundRect(
-                    w * .058f,
-                    h * .012f,
-                    w * .942f,
-                    h * .107f,
-                    w * .025f,
-                    w * .025f,
+                    w * .042f,
+                    h * .026f,
+                    w * .958f,
+                    h * .964f,
+                    w * .045f,
+                    w * .045f,
                     paint
                 )
-            }
-            PremiumTemplate.PHOTO_PREMIUM -> {
-                paint.color = accentRed
-                canvas.drawRect(0f, 0f, w.toFloat(), h * .006f, paint)
+                paint.strokeWidth = max(1f, w * .001f)
+                paint.color = Color.argb(38, 214, 177, 104)
+                canvas.drawRoundRect(
+                    w * .052f,
+                    h * .037f,
+                    w * .948f,
+                    h * .953f,
+                    w * .038f,
+                    w * .038f,
+                    paint
+                )
+                paint.style = Paint.Style.FILL
+
                 paint.shader = LinearGradient(
+                    w * .55f,
                     0f,
-                    h * .66f,
                     w.toFloat(),
-                    h.toFloat(),
+                    h * .38f,
                     intArrayOf(
-                        Color.argb(0, 0, 0, 0),
-                        Color.argb(72, 232, 21, 35)
+                        Color.argb(45, 214, 177, 104),
+                        Color.argb(0, 214, 177, 104)
                     ),
                     null,
                     Shader.TileMode.CLAMP
                 )
-                canvas.drawRect(0f, h * .60f, w.toFloat(), h.toFloat(), paint)
+                canvas.drawRect(w * .45f, 0f, w.toFloat(), h * .42f, paint)
                 paint.shader = null
             }
-            PremiumTemplate.EDITORIAL_GLASS -> {
+
+            PremiumTemplate.PHOTO_PREMIUM -> {
+                // Geometric newsroom grid; no circular blobs.
                 paint.style = Paint.Style.STROKE
-                paint.strokeWidth = w * .002f
-                paint.color = Color.argb(28, 255, 255, 255)
+                paint.strokeWidth = max(1.5f, w * .0014f)
+                paint.color = Color.argb(36, 116, 91, 224)
+                val left = w * .055f
+                val right = w * .945f
+                var y = h * .145f
+                repeat(8) {
+                    canvas.drawLine(left, y, right, y, paint)
+                    y += h * .085f
+                }
+                var x = left
+                repeat(7) {
+                    canvas.drawLine(x, h * .145f, x, h * .83f, paint)
+                    x += (right - left) / 6f
+                }
+                paint.style = Paint.Style.FILL
+
+                paint.shader = LinearGradient(
+                    0f,
+                    h * .08f,
+                    w.toFloat(),
+                    h * .52f,
+                    intArrayOf(
+                        Color.argb(48, 116, 91, 224),
+                        Color.argb(0, 116, 91, 224)
+                    ),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+                canvas.drawRect(0f, h * .06f, w.toFloat(), h * .58f, paint)
+                paint.shader = null
+
+                paint.color = accentViolet
+                canvas.drawRect(0f, 0f, w.toFloat(), h * .0055f, paint)
+            }
+
+            PremiumTemplate.EDITORIAL_GLASS -> {
+                // Asymmetric redline composition.
+                paint.color = Color.argb(24, 255, 255, 255)
+                canvas.drawRect(w * .075f, h * .12f, w * .08f, h * .90f, paint)
+
+                paint.color = accentRed
+                canvas.drawRect(w * .075f, h * .12f, w * .084f, h * .36f, paint)
+
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = max(2f, w * .0018f)
+                paint.color = Color.argb(42, 255, 255, 255)
                 canvas.drawRoundRect(
                     w * .035f,
-                    h * .020f,
+                    h * .018f,
                     w * .965f,
                     h * .965f,
                     w * .030f,
@@ -356,35 +475,35 @@ paint.shader = LinearGradient(
                     paint
                 )
                 paint.style = Paint.Style.FILL
+
+                paint.shader = LinearGradient(
+                    w * .65f,
+                    0f,
+                    w.toFloat(),
+                    h.toFloat(),
+                    intArrayOf(
+                        Color.argb(0, 232, 21, 35),
+                        Color.argb(28, 232, 21, 35)
+                    ),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+                canvas.drawRect(w * .55f, 0f, w.toFloat(), h.toFloat(), paint)
+                paint.shader = null
             }
         }
 
-        paint.color = Color.argb(if (shortCover) 19 else 11, 255, 255, 255)
-        canvas.drawCircle(w * .93f, h * .17f, w * .40f, paint)
-
-        paint.color = Color.argb(if (shortCover) 17 else 9, 232, 21, 35)
-        canvas.drawCircle(w * .08f, h * .86f, w * .48f, paint)
-
-        if (shortCover) {
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = w * .004f
-            paint.color = Color.argb(28, 255, 255, 255)
-            canvas.drawCircle(
-                w * .12f,
-                h * .44f,
-                w * .30f,
-                paint
-            )
-            paint.style = Paint.Style.FILL
-
+        // Simple separator only. No decorative circles / bubbles.
+        paint.color = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> Color.argb(105, 214, 177, 104)
+            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(105, 116, 91, 224)
+            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(90, 232, 21, 35)
         }
-
-        paint.color = Color.argb(15, 255, 255, 255)
         canvas.drawRoundRect(
             w * .060f,
-            h * .109f,
-            w * .940f,
             h * .112f,
+            w * .940f,
+            h * .114f,
             3f,
             3f,
             paint
@@ -447,101 +566,183 @@ paint.shader = LinearGradient(
         template: PremiumTemplate
     ) {
         val pad = w * .060f
-        val top = h * .014f
-        val bottom = h * .102f
-        val radius = when (template) {
-            PremiumTemplate.LUXURY_MINIMAL -> w * .022f
-            PremiumTemplate.PHOTO_PREMIUM -> w * .028f
-            PremiumTemplate.EDITORIAL_GLASS -> w * .030f
+
+        when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> {
+                // Persian masthead on the right, social identity on the left.
+                drawText(
+                    canvas = canvas,
+                    text = brandTitle,
+                    x = w - pad,
+                    y = h * .025f,
+                    size = w * .046f,
+                    color = accentGold,
+                    bold = true,
+                    align = Paint.Align.RIGHT
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandSocial,
+                    x = pad,
+                    y = h * .028f,
+                    size = w * .037f,
+                    color = Color.WHITE,
+                    bold = true,
+                    align = Paint.Align.LEFT
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandSite,
+                    x = pad,
+                    y = h * .066f,
+                    size = w * .021f,
+                    color = Color.rgb(196, 198, 204),
+                    bold = true,
+                    align = Paint.Align.LEFT
+                )
+
+                paint.color = accentGold
+                canvas.drawRoundRect(
+                    w - pad - w * .245f,
+                    h * .087f,
+                    w - pad,
+                    h * .091f,
+                    3f,
+                    3f,
+                    paint
+                )
+            }
+
+            PremiumTemplate.PHOTO_PREMIUM -> {
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = max(1.5f, w * .0014f)
+                paint.color = Color.argb(95, 116, 91, 224)
+                canvas.drawRoundRect(
+                    pad,
+                    h * .018f,
+                    w - pad,
+                    h * .100f,
+                    w * .020f,
+                    w * .020f,
+                    paint
+                )
+                paint.style = Paint.Style.FILL
+
+                drawText(
+                    canvas = canvas,
+                    text = "NEGAH JAVAAN • NEWSROOM",
+                    x = pad + w * .018f,
+                    y = h * .022f,
+                    size = w * .018f,
+                    color = Color.rgb(185, 174, 247),
+                    bold = true,
+                    align = Paint.Align.LEFT
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandSocial,
+                    x = pad + w * .018f,
+                    y = h * .047f,
+                    size = w * .042f,
+                    color = Color.WHITE,
+                    bold = true,
+                    align = Paint.Align.LEFT
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandTitle,
+                    x = w - pad - w * .018f,
+                    y = h * .036f,
+                    size = w * .034f,
+                    color = warmIvory,
+                    bold = true,
+                    align = Paint.Align.RIGHT
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandSite,
+                    x = w - pad - w * .018f,
+                    y = h * .071f,
+                    size = w * .020f,
+                    color = Color.rgb(190, 184, 224),
+                    bold = true,
+                    align = Paint.Align.RIGHT
+                )
+
+                paint.color = accentViolet
+                canvas.drawRoundRect(
+                    pad + w * .018f,
+                    h * .091f,
+                    pad + w * .160f,
+                    h * .096f,
+                    3f,
+                    3f,
+                    paint
+                )
+            }
+
+            PremiumTemplate.EDITORIAL_GLASS -> {
+                paint.color = accentRed
+                canvas.drawRoundRect(
+                    pad,
+                    h * .020f,
+                    pad + w * .012f,
+                    h * .100f,
+                    w * .005f,
+                    w * .005f,
+                    paint
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandSocial,
+                    x = pad + w * .030f,
+                    y = h * .023f,
+                    size = w * .046f,
+                    color = Color.WHITE,
+                    bold = true,
+                    align = Paint.Align.LEFT
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandSite,
+                    x = pad + w * .030f,
+                    y = h * .066f,
+                    size = w * .022f,
+                    color = Color.rgb(208, 208, 214),
+                    bold = true,
+                    align = Paint.Align.LEFT
+                )
+
+                drawText(
+                    canvas = canvas,
+                    text = brandTitle,
+                    x = w - pad,
+                    y = h * .033f,
+                    size = w * .038f,
+                    color = Color.WHITE,
+                    bold = true,
+                    align = Paint.Align.RIGHT
+                )
+
+                paint.color = accentRed
+                canvas.drawRoundRect(
+                    w - pad - w * .180f,
+                    h * .087f,
+                    w - pad,
+                    h * .092f,
+                    3f,
+                    3f,
+                    paint
+                )
+            }
         }
-
-        paint.color = when (template) {
-            PremiumTemplate.LUXURY_MINIMAL -> Color.argb(92, 0, 0, 0)
-            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(220, 18, 19, 23)
-            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(27, 255, 255, 255)
-        }
-        canvas.drawRoundRect(
-            pad,
-            top,
-            w - pad,
-            bottom,
-            radius,
-            radius,
-            paint
-        )
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = max(1.5f, w * .0017f)
-        paint.color = when (template) {
-            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(105, 232, 21, 35)
-            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(55, 255, 255, 255)
-            else -> Color.argb(34, 255, 255, 255)
-        }
-        canvas.drawRoundRect(
-            pad,
-            top,
-            w - pad,
-            bottom,
-            radius,
-            radius,
-            paint
-        )
-        paint.style = Paint.Style.FILL
-
-        drawText(
-            canvas = canvas,
-            text = brandSocial,
-            x = pad + w * .026f,
-            y = h * .020f,
-            size = w * .052f,
-            color = Color.WHITE,
-            bold = true,
-            align = Paint.Align.LEFT
-        )
-
-        drawText(
-            canvas = canvas,
-            text = brandSite,
-            x = pad + w * .026f,
-            y = h * .064f,
-            size = w * .026f,
-            color = Color.rgb(236, 236, 241),
-            bold = true,
-            align = Paint.Align.LEFT
-        )
-
-        paint.color = accentRed
-        canvas.drawRoundRect(
-            pad + w * .026f,
-            h * .091f,
-            pad + if (template == PremiumTemplate.PHOTO_PREMIUM) w * .170f else w * .145f,
-            h * .096f,
-            w * .003f,
-            w * .003f,
-            paint
-        )
-
-        paint.color = accentRed
-        canvas.drawRoundRect(
-            w - pad - w * .016f,
-            h * .024f,
-            w - pad - w * .006f,
-            h * .091f,
-            w * .005f,
-            w * .005f,
-            paint
-        )
-
-        drawText(
-            canvas = canvas,
-            text = brandTitle,
-            x = w - pad - w * .042f,
-            y = h * .031f,
-            size = w * .040f,
-            color = Color.WHITE,
-            bold = true,
-            align = Paint.Align.RIGHT
-        )
     }
 
     private fun drawBadge(
@@ -552,7 +753,8 @@ paint.shader = LinearGradient(
         top: Float,
         height: Float,
         textSize: Float,
-        outlined: Boolean
+        outlined: Boolean,
+        template: PremiumTemplate
     ) {
         val measure = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.textSize = textSize
@@ -562,31 +764,59 @@ paint.shader = LinearGradient(
         val width = measure.measureText(text) + padX * 2
         val left = right - width
 
-        if (outlined) {
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = max(2f, textSize * .08f)
-            paint.color = Color.argb(210, 232, 21, 35)
-            canvas.drawRoundRect(
-                left,
-                top,
-                right,
-                top + height,
-                height / 2f,
-                height / 2f,
-                paint
-            )
-            paint.style = Paint.Style.FILL
-        } else {
-            paint.color = accentRed
-            canvas.drawRoundRect(
-                left,
-                top,
-                right,
-                top + height,
-                height / 2f,
-                height / 2f,
-                paint
-            )
+        when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> {
+                paint.color = Color.rgb(120, 23, 55)
+                canvas.drawRoundRect(
+                    left,
+                    top,
+                    right,
+                    top + height,
+                    height / 2f,
+                    height / 2f,
+                    paint
+                )
+            }
+            PremiumTemplate.PHOTO_PREMIUM -> {
+                paint.color = accentViolet
+                canvas.drawRoundRect(
+                    left,
+                    top,
+                    right,
+                    top + height,
+                    height / 2f,
+                    height / 2f,
+                    paint
+                )
+            }
+            PremiumTemplate.EDITORIAL_GLASS -> {
+                if (outlined) {
+                    paint.style = Paint.Style.STROKE
+                    paint.strokeWidth = max(2f, textSize * .08f)
+                    paint.color = accentRed
+                    canvas.drawRoundRect(
+                        left,
+                        top,
+                        right,
+                        top + height,
+                        height / 2f,
+                        height / 2f,
+                        paint
+                    )
+                    paint.style = Paint.Style.FILL
+                } else {
+                    paint.color = accentRed
+                    canvas.drawRoundRect(
+                        left,
+                        top,
+                        right,
+                        top + height,
+                        height / 2f,
+                        height / 2f,
+                        paint
+                    )
+                }
+            }
         }
 
         drawText(
@@ -595,10 +825,95 @@ paint.shader = LinearGradient(
             x = right - padX,
             y = top + height * .16f,
             size = textSize,
-            color = Color.WHITE,
+            color = when (template) {
+                PremiumTemplate.LUXURY_MINIMAL -> warmIvory
+                PremiumTemplate.PHOTO_PREMIUM -> Color.WHITE
+                PremiumTemplate.EDITORIAL_GLASS -> Color.WHITE
+            },
             bold = true,
             align = Paint.Align.RIGHT
         )
+    }
+
+    private fun drawBrandFooter(
+        canvas: Canvas,
+        paint: Paint,
+        w: Int,
+        h: Int,
+        template: PremiumTemplate
+    ) {
+        val y = h * .944f
+
+        when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> {
+                drawText(
+                    canvas = canvas,
+                    text = brandSite.uppercase(),
+                    x = w * .50f,
+                    y = y,
+                    size = w * .023f,
+                    color = Color.rgb(164, 166, 173),
+                    bold = true,
+                    align = Paint.Align.CENTER
+                )
+                paint.color = accentGold
+                canvas.drawRoundRect(
+                    w * .37f,
+                    h * .976f,
+                    w * .63f,
+                    h * .979f,
+                    3f,
+                    3f,
+                    paint
+                )
+            }
+
+            PremiumTemplate.PHOTO_PREMIUM -> {
+                drawText(
+                    canvas = canvas,
+                    text = brandSite.uppercase(),
+                    x = w * .50f,
+                    y = y,
+                    size = w * .023f,
+                    color = Color.rgb(188, 180, 228),
+                    bold = true,
+                    align = Paint.Align.CENTER
+                )
+                paint.color = accentViolet
+                canvas.drawRoundRect(
+                    w * .43f,
+                    h * .976f,
+                    w * .57f,
+                    h * .979f,
+                    3f,
+                    3f,
+                    paint
+                )
+            }
+
+            PremiumTemplate.EDITORIAL_GLASS -> {
+                drawText(
+                    canvas = canvas,
+                    text = brandSite,
+                    x = w - w * .060f,
+                    y = y,
+                    size = w * .024f,
+                    color = Color.rgb(208, 208, 214),
+                    bold = true,
+                    align = Paint.Align.RIGHT
+                )
+                drawText(
+                    canvas = canvas,
+                    text = brandSocial,
+                    x = w * .060f,
+                    y = y,
+                    size = w * .024f,
+                    color = Color.WHITE,
+                    bold = true,
+                    align = Paint.Align.LEFT
+                )
+            }
+        }
     }
 
     private fun drawBody(
@@ -626,7 +941,11 @@ paint.shader = LinearGradient(
         )
 
         if (shortCover) {
-            paint.color = accentRed
+            paint.color = when (template) {
+                PremiumTemplate.LUXURY_MINIMAL -> accentGold
+                PremiumTemplate.PHOTO_PREMIUM -> accentViolet
+                PremiumTemplate.EDITORIAL_GLASS -> accentRed
+            }
             canvas.drawRoundRect(
                 w - x - w * .010f,
                 top,

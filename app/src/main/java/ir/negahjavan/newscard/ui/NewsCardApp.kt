@@ -73,7 +73,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "SUPER PREMIUM STUDIO • 0.8",
+                            "VISUAL IDENTITY STUDIO • 0.9",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -283,7 +283,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 }
 
                 Text(
-                    "۳ قالب سوپر پریمیوم",
+                    "۳ هویت بصری کاملاً متفاوت",
                     color = Color.White,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Right,
@@ -354,7 +354,7 @@ private fun IntroCard() {
             )
             Spacer(Modifier.height(5.dp))
             Text(
-                "برای هر خبر ۳ طراحی سوپر پریمیوم آماده می‌شود؛ یکی را انتخاب کن و همان را استوری، پست یا ذخیره کن. واترمارک وسط همچنان حذف است.",
+                "تمرکز این نسخه روی هویت بصری نگاه جوان است؛ سه استایل مستقل و ثابت داری که به نوع خبر وابسته نیستند. واترمارک و حباب‌های دایره‌ای حذف شده‌اند.",
                 color = Color(0xFFB7B7C0),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Right
@@ -527,11 +527,11 @@ private fun TemplateSelector(
                         Text(
                             when (template) {
                                 PremiumTemplate.LUXURY_MINIMAL ->
-                                    "رسمی، تمیز و مینیمال"
+                                    "قاب طلایی، لوکس و رسانه‌ای"
                                 PremiumTemplate.PHOTO_PREMIUM ->
-                                    "تصویری، زنده و مناسب استوری"
+                                    "نیوزروم بنفش، دیجیتال و مدرن"
                                 PremiumTemplate.EDITORIAL_GLASS ->
-                                    "مجله‌ای، شیشه‌ای و متفاوت"
+                                    "مینیمال قرمز، جسور و ادیتوریال"
                             },
                             color = Color(0xFFA4A4AE),
                             style = MaterialTheme.typography.labelSmall

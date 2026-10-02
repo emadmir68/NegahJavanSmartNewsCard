@@ -38,9 +38,9 @@ enum class PremiumTemplate(
     val fa: String,
     val shortFa: String
 ) {
-    LUXURY_MINIMAL("لوکس مینیمال", "لوکس"),
-    PHOTO_PREMIUM("عکس‌محور پریمیوم", "عکس‌محور"),
-    EDITORIAL_GLASS("ادیتوریال شیشه‌ای", "ادیتوریال")
+    LUXURY_MINIMAL("امضای طلایی", "طلایی"),
+    PHOTO_PREMIUM("استودیو بنفش", "بنفش"),
+    EDITORIAL_GLASS("ردلاین ادیتوریال", "ردلاین")
 }
 
 data class NewsDraft(

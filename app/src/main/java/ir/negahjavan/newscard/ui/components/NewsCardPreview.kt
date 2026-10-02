@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import ir.negahjavan.newscard.model.CardFormat
-import ir.negahjavan.newscard.model.NewsCategory
 import ir.negahjavan.newscard.model.NewsLength
 import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
@@ -49,8 +48,19 @@ fun NewsCardPreview(
         modifier = modifier
             .aspectRatio(ratio)
             .clip(RoundedCornerShape(24.dp))
-            .background(backgroundBrush(analysis.category, template))
+            .background(backgroundBrush(template))
+            .border(
+                1.dp,
+                when (template) {
+                    PremiumTemplate.LUXURY_MINIMAL -> Color(0xFFD6B168).copy(alpha = .55f)
+                    PremiumTemplate.PHOTO_PREMIUM -> Color(0xFF745BE0).copy(alpha = .62f)
+                    PremiumTemplate.EDITORIAL_GLASS -> Color.White.copy(alpha = .16f)
+                },
+                RoundedCornerShape(24.dp)
+            )
     ) {
+        TemplateChrome(template)
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -195,78 +205,161 @@ fun NewsCardPreview(
                 }
             }
         }
+
+        FooterBrand(
+            template = template,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 13.dp, start = 18.dp, end = 18.dp)
+        )
     }
 }
 
 @Composable
 private fun BrandLockup(template: PremiumTemplate) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(
-                when (template) {
-                    PremiumTemplate.LUXURY_MINIMAL -> Color.Black.copy(alpha = .38f)
-                    PremiumTemplate.PHOTO_PREMIUM -> Color(0xFF121317).copy(alpha = .96f)
-                    PremiumTemplate.EDITORIAL_GLASS -> Color.White.copy(alpha = .09f)
-                }
-            )
-            .border(
-                1.dp,
-                Color.White.copy(alpha = .08f),
-                RoundedCornerShape(14.dp)
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text(
-                BRAND_SOCIAL,
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                BRAND_SITE,
-                color = Color(0xFFE3E3E8),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(5.dp))
-            Box(
+    when (template) {
+        PremiumTemplate.LUXURY_MINIMAL -> {
+            Row(
                 Modifier
-                    .width(42.dp)
-                    .height(3.dp)
-                    .background(BrandRed, RoundedCornerShape(50))
-            )
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        BRAND_SOCIAL,
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        BRAND_SITE,
+                        color = Color(0xFFBFC1C8),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1.45f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        BRAND_TITLE,
+                        color = Color(0xFFD6B168),
+                        fontSize = 16.sp,
+                        lineHeight = 19.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Right
+                    )
+                    Spacer(Modifier.height(5.dp))
+                    Box(
+                        Modifier
+                            .width(70.dp)
+                            .height(2.dp)
+                            .background(Color(0xFFD6B168), RoundedCornerShape(50))
+                    )
+                }
+            }
         }
 
-        Spacer(Modifier.width(10.dp))
-
-        Row(
-            modifier = Modifier.weight(1.55f),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                BRAND_TITLE,
-                color = Color.White,
-                fontSize = 15.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.Black,
-                textAlign = TextAlign.Right
-            )
-            Spacer(Modifier.width(9.dp))
-            Box(
+        PremiumTemplate.PHOTO_PREMIUM -> {
+            Row(
                 Modifier
-                    .width(4.dp)
-                    .height(38.dp)
-                    .background(BrandRed, RoundedCornerShape(50))
-            )
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(13.dp))
+                    .border(
+                        1.dp,
+                        Color(0xFF745BE0).copy(alpha = .48f),
+                        RoundedCornerShape(13.dp)
+                    )
+                    .padding(horizontal = 11.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        "NEGAH JAVAAN • NEWSROOM",
+                        color = Color(0xFFBDB0F7),
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        BRAND_SOCIAL,
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1.25f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        BRAND_TITLE,
+                        color = Color(0xFFF7F2E9),
+                        fontSize = 13.sp,
+                        lineHeight = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Right
+                    )
+                    Text(
+                        BRAND_SITE,
+                        color = Color(0xFFC5BCEB),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        PremiumTemplate.EDITORIAL_GLASS -> {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .width(5.dp)
+                        .height(48.dp)
+                        .background(BrandRed, RoundedCornerShape(50))
+                )
+                Spacer(Modifier.width(9.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        BRAND_SOCIAL,
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        BRAND_SITE,
+                        color = Color(0xFFC8C8CE),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    BRAND_TITLE,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.weight(1.35f)
+                )
+            }
         }
     }
 }
@@ -333,29 +426,140 @@ private fun imageFraction(
         }
     }
 
+@Composable
+private fun BoxScope.TemplateChrome(template: PremiumTemplate) {
+    when (template) {
+        PremiumTemplate.LUXURY_MINIMAL -> {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 14.dp)
+                    .width(86.dp)
+                    .height(2.dp)
+                    .background(Color(0xFFD6B168).copy(alpha = .55f))
+            )
+        }
+
+        PremiumTemplate.PHOTO_PREMIUM -> {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(Color(0xFF745BE0))
+            )
+            Column(
+                Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(.88f),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                repeat(5) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Color(0xFF745BE0).copy(alpha = .08f))
+                    )
+                }
+            }
+        }
+
+        PremiumTemplate.EDITORIAL_GLASS -> {
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 16.dp)
+                    .width(3.dp)
+                    .fillMaxHeight(.52f)
+                    .background(BrandRed.copy(alpha = .78f))
+            )
+        }
+    }
+}
+
+@Composable
+private fun FooterBrand(
+    template: PremiumTemplate,
+    modifier: Modifier = Modifier
+) {
+    when (template) {
+        PremiumTemplate.LUXURY_MINIMAL -> {
+            Column(
+                modifier = modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    BRAND_SITE.uppercase(),
+                    color = Color(0xFFA6A8AE),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Spacer(Modifier.height(5.dp))
+                Box(
+                    Modifier
+                        .width(82.dp)
+                        .height(2.dp)
+                        .background(Color(0xFFD6B168))
+                )
+            }
+        }
+
+        PremiumTemplate.PHOTO_PREMIUM -> {
+            Text(
+                BRAND_SITE.uppercase(),
+                color = Color(0xFFBDB3E6),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Black,
+                modifier = modifier
+            )
+        }
+
+        PremiumTemplate.EDITORIAL_GLASS -> {
+            Row(
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    BRAND_SOCIAL,
+                    color = Color.White,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    BRAND_SITE,
+                    color = Color(0xFFC7C7CD),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
 private fun backgroundBrush(
-    category: NewsCategory,
     template: PremiumTemplate
 ): Brush {
     val colors = when (template) {
-        PremiumTemplate.LUXURY_MINIMAL -> when (category) {
-            NewsCategory.JUDICIAL -> listOf(Color(0xFF171A21), Color(0xFF08090C), Color(0xFF21070B))
-            NewsCategory.ECONOMY -> listOf(Color(0xFF14241D), Color(0xFF080B0A), Color(0xFF21070B))
-            NewsCategory.SPORTS -> listOf(Color(0xFF12251B), Color(0xFF080B09), Color(0xFF21070B))
-            else -> listOf(Color(0xFF191C24), Color(0xFF08090C), Color(0xFF25070C))
-        }
+        PremiumTemplate.LUXURY_MINIMAL ->
+            listOf(
+                Color(0xFF09121D),
+                Color(0xFF07101A),
+                Color(0xFF0B0E13)
+            )
 
-        PremiumTemplate.PHOTO_PREMIUM -> when (category) {
-            NewsCategory.TECHNOLOGY -> listOf(Color(0xFF172E41), Color(0xFF0A1018), Color(0xFF430A13))
-            NewsCategory.CULTURE -> listOf(Color(0xFF33223B), Color(0xFF100C14), Color(0xFF430A13))
-            else -> listOf(Color(0xFF272C39), Color(0xFF0B0F16), Color(0xFF470A13))
-        }
+        PremiumTemplate.PHOTO_PREMIUM ->
+            listOf(
+                Color(0xFF161334),
+                Color(0xFF0B0C19),
+                Color(0xFF0A0D14)
+            )
 
-        PremiumTemplate.EDITORIAL_GLASS -> when (category) {
-            NewsCategory.ECONOMY -> listOf(Color(0xFF173129), Color(0xFF0D1512), Color(0xFF251018))
-            NewsCategory.JUDICIAL -> listOf(Color(0xFF202635), Color(0xFF0D1118), Color(0xFF251018))
-            else -> listOf(Color(0xFF222737), Color(0xFF0D1119), Color(0xFF291019))
-        }
+        PremiumTemplate.EDITORIAL_GLASS ->
+            listOf(
+                Color(0xFF121317),
+                Color(0xFF08090C),
+                Color(0xFF15080B)
+            )
     }
 
     return Brush.linearGradient(colors)
