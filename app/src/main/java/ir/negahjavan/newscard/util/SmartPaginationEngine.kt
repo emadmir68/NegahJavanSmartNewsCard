@@ -32,12 +32,7 @@ object SmartPaginationEngine {
         format: CardFormat,
         hasImage: Boolean
     ): List<SmartPage> {
-        val metrics = metrics(
-            analysis = analysis,
-            format = format,
-            hasImage = hasImage
-        )
-
+        val metrics = metrics(analysis, format, hasImage)
         val title = analysis.title.trim()
         val body = analysis.bodyText.trim()
 
@@ -54,14 +49,10 @@ object SmartPaginationEngine {
             )
         }
 
-        val candidates = SmartCompositionEngine.bodyCandidates(metrics.profile)
-
-        // First try a single card while respecting a readability floor.
-        candidates.forEach { candidate ->
+        SmartCompositionEngine.bodyCandidates(metrics.profile).forEach { candidate ->
             val capacity = firstPageBodyHeight(
                 title = title,
                 hasImage = hasImage,
-                bodyTextSize = candidate,
                 metrics = metrics
             )
 
@@ -96,7 +87,6 @@ object SmartPaginationEngine {
         val firstCapacity = firstPageBodyHeight(
             title = title,
             hasImage = hasImage,
-            bodyTextSize = bodySize,
             metrics = metrics
         ).coerceAtLeast((bodySize * 4.2f).toInt())
 
@@ -191,7 +181,6 @@ object SmartPaginationEngine {
     private fun firstPageBodyHeight(
         title: String,
         hasImage: Boolean,
-        bodyTextSize: Float,
         metrics: Metrics
     ): Int {
         val titleHeight = textHeight(
@@ -233,7 +222,6 @@ object SmartPaginationEngine {
         format: CardFormat,
         length: Int
     ): Float {
-        // Backward-compatible helper for callers that don't have the full title.
         val placeholder = buildString {
             repeat(length.coerceAtLeast(1)) { append('ن') }
         }
@@ -248,6 +236,7 @@ object SmartPaginationEngine {
         lineSpacing: Float
     ): Pair<String, String> {
         if (text.isBlank()) return "" to ""
+
         if (
             textHeight(
                 text = text,
@@ -293,9 +282,7 @@ object SmartPaginationEngine {
 
         var searchFrom = best - 1
         repeat(8) {
-            val paragraph = text.lastIndexOf("
-
-", searchFrom)
+            val paragraph = text.lastIndexOf("\n\n", searchFrom)
             val question = text.lastIndexOf('؟', searchFrom)
             val dot = text.lastIndexOf('.', searchFrom)
             val exclamation = text.lastIndexOf('!', searchFrom)
@@ -321,7 +308,8 @@ object SmartPaginationEngine {
                 semicolon,
                 comma,
                 space
-            ).filter { it >= lowerBound }
+            )
+                .filter { it >= lowerBound }
                 .maxOrNull()
                 ?: return@repeat
 
@@ -330,11 +318,12 @@ object SmartPaginationEngine {
 
         var cut = candidateBoundaries.maxOrNull() ?: best
 
-        // Avoid tiny orphan fragments on the next card.
-        val initialRest = text.substring(cut.coerceAtMost(text.length)).trimStart()
+        val initialRest = text
+            .substring(cut.coerceAtMost(text.length))
+            .trimStart()
+
         if (initialRest.length in 1..170) {
-            val preferredRest = 220
-            val desiredCut = (text.length - preferredRest)
+            val desiredCut = (text.length - 220)
                 .coerceAtLeast(lowerBound)
 
             val earlier = candidateBoundaries
@@ -346,7 +335,7 @@ object SmartPaginationEngine {
             }
         }
 
-        if (text.startsWith("\\n\\n", cut)) {
+        if (text.startsWith("\n\n", cut)) {
             cut += 2
         } else if (
             cut < text.length &&
@@ -355,10 +344,9 @@ object SmartPaginationEngine {
             cut += 1
         }
 
-        val first = text.substring(0, cut.coerceAtMost(text.length)).trimEnd()
-        val rest = text.substring(cut.coerceAtMost(text.length)).trimStart()
-
-        return first to rest
+        val safeCut = cut.coerceAtMost(text.length)
+        return text.substring(0, safeCut).trimEnd() to
+            text.substring(safeCut).trimStart()
     }
 
     private fun rebalanceLastPage(
@@ -377,7 +365,7 @@ object SmartPaginationEngine {
         val previous = pages[previousIndex]
 
         val previousSentences = previous.body
-            .split(Regex("""(?<=[.!؟؛])\\s+"""))
+            .split(Regex("""(?<=[.!؟؛])\s+"""))
             .filter { it.isNotBlank() }
 
         if (previousSentences.size < 2) return pages

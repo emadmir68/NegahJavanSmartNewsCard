@@ -6,12 +6,7 @@ import ir.negahjavan.newscard.model.NewsLength
 import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
 import kotlin.math.max
-import kotlin.math.min
 
-/**
- * Central layout intelligence for typography, spacing, frame density,
- * image allocation and default template selection.
- */
 object SmartCompositionEngine {
 
     enum class Density {
@@ -46,7 +41,7 @@ object SmartCompositionEngine {
         val body = analysis.bodyText.trim()
         val bodyChars = body.length
         val paragraphCount = body
-            .split(Regex("""\\n\\s*\\n"""))
+            .split(Regex("""\n\s*\n"""))
             .count { it.isNotBlank() }
             .coerceAtLeast(1)
 
@@ -56,16 +51,8 @@ object SmartCompositionEngine {
             else -> Density.DENSE
         }
 
-        val titleSize = smartTitleSize(
-            format = format,
-            title = title
-        )
-
-        val preferredBody = preferredBodySize(
-            format = format,
-            density = density,
-            hasImage = hasImage
-        )
+        val titleSize = smartTitleSize(format, title)
+        val preferredBody = preferredBodySize(format, density, hasImage)
 
         val minBody = when (format) {
             CardFormat.STORY -> 36f
@@ -74,21 +61,12 @@ object SmartCompositionEngine {
             CardFormat.LANDSCAPE -> 29f
         }
 
-        val imageRatio = smartImageRatio(
-            format = format,
-            analysis = analysis,
-            hasImage = hasImage,
-            density = density
-        )
-
-        val basePad = when (format) {
-            CardFormat.LANDSCAPE -> .050f
-            CardFormat.SQUARE -> .058f
-            else -> .060f
-        }
-
         return Profile(
-            horizontalPadRatio = basePad,
+            horizontalPadRatio = when (format) {
+                CardFormat.LANDSCAPE -> .050f
+                CardFormat.SQUARE -> .058f
+                else -> .060f
+            },
             gapRatio = when (density) {
                 Density.AIRY -> .019f
                 Density.BALANCED -> .016f
@@ -106,7 +84,12 @@ object SmartCompositionEngine {
                 CardFormat.SQUARE -> .158f
                 CardFormat.LANDSCAPE -> .165f
             },
-            imageHeightRatio = imageRatio,
+            imageHeightRatio = smartImageRatio(
+                format = format,
+                analysis = analysis,
+                hasImage = hasImage,
+                density = density
+            ),
             safeBottomRatio = when (format) {
                 CardFormat.STORY -> .930f
                 CardFormat.PORTRAIT -> .925f
@@ -133,7 +116,7 @@ object SmartCompositionEngine {
                 Density.DENSE -> 1.25f
             },
             shortContentStartRatio = when {
-                hasImage -> .0f
+                hasImage -> 0f
                 density == Density.AIRY -> .205f
                 density == Density.BALANCED -> .145f
                 else -> .128f
@@ -146,15 +129,13 @@ object SmartCompositionEngine {
         val start = profile.preferredBodySizePx
         val min = profile.minimumBodySizePx
 
-        val values = listOf(
+        return listOf(
             start,
             start - 2f,
             start - 4f,
             start - 6f,
             min
         )
-
-        return values
             .map { max(min, it) }
             .distinct()
             .sortedDescending()
@@ -192,7 +173,9 @@ object SmartCompositionEngine {
     ): Float {
         val width = format.width.toFloat()
         val chars = title.length
-        val words = title.split(Regex("""\\s+""")).filter { it.isNotBlank() }
+        val words = title
+            .split(Regex("""\s+"""))
+            .filter { it.isNotBlank() }
         val longestWord = words.maxOfOrNull { it.length } ?: 0
 
         val base = when {

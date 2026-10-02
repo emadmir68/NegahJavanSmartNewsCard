@@ -397,6 +397,117 @@ private fun Badge(
     }
 }
 
+@Composable
+private fun BoxScope.TemplateChrome(template: PremiumTemplate) {
+    when (template) {
+        PremiumTemplate.LUXURY_MINIMAL -> {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 14.dp)
+                    .width(86.dp)
+                    .height(2.dp)
+                    .background(Color(0xFFD6B168).copy(alpha = .55f))
+            )
+        }
+
+        PremiumTemplate.PHOTO_PREMIUM -> {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(Color(0xFF745BE0))
+            )
+
+            Column(
+                Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(.88f),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                repeat(5) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Color(0xFF745BE0).copy(alpha = .08f))
+                    )
+                }
+            }
+        }
+
+        PremiumTemplate.EDITORIAL_GLASS -> {
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 16.dp)
+                    .width(3.dp)
+                    .fillMaxHeight(.52f)
+                    .background(BrandRed.copy(alpha = .78f))
+            )
+        }
+    }
+}
+
+@Composable
+private fun FooterBrand(
+    template: PremiumTemplate,
+    modifier: Modifier = Modifier
+) {
+    when (template) {
+        PremiumTemplate.LUXURY_MINIMAL -> {
+            Column(
+                modifier = modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    BRAND_SITE.uppercase(),
+                    color = Color(0xFFA6A8AE),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Spacer(Modifier.height(5.dp))
+                Box(
+                    Modifier
+                        .width(82.dp)
+                        .height(2.dp)
+                        .background(Color(0xFFD6B168))
+                )
+            }
+        }
+
+        PremiumTemplate.PHOTO_PREMIUM -> {
+            Text(
+                BRAND_SITE.uppercase(),
+                color = Color(0xFFBDB3E6),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Black,
+                modifier = modifier
+            )
+        }
+
+        PremiumTemplate.EDITORIAL_GLASS -> {
+            Row(
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    BRAND_SOCIAL,
+                    color = Color.White,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    BRAND_SITE,
+                    color = Color(0xFFC7C7CD),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
 private fun backgroundBrush(
     template: PremiumTemplate
 ): Brush {
