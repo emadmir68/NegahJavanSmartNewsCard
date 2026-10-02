@@ -260,10 +260,7 @@ object CardBitmapRenderer {
                 )
             }
         }
-
-        paint.setRenderEffect(null)
-
-        paint.shader = LinearGradient(
+paint.shader = LinearGradient(
             dest.left,
             dest.top,
             dest.left,
