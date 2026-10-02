@@ -22,3 +22,7 @@ Railway فعلی حساب به سقف provision پلن رایگان رسیده �
 
 ## Signing
 برای انتشار نهایی با امکان Update مطمئن، keystore خصوصی دائمی باید در Secrets قرار بگیرد. CI فعلاً APK تستی می‌سازد.
+
+
+## Release
+- 1.1.0 promoted to main for final CI and APK publication.
