@@ -21,6 +21,7 @@ import coil3.compose.AsyncImage
 import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.NewsCategory
 import ir.negahjavan.newscard.model.NewsLength
+import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
 import ir.negahjavan.newscard.ui.theme.BrandRed
@@ -35,6 +36,7 @@ fun NewsCardPreview(
     page: SmartPage,
     imageUri: Uri?,
     format: CardFormat,
+    template: PremiumTemplate = PremiumTemplate.LUXURY_MINIMAL,
     modifier: Modifier = Modifier
 ) {
     val ratio = format.width.toFloat() / format.height
@@ -47,14 +49,14 @@ fun NewsCardPreview(
         modifier = modifier
             .aspectRatio(ratio)
             .clip(RoundedCornerShape(24.dp))
-            .background(backgroundBrush(analysis.category))
+            .background(backgroundBrush(analysis.category, template))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
-            BrandLockup()
+            BrandLockup(template)
             Spacer(Modifier.height(14.dp))
 
             if (page.showImage && imageUri != null) {
@@ -66,8 +68,18 @@ fun NewsCardPreview(
                         .background(Color(0xFF101014))
                         .border(
                             width = 1.dp,
-                            color = Color.White.copy(alpha = .16f),
-                            shape = RoundedCornerShape(18.dp)
+                            color = when (template) {
+                                PremiumTemplate.LUXURY_MINIMAL -> Color.White.copy(alpha = .16f)
+                                PremiumTemplate.PHOTO_PREMIUM -> BrandRed.copy(alpha = .70f)
+                                PremiumTemplate.EDITORIAL_GLASS -> Color.White.copy(alpha = .24f)
+                            },
+                            shape = RoundedCornerShape(
+                                when (template) {
+                                    PremiumTemplate.LUXURY_MINIMAL -> 18.dp
+                                    PremiumTemplate.PHOTO_PREMIUM -> 24.dp
+                                    PremiumTemplate.EDITORIAL_GLASS -> 14.dp
+                                }
+                            )
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -85,7 +97,8 @@ fun NewsCardPreview(
                 text = page.badge.ifBlank {
                     if (page.isContinuation) "ادامه خبر" else analysis.badge
                 },
-                outlined = shortCover
+                outlined = shortCover,
+                template = template
             )
             Spacer(Modifier.height(11.dp))
 
@@ -144,10 +157,20 @@ fun NewsCardPreview(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White.copy(alpha = .055f))
+                            .background(
+                                when (template) {
+                                    PremiumTemplate.LUXURY_MINIMAL -> Color.White.copy(alpha = .045f)
+                                    PremiumTemplate.PHOTO_PREMIUM -> Color.Black.copy(alpha = .34f)
+                                    PremiumTemplate.EDITORIAL_GLASS -> Color.White.copy(alpha = .10f)
+                                }
+                            )
                             .border(
                                 1.dp,
-                                Color.White.copy(alpha = .07f),
+                                when (template) {
+                                    PremiumTemplate.LUXURY_MINIMAL -> Color.White.copy(alpha = .07f)
+                                    PremiumTemplate.PHOTO_PREMIUM -> BrandRed.copy(alpha = .28f)
+                                    PremiumTemplate.EDITORIAL_GLASS -> Color.White.copy(alpha = .20f)
+                                },
                                 RoundedCornerShape(16.dp)
                             )
                             .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -176,12 +199,18 @@ fun NewsCardPreview(
 }
 
 @Composable
-private fun BrandLockup() {
+private fun BrandLockup(template: PremiumTemplate) {
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.Black.copy(alpha = .22f))
+            .background(
+                when (template) {
+                    PremiumTemplate.LUXURY_MINIMAL -> Color.Black.copy(alpha = .38f)
+                    PremiumTemplate.PHOTO_PREMIUM -> Color(0xFF121317).copy(alpha = .96f)
+                    PremiumTemplate.EDITORIAL_GLASS -> Color.White.copy(alpha = .09f)
+                }
+            )
             .border(
                 1.dp,
                 Color.White.copy(alpha = .08f),
@@ -197,14 +226,14 @@ private fun BrandLockup() {
             Text(
                 BRAND_SOCIAL,
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Black
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 BRAND_SITE,
                 color = Color(0xFFE3E3E8),
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(5.dp))
@@ -226,8 +255,8 @@ private fun BrandLockup() {
             Text(
                 BRAND_TITLE,
                 color = Color.White,
-                fontSize = 14.sp,
-                lineHeight = 18.sp,
+                fontSize = 15.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Right
             )
@@ -245,24 +274,34 @@ private fun BrandLockup() {
 @Composable
 private fun Badge(
     text: String,
-    outlined: Boolean
+    outlined: Boolean,
+    template: PremiumTemplate
 ) {
     val shape = RoundedCornerShape(50)
 
     Box(
         Modifier
             .then(
-                if (outlined) {
-                    Modifier.border(1.dp, BrandRed, shape)
-                } else {
-                    Modifier.background(BrandRed, shape)
+                when (template) {
+                    PremiumTemplate.LUXURY_MINIMAL ->
+                        if (outlined) {
+                            Modifier.border(1.dp, BrandRed, shape)
+                        } else {
+                            Modifier.background(BrandRed, shape)
+                        }
+                    PremiumTemplate.PHOTO_PREMIUM ->
+                        Modifier.background(Color.White, shape)
+                    PremiumTemplate.EDITORIAL_GLASS ->
+                        Modifier
+                            .background(Color.White.copy(alpha = .10f), shape)
+                            .border(1.dp, BrandRed.copy(alpha = .75f), shape)
                 }
             )
             .padding(horizontal = 13.dp, vertical = 6.dp)
     ) {
         Text(
             text = text,
-            color = Color.White,
+            color = if (template == PremiumTemplate.PHOTO_PREMIUM) Color(0xFF121317) else Color.White,
             fontSize = 10.sp,
             fontWeight = FontWeight.Black
         )
@@ -295,23 +334,29 @@ private fun imageFraction(
     }
 
 private fun backgroundBrush(
-    category: NewsCategory
+    category: NewsCategory,
+    template: PremiumTemplate
 ): Brush {
-    val colors = when (category) {
-        NewsCategory.JUDICIAL ->
-            listOf(Color(0xFF1F222C), Color(0xFF0B0C10), Color(0xFF34070D))
-        NewsCategory.POLITICS ->
-            listOf(Color(0xFF232532), Color(0xFF0B0C11), Color(0xFF34070D))
-        NewsCategory.ECONOMY ->
-            listOf(Color(0xFF162B24), Color(0xFF09100D), Color(0xFF31070C))
-        NewsCategory.SPORTS ->
-            listOf(Color(0xFF132F23), Color(0xFF08110C), Color(0xFF31070C))
-        NewsCategory.CULTURE ->
-            listOf(Color(0xFF312133), Color(0xFF0E0A0F), Color(0xFF35070D))
-        NewsCategory.TECHNOLOGY ->
-            listOf(Color(0xFF172F3F), Color(0xFF090F15), Color(0xFF32070C))
-        else ->
-            listOf(Color(0xFF262935), Color(0xFF0B0C10), Color(0xFF34070D))
+    val colors = when (template) {
+        PremiumTemplate.LUXURY_MINIMAL -> when (category) {
+            NewsCategory.JUDICIAL -> listOf(Color(0xFF171A21), Color(0xFF08090C), Color(0xFF21070B))
+            NewsCategory.ECONOMY -> listOf(Color(0xFF14241D), Color(0xFF080B0A), Color(0xFF21070B))
+            NewsCategory.SPORTS -> listOf(Color(0xFF12251B), Color(0xFF080B09), Color(0xFF21070B))
+            else -> listOf(Color(0xFF191C24), Color(0xFF08090C), Color(0xFF25070C))
+        }
+
+        PremiumTemplate.PHOTO_PREMIUM -> when (category) {
+            NewsCategory.TECHNOLOGY -> listOf(Color(0xFF172E41), Color(0xFF0A1018), Color(0xFF430A13))
+            NewsCategory.CULTURE -> listOf(Color(0xFF33223B), Color(0xFF100C14), Color(0xFF430A13))
+            else -> listOf(Color(0xFF272C39), Color(0xFF0B0F16), Color(0xFF470A13))
+        }
+
+        PremiumTemplate.EDITORIAL_GLASS -> when (category) {
+            NewsCategory.ECONOMY -> listOf(Color(0xFF173129), Color(0xFF0D1512), Color(0xFF251018))
+            NewsCategory.JUDICIAL -> listOf(Color(0xFF202635), Color(0xFF0D1118), Color(0xFF251018))
+            else -> listOf(Color(0xFF222737), Color(0xFF0D1119), Color(0xFF291019))
+        }
     }
+
     return Brush.linearGradient(colors)
 }

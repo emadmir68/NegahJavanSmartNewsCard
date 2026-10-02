@@ -295,8 +295,7 @@ paint.shader = LinearGradient(
         template: PremiumTemplate,
         w: Int,
         h: Int,
-        shortCover: Boolean,
-        template: PremiumTemplate
+        shortCover: Boolean
     ) {
         val colors = categoryColors(analysis.category)
 
@@ -613,7 +612,8 @@ paint.shader = LinearGradient(
         safeBottom: Float,
         w: Int,
         h: Int,
-        shortCover: Boolean
+        shortCover: Boolean,
+        template: PremiumTemplate
     ) {
         val innerInset = w * .027f
         val layout = makeRtlLayout(
