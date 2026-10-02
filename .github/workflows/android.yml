@@ -40,17 +40,17 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p /tmp/negahjavan-apk
-          cp app/build/outputs/apk/debug/app-debug.apk /tmp/negahjavan-apk/NegahJavanSmartNewsCard-0.7.0-final.apk
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/negahjavan-apk/NegahJavanSmartNewsCard-0.8.0-final.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git rebase origin/main
           mkdir -p dist
-          cp /tmp/negahjavan-apk/NegahJavanSmartNewsCard-0.7.0-final.apk dist/NegahJavanSmartNewsCard-0.7.0-final.apk
-          git add dist/NegahJavanSmartNewsCard-0.7.0-final.apk
+          cp /tmp/negahjavan-apk/NegahJavanSmartNewsCard-0.8.0-final.apk dist/NegahJavanSmartNewsCard-0.8.0-final.apk
+          git add dist/NegahJavanSmartNewsCard-0.8.0-final.apk
           if git diff --cached --quiet; then
             echo "APK unchanged; nothing to commit."
           else
-            git commit -m "build: publish final APK 0.7.0 [skip ci]"
+            git commit -m "build: publish final APK 0.8.0 [skip ci]"
             git push origin HEAD:main
           fi

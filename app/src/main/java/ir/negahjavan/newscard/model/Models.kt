@@ -34,6 +34,15 @@ enum class CardTemplate(val fa: String) {
     EDITORIAL("ادیتوریال")
 }
 
+enum class PremiumTemplate(
+    val fa: String,
+    val shortFa: String
+) {
+    LUXURY_MINIMAL("لوکس مینیمال", "لوکس"),
+    PHOTO_PREMIUM("عکس‌محور پریمیوم", "عکس‌محور"),
+    EDITORIAL_GLASS("ادیتوریال شیشه‌ای", "ادیتوریال")
+}
+
 data class NewsDraft(
     val rawText: String = "",
     val imageUri: Uri? = null,

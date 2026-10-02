@@ -25,6 +25,7 @@ import coil3.toBitmap
 import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.NewsCategory
 import ir.negahjavan.newscard.model.NewsLength
+import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
 import kotlinx.coroutines.Dispatchers
@@ -43,7 +44,8 @@ object CardBitmapRenderer {
         analysis: SmartAnalysis,
         page: SmartPage,
         imageUri: Uri?,
-        format: CardFormat
+        format: CardFormat,
+        template: PremiumTemplate = PremiumTemplate.LUXURY_MINIMAL
     ): Bitmap = withContext(Dispatchers.Default) {
         val w = format.width
         val h = format.height
@@ -55,6 +57,7 @@ object CardBitmapRenderer {
             canvas = canvas,
             paint = paint,
             analysis = analysis,
+            template = template,
             w = w,
             h = h,
             shortCover = page.isFirst &&
@@ -62,7 +65,7 @@ object CardBitmapRenderer {
                 !page.showImage
         )
 
-        drawBrandLockup(canvas, paint, w, h)
+        drawBrandLockup(canvas, paint, w, h, template)
 
         val pad = w * .060f
         val gap = max(18f, h * .017f)
@@ -152,7 +155,8 @@ object CardBitmapRenderer {
                     safeBottom = safeBottom,
                     w = w,
                     h = h,
-                    shortCover = shortNoImage
+                    shortCover = shortNoImage,
+                    template = template
                 )
             }
         } else {
@@ -169,7 +173,8 @@ object CardBitmapRenderer {
                 safeBottom = safeBottom,
                 w = w,
                 h = h,
-                shortCover = false
+                shortCover = false,
+                template = template
             )
         }
 
@@ -287,9 +292,11 @@ paint.shader = LinearGradient(
         canvas: Canvas,
         paint: Paint,
         analysis: SmartAnalysis,
+        template: PremiumTemplate,
         w: Int,
         h: Int,
-        shortCover: Boolean
+        shortCover: Boolean,
+        template: PremiumTemplate
     ) {
         val colors = categoryColors(analysis.category)
 
@@ -304,6 +311,54 @@ paint.shader = LinearGradient(
         )
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
         paint.shader = null
+
+        when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> {
+                paint.color = Color.argb(18, 255, 255, 255)
+                canvas.drawRoundRect(
+                    w * .058f,
+                    h * .012f,
+                    w * .942f,
+                    h * .107f,
+                    w * .025f,
+                    w * .025f,
+                    paint
+                )
+            }
+            PremiumTemplate.PHOTO_PREMIUM -> {
+                paint.color = accentRed
+                canvas.drawRect(0f, 0f, w.toFloat(), h * .006f, paint)
+                paint.shader = LinearGradient(
+                    0f,
+                    h * .66f,
+                    w.toFloat(),
+                    h.toFloat(),
+                    intArrayOf(
+                        Color.argb(0, 0, 0, 0),
+                        Color.argb(72, 232, 21, 35)
+                    ),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+                canvas.drawRect(0f, h * .60f, w.toFloat(), h.toFloat(), paint)
+                paint.shader = null
+            }
+            PremiumTemplate.EDITORIAL_GLASS -> {
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = w * .002f
+                paint.color = Color.argb(28, 255, 255, 255)
+                canvas.drawRoundRect(
+                    w * .035f,
+                    h * .020f,
+                    w * .965f,
+                    h * .965f,
+                    w * .030f,
+                    w * .030f,
+                    paint
+                )
+                paint.style = Paint.Style.FILL
+            }
+        }
 
         paint.color = Color.argb(if (shortCover) 19 else 11, 255, 255, 255)
         canvas.drawCircle(w * .93f, h * .17f, w * .40f, paint)
@@ -389,14 +444,23 @@ paint.shader = LinearGradient(
         canvas: Canvas,
         paint: Paint,
         w: Int,
-        h: Int
+        h: Int,
+        template: PremiumTemplate
     ) {
         val pad = w * .060f
         val top = h * .014f
         val bottom = h * .102f
-        val radius = w * .022f
+        val radius = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> w * .022f
+            PremiumTemplate.PHOTO_PREMIUM -> w * .028f
+            PremiumTemplate.EDITORIAL_GLASS -> w * .030f
+        }
 
-        paint.color = Color.argb(58, 0, 0, 0)
+        paint.color = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> Color.argb(92, 0, 0, 0)
+            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(220, 18, 19, 23)
+            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(27, 255, 255, 255)
+        }
         canvas.drawRoundRect(
             pad,
             top,
@@ -408,8 +472,12 @@ paint.shader = LinearGradient(
         )
 
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = max(1.5f, w * .0016f)
-        paint.color = Color.argb(30, 255, 255, 255)
+        paint.strokeWidth = max(1.5f, w * .0017f)
+        paint.color = when (template) {
+            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(105, 232, 21, 35)
+            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(55, 255, 255, 255)
+            else -> Color.argb(34, 255, 255, 255)
+        }
         canvas.drawRoundRect(
             pad,
             top,
@@ -425,8 +493,8 @@ paint.shader = LinearGradient(
             canvas = canvas,
             text = brandSocial,
             x = pad + w * .026f,
-            y = h * .022f,
-            size = w * .045f,
+            y = h * .020f,
+            size = w * .052f,
             color = Color.WHITE,
             bold = true,
             align = Paint.Align.LEFT
@@ -436,9 +504,9 @@ paint.shader = LinearGradient(
             canvas = canvas,
             text = brandSite,
             x = pad + w * .026f,
-            y = h * .061f,
-            size = w * .023f,
-            color = Color.rgb(228, 228, 233),
+            y = h * .064f,
+            size = w * .026f,
+            color = Color.rgb(236, 236, 241),
             bold = true,
             align = Paint.Align.LEFT
         )
@@ -446,9 +514,9 @@ paint.shader = LinearGradient(
         paint.color = accentRed
         canvas.drawRoundRect(
             pad + w * .026f,
-            h * .090f,
-            pad + w * .135f,
-            h * .094f,
+            h * .091f,
+            pad + if (template == PremiumTemplate.PHOTO_PREMIUM) w * .170f else w * .145f,
+            h * .096f,
             w * .003f,
             w * .003f,
             paint
@@ -456,10 +524,10 @@ paint.shader = LinearGradient(
 
         paint.color = accentRed
         canvas.drawRoundRect(
-            w - pad - w * .015f,
-            h * .026f,
+            w - pad - w * .016f,
+            h * .024f,
             w - pad - w * .006f,
-            h * .088f,
+            h * .091f,
             w * .005f,
             w * .005f,
             paint
@@ -468,9 +536,9 @@ paint.shader = LinearGradient(
         drawText(
             canvas = canvas,
             text = brandTitle,
-            x = w - pad - w * .038f,
-            y = h * .034f,
-            size = w * .036f,
+            x = w - pad - w * .042f,
+            y = h * .031f,
+            size = w * .040f,
             color = Color.WHITE,
             bold = true,
             align = Paint.Align.RIGHT
@@ -586,27 +654,41 @@ paint.shader = LinearGradient(
             top + layout.height + h * .032f
         )
 
-        paint.color = Color.argb(21, 255, 255, 255)
+        val panelRadius = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> w * .023f
+            PremiumTemplate.PHOTO_PREMIUM -> w * .032f
+            PremiumTemplate.EDITORIAL_GLASS -> w * .030f
+        }
+
+        paint.color = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> Color.argb(18, 255, 255, 255)
+            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(84, 0, 0, 0)
+            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(31, 255, 255, 255)
+        }
         canvas.drawRoundRect(
             x,
             top - h * .009f,
             x + width,
             panelBottom,
-            w * .023f,
-            w * .023f,
+            panelRadius,
+            panelRadius,
             paint
         )
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = max(1.5f, w * .0015f)
-        paint.color = Color.argb(28, 255, 255, 255)
+        paint.color = when (template) {
+            PremiumTemplate.LUXURY_MINIMAL -> Color.argb(24, 255, 255, 255)
+            PremiumTemplate.PHOTO_PREMIUM -> Color.argb(54, 232, 21, 35)
+            PremiumTemplate.EDITORIAL_GLASS -> Color.argb(48, 255, 255, 255)
+        }
         canvas.drawRoundRect(
             x,
             top - h * .009f,
             x + width,
             panelBottom,
-            w * .023f,
-            w * .023f,
+            panelRadius,
+            panelRadius,
             paint
         )
         paint.style = Paint.Style.FILL
