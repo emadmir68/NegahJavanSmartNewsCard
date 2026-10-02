@@ -209,11 +209,11 @@ object CardBitmapRenderer {
             }
 
             SmartImageEngine.Mode.FIT_BLUR -> {
-                paint.renderEffect = RenderEffect.createBlurEffect(
+                paint.setRenderEffect(RenderEffect.createBlurEffect(
                     34f,
                     34f,
                     Shader.TileMode.CLAMP
-                )
+                ))
 
                 drawFocalCrop(
                     canvas = canvas,
@@ -224,7 +224,7 @@ object CardBitmapRenderer {
                     focusY = .5f
                 )
 
-                paint.renderEffect = null
+                paint.setRenderEffect(null)
                 paint.color = Color.argb(105, 0, 0, 0)
                 canvas.drawRect(dest, paint)
 
@@ -257,7 +257,7 @@ object CardBitmapRenderer {
             }
         }
 
-        paint.renderEffect = null
+        paint.setRenderEffect(null)
 
         paint.shader = LinearGradient(
             dest.left,
