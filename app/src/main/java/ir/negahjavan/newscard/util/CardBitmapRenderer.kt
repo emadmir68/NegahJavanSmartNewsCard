@@ -323,6 +323,8 @@ paint.shader = LinearGradient(
             )
             paint.style = Paint.Style.FILL
 
+        }
+
         paint.color = Color.argb(15, 255, 255, 255)
         canvas.drawRoundRect(
             w * .060f,
