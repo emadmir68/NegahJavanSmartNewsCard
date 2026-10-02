@@ -34,7 +34,6 @@ fun NewsCardPreview(
     modifier: Modifier = Modifier
 ) {
     val ratio = format.width.toFloat() / format.height
-    val template = analysis.recommendedTemplate
 
     Box(
         modifier = modifier
@@ -42,18 +41,19 @@ fun NewsCardPreview(
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0xFF0B0B0E))
     ) {
-        if (imageUri != null) {
-            AsyncImage(
-                model = imageUri,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            SmartCoverBackground(analysis)
+        if (imageUri == null) {
+            TextOnlyPreview(analysis, slide, slideIndex)
+            return@Box
         }
 
-        when (template) {
+        AsyncImage(
+            model = imageUri,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        when (analysis.recommendedTemplate) {
             CardTemplate.SIGNATURE -> SignaturePreview(analysis, slide, slideIndex)
             CardTemplate.BREAKING_PLUS -> BreakingPreview(analysis, slide, slideIndex)
             CardTemplate.EDITORIAL -> EditorialPreview(analysis, slide, slideIndex)
@@ -62,31 +62,101 @@ fun NewsCardPreview(
 }
 
 @Composable
-private fun SmartCoverBackground(analysis: SmartAnalysis) {
-    val colors = when (analysis.category.name) {
-        "JUDICIAL" -> listOf(Color(0xFF282E3A), Color(0xFF111318), Color(0xFF531016))
-        "POLITICS" -> listOf(Color(0xFF343A50), Color(0xFF12141B), Color(0xFF4C0A10))
-        "ECONOMY" -> listOf(Color(0xFF243B36), Color(0xFF101715), Color(0xFF4A1014))
-        "SPORTS" -> listOf(Color(0xFF1D4333), Color(0xFF0D1713), Color(0xFF4B0D13))
-        "CULTURE" -> listOf(Color(0xFF453647), Color(0xFF171117), Color(0xFF5A0B13))
-        "TECHNOLOGY" -> listOf(Color(0xFF253B50), Color(0xFF10161D), Color(0xFF4D0B12))
-        else -> listOf(Color(0xFF3B3F55), Color(0xFF121217), Color(0xFF5A0810))
+private fun TextOnlyPreview(
+    analysis: SmartAnalysis,
+    slide: SmartSlide,
+    slideIndex: Int
+) {
+    val bg = when (analysis.category.name) {
+        "JUDICIAL" -> listOf(Color(0xFF222833), Color(0xFF111319), Color(0xFF350A0E))
+        "ECONOMY" -> listOf(Color(0xFF1E302B), Color(0xFF101613), Color(0xFF350A0E))
+        "SPORTS" -> listOf(Color(0xFF18352A), Color(0xFF0D1511), Color(0xFF350A0E))
+        "TECHNOLOGY" -> listOf(Color(0xFF1E3142), Color(0xFF10151B), Color(0xFF350A0E))
+        else -> listOf(Color(0xFF2A2E3A), Color(0xFF121318), Color(0xFF350A0E))
     }
 
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.linearGradient(colors))
+            .background(Brush.verticalGradient(bg))
+    )
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            "N/J",
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(bottom = 40.dp),
-            color = Color.White.copy(alpha = .045f),
-            fontSize = 96.sp,
-            fontWeight = FontWeight.Black
-        )
+        BrandHeader()
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.End
+        ) {
+            Text(
+                slide.badge.ifBlank { analysis.badge },
+                color = BrandRed,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Black
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                slide.title,
+                color = Color.White,
+                fontSize = when {
+                    slide.title.length < 45 -> 30.sp
+                    slide.title.length < 80 -> 26.sp
+                    else -> 22.sp
+                },
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Right,
+                lineHeight = when {
+                    slide.title.length < 45 -> 38.sp
+                    slide.title.length < 80 -> 33.sp
+                    else -> 29.sp
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (slide.body.isNotBlank() && slide.body.trim() != slide.title.trim()) {
+                Spacer(Modifier.height(22.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Color.White.copy(alpha = .06f),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(14.dp)
+                ) {
+                    Text(
+                        slide.body,
+                        color = Color(0xFFE7E7EB),
+                        fontSize = 14.sp,
+                        lineHeight = 23.sp,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(JalaliDate.today(), color = Color(0xFF9C9DA5), fontSize = 10.sp)
+            if (analysis.slides.size > 1) {
+                Text(
+                    (slideIndex + 1).toString() + "/" + analysis.slides.size,
+                    color = Color(0xFF9C9DA5),
+                    fontSize = 10.sp
+                )
+            }
+            Text("@negahjavan", color = BrandRed, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
@@ -104,7 +174,6 @@ private fun SignaturePreview(
             )
         )
     )
-
     Column(
         Modifier.fillMaxSize().padding(18.dp),
         verticalArrangement = Arrangement.SpaceBetween
@@ -134,7 +203,6 @@ private fun BreakingPreview(
             )
         )
     )
-
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.fillMaxWidth().background(BrandRed).padding(16.dp),
@@ -143,9 +211,7 @@ private fun BreakingPreview(
             Text("NEGAH JAVAN • BREAKING", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             Text("فوری", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
         }
-
         Spacer(Modifier.weight(1f))
-
         Column(
             Modifier.padding(horizontal = 18.dp),
             horizontalAlignment = Alignment.End
@@ -159,17 +225,18 @@ private fun BreakingPreview(
             Spacer(Modifier.height(8.dp))
             Headline(slide.title, Color.White, true)
             Spacer(Modifier.height(10.dp))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xC016161B))
-                    .padding(12.dp)
-            ) {
-                Body(slide.body, Color.White)
+            if (slide.body.isNotBlank()) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xC016161B))
+                        .padding(12.dp)
+                ) {
+                    Body(slide.body, Color.White)
+                }
             }
         }
-
         Footer(slideIndex, analysis.slides.size, Modifier.padding(18.dp))
     }
 }
@@ -187,7 +254,6 @@ private fun EditorialPreview(
             )
         )
     )
-
     Column(
         Modifier.fillMaxSize().padding(18.dp),
         verticalArrangement = Arrangement.SpaceBetween
@@ -199,9 +265,7 @@ private fun EditorialPreview(
             Text("NEGAH / JAVAN", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
             Text("پایگاه خبری نگاه جوان", color = Color.White, fontSize = 11.sp)
         }
-
         Spacer(Modifier.weight(1f))
-
         Box(
             Modifier
                 .fillMaxWidth()
@@ -218,12 +282,20 @@ private fun EditorialPreview(
                 )
                 Spacer(Modifier.height(8.dp))
                 Headline(slide.title, Color(0xFF141416), slideIndex == 0)
-                Spacer(Modifier.height(9.dp))
-                Body(slide.body, Color(0xFF4C4D52))
+                if (slide.body.isNotBlank()) {
+                    Spacer(Modifier.height(9.dp))
+                    Body(slide.body, Color(0xFF4C4D52))
+                }
                 Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(JalaliDate.today(), color = Color(0xFF66666B), fontSize = 10.sp)
-                    Text((slideIndex + 1).toString() + "/" + analysis.slides.size, color = Color(0xFF77777D), fontSize = 10.sp)
+                    if (analysis.slides.size > 1) {
+                        Text(
+                            (slideIndex + 1).toString() + "/" + analysis.slides.size,
+                            color = Color(0xFF77777D),
+                            fontSize = 10.sp
+                        )
+                    }
                     Text("@negahjavan", color = BrandRed, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
@@ -238,18 +310,8 @@ private fun BrandHeader() {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(horizontalAlignment = Alignment.End) {
-            Text("پایگاه خبری", color = Color.White, fontSize = 10.sp)
-            Text("نگاه جوان", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-        }
-        Box(
-            Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(BrandRed)
-                .padding(horizontal = 14.dp, vertical = 8.dp)
-        ) {
-            Text("NEGAH JAVAN", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-        }
+        Text("NEGAH / JAVAN", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
+        Text("پایگاه خبری نگاه جوان", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -272,7 +334,6 @@ private fun Headline(text: String, color: Color, cover: Boolean) {
         text.length < 70 -> 24.sp
         else -> 20.sp
     }
-
     Text(
         text,
         color = color,
@@ -311,7 +372,9 @@ private fun Footer(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(JalaliDate.today(), color = Color.LightGray, fontSize = 10.sp)
-        Text((slideIndex + 1).toString() + "/" + total, color = Color.LightGray, fontSize = 10.sp)
+        if (total > 1) {
+            Text((slideIndex + 1).toString() + "/" + total, color = Color.LightGray, fontSize = 10.sp)
+        }
         Text("@negahjavan", color = Color.LightGray, fontSize = 10.sp)
         Text("NEGAH JAVAN", color = BrandRed, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }

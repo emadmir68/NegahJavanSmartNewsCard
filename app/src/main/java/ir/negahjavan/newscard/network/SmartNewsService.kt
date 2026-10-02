@@ -115,7 +115,7 @@ class SmartNewsService {
         val paragraphs = text.lines().map { it.trim() }.filter { it.isNotBlank() }
         val source = when {
             paragraphs.size >= 2 -> paragraphs[1]
-            else -> sentenceList(text).drop(1).firstOrNull() ?: normalize(text)
+            else -> sentenceList(text).drop(1).firstOrNull().orEmpty()
         }
         return shortenAtBoundary(source, 190)
     }
@@ -137,7 +137,12 @@ class SmartNewsService {
         length: NewsLength
     ): List<SmartSlide> {
         if (length != NewsLength.LONG) {
-            val body = if (length == NewsLength.SHORT) lead else mediumBody(text, lead)
+            val body = when {
+                length == NewsLength.SHORT && lead.isBlank() -> ""
+                length == NewsLength.SHORT && lead.trim() == title.trim() -> ""
+                length == NewsLength.SHORT -> lead
+                else -> mediumBody(text, lead)
+            }
             return listOf(SmartSlide(title = title, body = body, badge = badge))
         }
 
