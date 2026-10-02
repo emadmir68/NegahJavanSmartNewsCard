@@ -51,20 +51,52 @@ jobs:
           ./gradlew testDebugUnitTest
           ./gradlew lintDebug
 
-      - name: Build installable APK
+      - name: Build debug APK
         run: ./gradlew assembleDebug
+
+      - name: Prepare final APK
+        env:
+          SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p build-final
+          FINAL="build-final/NegahJavanSmartNewsCard-1.1.0-final.apk"
+
+          if [ -n "${SIGNING_KEY:-}" ] && [ -n "${STORE_PASSWORD:-}" ]; then
+            echo "Permanent signing secrets detected; building signed release."
+            ./gradlew assembleRelease
+            printf '%s' "$SIGNING_KEY" | base64 --decode > signing.jks
+            UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+            BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
+            "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" aligned.apk
+            "$BUILD_TOOLS/apksigner" sign               --ks signing.jks               --ks-key-alias negahjavan               --ks-pass env:STORE_PASSWORD               --key-pass env:STORE_PASSWORD               --out "$FINAL"               aligned.apk
+            "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$FINAL"
+            rm -f signing.jks aligned.apk
+          else
+            echo "No permanent signing secrets; publishing debug-signed test APK."
+            cp app/build/outputs/apk/debug/app-debug.apk "$FINAL"
+          fi
+
+          ls -lh "$FINAL"
+
+      - name: Upload tested APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NegahJavanSmartNewsCard-1.1.0
+          path: build-final/NegahJavanSmartNewsCard-1.1.0-final.apk
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Publish final APK to repository
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          mkdir -p /tmp/negahjavan-apk
-          cp app/build/outputs/apk/debug/app-debug.apk /tmp/negahjavan-apk/NegahJavanSmartNewsCard-1.1.0-final.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git rebase origin/main
           mkdir -p dist
-          cp /tmp/negahjavan-apk/NegahJavanSmartNewsCard-1.1.0-final.apk dist/NegahJavanSmartNewsCard-1.1.0-final.apk
+          cp build-final/NegahJavanSmartNewsCard-1.1.0-final.apk dist/NegahJavanSmartNewsCard-1.1.0-final.apk
           git add dist/NegahJavanSmartNewsCard-1.1.0-final.apk
           if git diff --cached --quiet; then
             echo "APK unchanged; nothing to commit."
