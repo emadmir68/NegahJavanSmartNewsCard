@@ -1,5 +1,6 @@
 package ir.negahjavan.newscard.ui
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -7,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,8 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ir.negahjavan.newscard.model.CardFormat
-import ir.negahjavan.newscard.model.CardTemplate
-import ir.negahjavan.newscard.model.NewsCategory
+import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.ui.components.NewsCardPreview
 import ir.negahjavan.newscard.ui.theme.BrandRed
 import ir.negahjavan.newscard.util.CardBitmapRenderer
@@ -40,18 +41,18 @@ import kotlinx.coroutines.launch
 fun NewsCardApp(vm: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
     val analysis by vm.analysis.collectAsState()
     val loading by vm.loading.collectAsState()
 
     var text by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var format by remember { mutableStateOf(CardFormat.STORY) }
-    var template by remember { mutableStateOf(CardTemplate.SIGNATURE) }
-    var exportedUri by remember { mutableStateOf<Uri?>(null) }
+    var previewIndex by remember { mutableStateOf(0) }
 
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val imagePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
         imageUri = uri
-        exportedUri = null
     }
 
     Scaffold(
@@ -62,7 +63,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "SMART NEWS STUDIO",
+                            "AUTO NEWS STUDIO • 0.3",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -83,39 +84,18 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(Color(0xFF2A080C), Color(0xFF15151A), Color(0xFF101014))
-                        ),
-                        RoundedCornerShape(24.dp)
-                    )
-                    .padding(18.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
-                    Text("خبر بده، کارت آماده تحویل بگیر.", color = Color.White, fontWeight = FontWeight.Black)
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        "تحلیل تیتر، انتخاب قالب و ساخت خروجی در یک مسیر",
-                        color = Color(0xFFAAAAB2),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Right
-                    )
-                }
-            }
+            AutoHero()
 
             OutlinedTextField(
                 value = text,
                 onValueChange = {
                     text = it
-                    exportedUri = null
+                    vm.clear()
                 },
                 label = { Text("متن کامل خبر") },
-                placeholder = { Text("متن خبر را اینجا وارد کن…") },
-                minLines = 6,
-                maxLines = 12,
+                placeholder = { Text("فقط متن خبر را اینجا بده؛ بقیه کار با اپ.") },
+                minLines = 7,
+                maxLines = 14,
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
                 shape = RoundedCornerShape(18.dp),
@@ -134,13 +114,19 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
             ) {
                 Icon(Icons.Outlined.Image, null)
                 Spacer(Modifier.width(8.dp))
-                Text(if (imageUri == null) "افزودن عکس خبر (اختیاری)" else "عکس انتخاب شد • تغییر عکس")
+                Text(
+                    if (imageUri == null) {
+                        "عکس داری؟ اضافه کن — اجباری نیست"
+                    } else {
+                        "عکس انتخاب شد • کراپ هوشمند فعال"
+                    }
+                )
             }
 
             Button(
                 onClick = { vm.analyze(text) },
                 enabled = text.isNotBlank() && !loading,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(58.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BrandRed)
             ) {
@@ -153,161 +139,82 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 } else {
                     Icon(Icons.Outlined.AutoAwesome, null)
                 }
+
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (loading) "در حال ساخت پیشنهادها…" else "ساخت هوشمند کارت",
+                    if (loading) {
+                        "در حال تحلیل و ساخت خودکار…"
+                    } else {
+                        "بساز؛ همه تصمیم‌ها با نگاه جوان"
+                    },
                     fontWeight = FontWeight.Black
                 )
             }
 
             analysis?.let { result ->
-                LaunchedEffect(result.title, result.category) {
-                    template = if (result.category == NewsCategory.BREAKING) {
-                        CardTemplate.BREAKING_PLUS
-                    } else {
-                        CardTemplate.SIGNATURE
-                    }
-                    exportedUri = null
+                LaunchedEffect(result.title, result.slides.size) {
+                    previewIndex = 0
                 }
 
-                LaunchedEffect(format, template, imageUri) {
-                    exportedUri = null
-                }
+                SmartDecisionCard(
+                    result = result,
+                    hasImage = imageUri != null
+                )
 
-                SectionTitle("قالب کارت", "سه طراحی مستقل")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    CardTemplate.entries.forEach { item ->
-                        FilterChip(
-                            selected = template == item,
-                            onClick = { template = item },
-                            label = {
+                Text(
+                    "پیش‌نمایش خروجی",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Right
+                )
+
+                if (result.slides.size > 1) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        result.slides.forEachIndexed { index, _ ->
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { previewIndex = index },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (previewIndex == index) {
+                                    BrandRed
+                                } else {
+                                    Color(0xFF17171D)
+                                }
+                            ) {
                                 Text(
-                                    item.fa,
-                                    style = MaterialTheme.typography.labelSmall,
+                                    (index + 1).toString(),
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center,
                                     fontWeight = FontWeight.Bold
                                 )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BrandRed,
-                                selectedLabelColor = Color.White,
-                                containerColor = Color(0xFF15151B)
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF121217)
-                ) {
-                    Text(
-                        template.subtitle,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-                        color = Color(0xFFB9BAC2),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Right
-                    )
-                }
-
-                SectionTitle("ابعاد خروجی", "استوری، پست و افقی")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    CardFormat.entries.forEach { item ->
-                        FilterChip(
-                            selected = format == item,
-                            onClick = { format = item },
-                            label = {
-                                Text(item.fa, style = MaterialTheme.typography.labelSmall)
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BrandRed,
-                                selectedLabelColor = Color.White,
-                                containerColor = Color(0xFF15151B)
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
+                            }
+                        }
                     }
                 }
 
                 NewsCardPreview(
                     analysis = result,
+                    slide = result.slides[previewIndex.coerceIn(0, result.slides.lastIndex)],
                     imageUri = imageUri,
-                    format = format,
-                    template = template,
+                    format = CardFormat.STORY,
+                    slideIndex = previewIndex.coerceIn(0, result.slides.lastIndex),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val bitmap = CardBitmapRenderer.render(
-                                    context, result, imageUri, format, template
-                                )
-                                exportedUri = CardBitmapRenderer.save(context, bitmap, format)
-                                Toast.makeText(
-                                    context,
-                                    if (exportedUri != null) "کارت با کیفیت اصلی ذخیره شد" else "ذخیره ناموفق بود",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        },
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandRed)
-                    ) {
-                        Icon(Icons.Outlined.Download, null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("ذخیره PNG", fontWeight = FontWeight.Bold)
+                OutputActions(
+                    result = result,
+                    imageUri = imageUri,
+                    context = context,
+                    onLaunch = { block ->
+                        scope.launch { block() }
                     }
-
-                    OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                val uri = exportedUri ?: CardBitmapRenderer.save(
-                                    context,
-                                    CardBitmapRenderer.render(
-                                        context, result, imageUri, format, template
-                                    ),
-                                    format
-                                )
-                                uri?.let {
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "image/png"
-                                        putExtra(Intent.EXTRA_STREAM, it)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "اشتراک کارت"))
-                                }
-                            }
-                        },
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Icon(Icons.Outlined.Share, null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("اشتراک")
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFF101015)
-                ) {
-                    Text(
-                        if (result.source == "online") {
-                            "AI ONLINE • تحلیل خبر از سرویس آنلاین انجام شد."
-                        } else {
-                            "SMART LOCAL • اگر سرویس آنلاین در دسترس نباشد، موتور داخلی کارت را می‌سازد."
-                        },
-                        modifier = Modifier.padding(12.dp),
-                        color = if (result.source == "online") Color(0xFF78D99B) else Color(0xFF9FA0A8),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.Right
-                    )
-                }
+                )
             }
 
             Spacer(Modifier.height(30.dp))
@@ -316,13 +223,288 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
 }
 
 @Composable
-private fun SectionTitle(title: String, subtitle: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom
+private fun AutoHero() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        Color(0xFF34090E),
+                        Color(0xFF17171C),
+                        Color(0xFF101014)
+                    )
+                ),
+                RoundedCornerShape(24.dp)
+            )
+            .padding(18.dp)
     ) {
-        Text(subtitle, color = Color(0xFF7F8089), style = MaterialTheme.typography.labelSmall)
-        Text(title, color = Color.White, fontWeight = FontWeight.Black)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.End
+        ) {
+            Text(
+                "فقط خبر را بده.",
+                color = Color.White,
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "طول متن، تیتر، لید، برچسب، قالب، تعداد اسلاید، کاور و کراپ عکس خودکار تصمیم‌گیری می‌شود.",
+                color = Color(0xFFB8B8C0),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Right
+            )
+        }
     }
+}
+
+@Composable
+private fun SmartDecisionCard(
+    result: SmartAnalysis,
+    hasImage: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFF131318)
+    ) {
+        Column(
+            Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (result.source == "online") "AI ONLINE" else "SMART LOCAL",
+                    color = if (result.source == "online") Color(0xFF74DB9B) else Color(0xFF9D9EA7),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "تصمیم خودکار",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SmartTag(result.length.fa, Modifier.weight(1f))
+                SmartTag(result.badge, Modifier.weight(1f))
+                SmartTag(result.recommendedTemplate.fa, Modifier.weight(1f))
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                result.decisionNote,
+                color = Color(0xFFD7D7DC),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Right,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(7.dp))
+
+            Text(
+                if (hasImage) {
+                    "عکس تشخیص داده شد؛ کراپ چهره‌محور در خروجی اصلی اعمال می‌شود."
+                } else {
+                    "عکس ندادی؛ کاور موضوعی هوشمند بر اساس نوع خبر ساخته می‌شود."
+                },
+                color = Color(0xFF9798A1),
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Right,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun SmartTag(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier
+            .background(
+                Color(0xFF202027),
+                RoundedCornerShape(10.dp)
+            )
+            .padding(horizontal = 7.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun OutputActions(
+    result: SmartAnalysis,
+    imageUri: Uri?,
+    context: Context,
+    onLaunch: (suspend () -> Unit) -> Unit
+) {
+    val storyLabel = if (result.slides.size > 1) {
+        result.slides.size.toString() + " استوری آماده"
+    } else {
+        "استوری آماده"
+    }
+
+    val postLabel = if (result.slides.size > 1) {
+        result.slides.size.toString() + " کاروسل آماده"
+    } else {
+        "پست آماده"
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Button(
+                onClick = {
+                    onLaunch {
+                        val uris = renderAndSaveSeries(
+                            context = context,
+                            result = result,
+                            imageUri = imageUri,
+                            format = CardFormat.STORY
+                        )
+                        shareImages(context, uris, "اشتراک استوری")
+                    }
+                },
+                modifier = Modifier.weight(1f).height(54.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BrandRed)
+            ) {
+                Icon(Icons.Outlined.Share, null)
+                Spacer(Modifier.width(6.dp))
+                Text(storyLabel, fontWeight = FontWeight.Bold)
+            }
+
+            OutlinedButton(
+                onClick = {
+                    onLaunch {
+                        val uris = renderAndSaveSeries(
+                            context = context,
+                            result = result,
+                            imageUri = imageUri,
+                            format = CardFormat.PORTRAIT
+                        )
+                        shareImages(context, uris, "اشتراک پست")
+                    }
+                },
+                modifier = Modifier.weight(1f).height(54.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Outlined.Share, null)
+                Spacer(Modifier.width(6.dp))
+                Text(postLabel)
+            }
+        }
+
+        OutlinedButton(
+            onClick = {
+                onLaunch {
+                    val story = renderAndSaveSeries(
+                        context,
+                        result,
+                        imageUri,
+                        CardFormat.STORY
+                    )
+                    val post = renderAndSaveSeries(
+                        context,
+                        result,
+                        imageUri,
+                        CardFormat.PORTRAIT
+                    )
+
+                    Toast.makeText(
+                        context,
+                        (story.size + post.size).toString() + " خروجی در گالری ذخیره شد",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(Icons.Outlined.Download, null)
+            Spacer(Modifier.width(7.dp))
+            Text("ذخیره همه خروجی‌های هوشمند")
+        }
+    }
+}
+
+private suspend fun renderAndSaveSeries(
+    context: Context,
+    result: SmartAnalysis,
+    imageUri: Uri?,
+    format: CardFormat
+): List<Uri> {
+    val uris = mutableListOf<Uri>()
+
+    result.slides.forEachIndexed { index, slide ->
+        val bitmap = CardBitmapRenderer.renderSlide(
+            context = context,
+            analysis = result,
+            slide = slide,
+            imageUri = imageUri,
+            format = format,
+            slideIndex = index
+        )
+
+        CardBitmapRenderer.save(
+            context = context,
+            bitmap = bitmap,
+            format = format,
+            index = index,
+            total = result.slides.size
+        )?.let { uris += it }
+    }
+
+    return uris
+}
+
+private fun shareImages(
+    context: Context,
+    uris: List<Uri>,
+    title: String
+) {
+    if (uris.isEmpty()) {
+        Toast.makeText(context, "خروجی ساخته نشد", Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    val intent = if (uris.size == 1) {
+        Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uris.first())
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    } else {
+        Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            type = "image/png"
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
+    context.startActivity(Intent.createChooser(intent, title))
 }

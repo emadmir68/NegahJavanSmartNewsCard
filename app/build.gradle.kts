@@ -16,8 +16,8 @@ android {
         applicationId = "ir.negahjavan.newscard"
         minSdk = 31
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         buildConfigField("String", "AI_BASE_URL", "\u0022" + aiBaseUrl + "\u0022")
     }
@@ -65,6 +65,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("com.google.mlkit:face-detection:16.1.7")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

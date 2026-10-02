@@ -11,8 +11,10 @@ import kotlinx.coroutines.launch
 
 class MainViewModel : ViewModel() {
     private val service = SmartNewsService()
+
     private val _analysis = MutableStateFlow<SmartAnalysis?>(null)
     val analysis: StateFlow<SmartAnalysis?> = _analysis.asStateFlow()
+
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
@@ -23,5 +25,9 @@ class MainViewModel : ViewModel() {
             _analysis.value = service.analyze(text)
             _loading.value = false
         }
+    }
+
+    fun clear() {
+        _analysis.value = null
     }
 }

@@ -20,18 +20,21 @@ import coil3.compose.AsyncImage
 import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.CardTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
+import ir.negahjavan.newscard.model.SmartSlide
 import ir.negahjavan.newscard.ui.theme.BrandRed
 import ir.negahjavan.newscard.util.JalaliDate
 
 @Composable
 fun NewsCardPreview(
     analysis: SmartAnalysis,
+    slide: SmartSlide,
     imageUri: Uri?,
     format: CardFormat,
-    template: CardTemplate,
+    slideIndex: Int,
     modifier: Modifier = Modifier
 ) {
     val ratio = format.width.toFloat() / format.height
+    val template = analysis.recommendedTemplate
 
     Box(
         modifier = modifier
@@ -47,38 +50,57 @@ fun NewsCardPreview(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            Box(
-                Modifier.fillMaxSize().background(
-                    when (template) {
-                        CardTemplate.SIGNATURE -> Brush.linearGradient(
-                            listOf(Color(0xFF3B3F55), Color(0xFF121217), Color(0xFF5A0810))
-                        )
-                        CardTemplate.BREAKING_PLUS -> Brush.linearGradient(
-                            listOf(Color(0xFF4E080C), Color(0xFF151519), Color(0xFF09090B))
-                        )
-                        CardTemplate.EDITORIAL -> Brush.linearGradient(
-                            listOf(Color(0xFF41454C), Color(0xFF191B20), Color(0xFF0F1013))
-                        )
-                    }
-                )
-            )
+            SmartCoverBackground(analysis)
         }
 
         when (template) {
-            CardTemplate.SIGNATURE -> SignatureTemplate(analysis)
-            CardTemplate.BREAKING_PLUS -> BreakingTemplate(analysis)
-            CardTemplate.EDITORIAL -> EditorialTemplate(analysis)
+            CardTemplate.SIGNATURE -> SignaturePreview(analysis, slide, slideIndex)
+            CardTemplate.BREAKING_PLUS -> BreakingPreview(analysis, slide, slideIndex)
+            CardTemplate.EDITORIAL -> EditorialPreview(analysis, slide, slideIndex)
         }
     }
 }
 
 @Composable
-private fun SignatureTemplate(analysis: SmartAnalysis) {
+private fun SmartCoverBackground(analysis: SmartAnalysis) {
+    val colors = when (analysis.category.name) {
+        "JUDICIAL" -> listOf(Color(0xFF282E3A), Color(0xFF111318), Color(0xFF531016))
+        "POLITICS" -> listOf(Color(0xFF343A50), Color(0xFF12141B), Color(0xFF4C0A10))
+        "ECONOMY" -> listOf(Color(0xFF243B36), Color(0xFF101715), Color(0xFF4A1014))
+        "SPORTS" -> listOf(Color(0xFF1D4333), Color(0xFF0D1713), Color(0xFF4B0D13))
+        "CULTURE" -> listOf(Color(0xFF453647), Color(0xFF171117), Color(0xFF5A0B13))
+        "TECHNOLOGY" -> listOf(Color(0xFF253B50), Color(0xFF10161D), Color(0xFF4D0B12))
+        else -> listOf(Color(0xFF3B3F55), Color(0xFF121217), Color(0xFF5A0810))
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.linearGradient(colors))
+    ) {
+        Text(
+            "N/J",
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(bottom = 40.dp),
+            color = Color.White.copy(alpha = .045f),
+            fontSize = 96.sp,
+            fontWeight = FontWeight.Black
+        )
+    }
+}
+
+@Composable
+private fun SignaturePreview(
+    analysis: SmartAnalysis,
+    slide: SmartSlide,
+    slideIndex: Int
+) {
     Box(
         Modifier.fillMaxSize().background(
             Brush.verticalGradient(
-                listOf(Color.Transparent, Color.Transparent, Color(0xE908080B)),
-                startY = 150f
+                listOf(Color.Transparent, Color(0x22000000), Color(0xEF07070A)),
+                startY = 100f
             )
         )
     )
@@ -88,35 +110,35 @@ private fun SignatureTemplate(analysis: SmartAnalysis) {
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         BrandHeader()
-
         Column(horizontalAlignment = Alignment.End) {
-            CategoryPill(analysis.category.fa)
-            Spacer(Modifier.height(12.dp))
-            Headline(analysis.title, Color.White)
+            Badge(slide.badge.ifBlank { analysis.badge })
             Spacer(Modifier.height(10.dp))
-            Lead(analysis.lead, Color(0xFFE7E7EB))
+            Headline(slide.title, Color.White, slideIndex == 0)
+            Spacer(Modifier.height(9.dp))
+            Body(slide.body, Color(0xFFE7E7EB))
         }
-
-        Footer()
+        Footer(slideIndex, analysis.slides.size)
     }
 }
 
 @Composable
-private fun BreakingTemplate(analysis: SmartAnalysis) {
+private fun BreakingPreview(
+    analysis: SmartAnalysis,
+    slide: SmartSlide,
+    slideIndex: Int
+) {
     Box(
         Modifier.fillMaxSize().background(
             Brush.verticalGradient(
-                listOf(Color(0x33000000), Color(0x55000000), Color(0xF0080809)),
-                startY = 90f
+                listOf(Color(0x33000000), Color(0x66000000), Color(0xF2070708))
             )
         )
     )
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            Modifier.fillMaxWidth().background(BrandRed).padding(horizontal = 18.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            Modifier.fillMaxWidth().background(BrandRed).padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("NEGAH JAVAN • BREAKING", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             Text("فوری", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
@@ -128,32 +150,40 @@ private fun BreakingTemplate(analysis: SmartAnalysis) {
             Modifier.padding(horizontal = 18.dp),
             horizontalAlignment = Alignment.End
         ) {
-            Text("●  خبر فوری", color = Color(0xFFFF3944), fontSize = 12.sp, fontWeight = FontWeight.Black)
+            Text(
+                "●  " + slide.badge.ifBlank { "خبر فوری" },
+                color = Color(0xFFFF4A54),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Black
+            )
             Spacer(Modifier.height(8.dp))
-            Headline(analysis.title, Color.White, forceLarge = true)
-            Spacer(Modifier.height(9.dp))
-
+            Headline(slide.title, Color.White, true)
+            Spacer(Modifier.height(10.dp))
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xB817171B))
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xC016161B))
                     .padding(12.dp)
             ) {
-                Lead(analysis.lead, Color(0xFFF0F0F2))
+                Body(slide.body, Color.White)
             }
         }
 
-        Footer(Modifier.padding(18.dp))
+        Footer(slideIndex, analysis.slides.size, Modifier.padding(18.dp))
     }
 }
 
 @Composable
-private fun EditorialTemplate(analysis: SmartAnalysis) {
+private fun EditorialPreview(
+    analysis: SmartAnalysis,
+    slide: SmartSlide,
+    slideIndex: Int
+) {
     Box(
         Modifier.fillMaxSize().background(
             Brush.verticalGradient(
-                listOf(Color(0x22000000), Color(0x55000000), Color(0xAA000000))
+                listOf(Color(0x22000000), Color(0x55000000), Color(0xA0000000))
             )
         )
     )
@@ -164,11 +194,10 @@ private fun EditorialTemplate(analysis: SmartAnalysis) {
     ) {
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("NEGAH / JAVAN", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
-            Text("پایگاه خبری نگاه جوان", color = Color.White, fontSize = 12.sp)
+            Text("پایگاه خبری نگاه جوان", color = Color.White, fontSize = 11.sp)
         }
 
         Spacer(Modifier.weight(1f))
@@ -176,20 +205,25 @@ private fun EditorialTemplate(analysis: SmartAnalysis) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xECF4F1EC))
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color(0xF2F5F2ED))
                 .padding(16.dp)
         ) {
             Column(horizontalAlignment = Alignment.End) {
-                Text(analysis.category.fa, color = BrandRed, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                Text(
+                    slide.badge.ifBlank { analysis.badge },
+                    color = BrandRed,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black
+                )
                 Spacer(Modifier.height(8.dp))
-                Headline(analysis.title, Color(0xFF141416))
-                Spacer(Modifier.height(8.dp))
-                Lead(analysis.lead, Color(0xFF4D4D52))
-                Spacer(Modifier.height(12.dp))
-
+                Headline(slide.title, Color(0xFF141416), slideIndex == 0)
+                Spacer(Modifier.height(9.dp))
+                Body(slide.body, Color(0xFF4C4D52))
+                Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(JalaliDate.today(), color = Color(0xFF66666B), fontSize = 10.sp)
+                    Text((slideIndex + 1).toString() + "/" + analysis.slides.size, color = Color(0xFF77777D), fontSize = 10.sp)
                     Text("@negahjavan", color = BrandRed, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
@@ -208,7 +242,6 @@ private fun BrandHeader() {
             Text("پایگاه خبری", color = Color.White, fontSize = 10.sp)
             Text("نگاه جوان", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
         }
-
         Box(
             Modifier
                 .clip(RoundedCornerShape(12.dp))
@@ -221,7 +254,7 @@ private fun BrandHeader() {
 }
 
 @Composable
-private fun CategoryPill(text: String) {
+private fun Badge(text: String) {
     Box(
         Modifier
             .clip(RoundedCornerShape(10.dp))
@@ -233,10 +266,9 @@ private fun CategoryPill(text: String) {
 }
 
 @Composable
-private fun Headline(text: String, color: Color, forceLarge: Boolean = false) {
+private fun Headline(text: String, color: Color, cover: Boolean) {
     val size = when {
-        forceLarge && text.length < 55 -> 30.sp
-        text.length < 35 -> 29.sp
+        cover && text.length < 45 -> 29.sp
         text.length < 70 -> 24.sp
         else -> 20.sp
     }
@@ -257,7 +289,7 @@ private fun Headline(text: String, color: Color, forceLarge: Boolean = false) {
 }
 
 @Composable
-private fun Lead(text: String, color: Color) {
+private fun Body(text: String, color: Color) {
     Text(
         text,
         color = color,
@@ -269,13 +301,17 @@ private fun Lead(text: String, color: Color) {
 }
 
 @Composable
-private fun Footer(modifier: Modifier = Modifier) {
+private fun Footer(
+    slideIndex: Int,
+    total: Int,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(JalaliDate.today(), color = Color.LightGray, fontSize = 10.sp)
+        Text((slideIndex + 1).toString() + "/" + total, color = Color.LightGray, fontSize = 10.sp)
         Text("@negahjavan", color = Color.LightGray, fontSize = 10.sp)
         Text("NEGAH JAVAN", color = BrandRed, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
