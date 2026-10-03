@@ -197,7 +197,10 @@ object SmartPaginationEngine {
                 metrics.imageTop + metrics.imageHeight + metrics.gap
 
             metrics.profile.shortContentStartRatio > 0f ->
-                (metrics.height * metrics.profile.shortContentStartRatio).toInt()
+                max(
+                    metrics.headerBottom + metrics.gap,
+                    (metrics.height * metrics.profile.shortContentStartRatio).toInt()
+                )
 
             else ->
                 metrics.headerBottom + metrics.gap
