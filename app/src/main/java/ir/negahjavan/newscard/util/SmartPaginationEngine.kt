@@ -89,7 +89,7 @@ object SmartPaginationEngine {
             title = title,
             hasImage = hasImage,
             metrics = metrics
-        ).coerceAtLeast((bodySize * 4.2f).toInt())
+        )
 
         val firstSplit = splitToFit(
             text = remaining,
@@ -197,7 +197,10 @@ object SmartPaginationEngine {
                 metrics.imageTop + metrics.imageHeight + metrics.gap
 
             metrics.profile.shortContentStartRatio > 0f ->
-                (metrics.height * metrics.profile.shortContentStartRatio).toInt()
+                max(
+                    metrics.headerBottom + metrics.gap,
+                    (metrics.height * metrics.profile.shortContentStartRatio).toInt()
+                )
 
             else ->
                 metrics.headerBottom + metrics.gap
@@ -237,6 +240,7 @@ object SmartPaginationEngine {
         lineSpacing: Float
     ): Pair<String, String> {
         if (text.isBlank()) return "" to ""
+        if (maxHeight <= 0) return "" to text.trimStart()
 
         if (
             textHeight(
