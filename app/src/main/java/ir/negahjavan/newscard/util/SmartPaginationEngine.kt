@@ -2,7 +2,6 @@ package ir.negahjavan.newscard.util
 
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Typeface
 import android.graphics.text.LineBreaker
 import android.text.Layout
 import android.text.StaticLayout
@@ -197,7 +196,8 @@ object SmartPaginationEngine {
                 metrics.imageTop + metrics.imageHeight + metrics.gap
 
             metrics.profile.shortContentStartRatio > 0f ->
-                (metrics.height * metrics.profile.shortContentStartRatio).toInt()
+                max(metrics.headerBottom + metrics.gap,
+                    (metrics.height * metrics.profile.shortContentStartRatio).toInt())
 
             else ->
                 metrics.headerBottom + metrics.gap
@@ -210,7 +210,8 @@ object SmartPaginationEngine {
                 titleHeight +
                 metrics.gap
 
-        return metrics.safeBottom - bodyTop
+        // Reserve a few pixels for fractional Canvas coordinates rounded by layout.
+        return metrics.safeBottom - bodyTop - 6
     }
 
     private fun contentWidth(metrics: Metrics): Int =
@@ -409,9 +410,9 @@ object SmartPaginationEngine {
             color = Color.WHITE
             this.textSize = textSize
             typeface = if (bold) {
-                Typeface.create("sans", Typeface.BOLD)
+                PremiumTypography.headline
             } else {
-                Typeface.create("sans", Typeface.NORMAL)
+                PremiumTypography.body
             }
         }
 
@@ -426,3 +427,4 @@ object SmartPaginationEngine {
             .height
     }
 }
+

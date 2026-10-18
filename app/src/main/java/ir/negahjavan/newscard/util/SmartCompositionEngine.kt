@@ -63,9 +63,9 @@ object SmartCompositionEngine {
 
         return Profile(
             horizontalPadRatio = when (format) {
-                CardFormat.LANDSCAPE -> .050f
-                CardFormat.SQUARE -> .058f
-                else -> .060f
+                CardFormat.LANDSCAPE -> .075f
+                CardFormat.SQUARE -> .075f
+                else -> .075f
             },
             gapRatio = when (density) {
                 Density.AIRY -> .019f
@@ -104,9 +104,9 @@ object SmartCompositionEngine {
             },
             titleSizePx = titleSize,
             titleLineSpacing = when {
-                title.length <= 45 -> 1.03f
-                title.length <= 90 -> 1.06f
-                else -> 1.09f
+                title.length <= 45 -> 1.08f
+                title.length <= 90 -> 1.10f
+                else -> 1.12f
             },
             preferredBodySizePx = preferredBody,
             minimumBodySizePx = minBody,
@@ -285,3 +285,4 @@ object SmartCompositionEngine {
         return (base - titlePenalty).coerceIn(.15f, .36f)
     }
 }
+
