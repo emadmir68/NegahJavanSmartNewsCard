@@ -19,14 +19,18 @@ android {
         applicationId = "ir.negahjavan.newscard"
         minSdk = 31
         targetSdk = 36
-        versionCode = 13
-        versionName = "1.1.0"
+        versionCode = 14
+        versionName = "1.2.0"
         buildConfigField("String", "AI_BASE_URL", "\u0022" + aiBaseUrl + "\u0022")
     }
 
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
     }
 
     buildTypes {
@@ -70,5 +74,7 @@ dependencies {
     implementation("com.google.mlkit:face-detection:16.1.7")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
+

@@ -87,7 +87,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "HYBRID AI STUDIO • 1.1",
+                            "PREMIUM STUDIO • 1.2",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -641,11 +641,11 @@ private fun TemplateSelector(
                         Text(
                             when (template) {
                                 PremiumTemplate.LUXURY_MINIMAL ->
-                                    "قاب طلایی، لوکس و رسانه‌ای"
+                                    "مشکی مخملی، طلایی شامپاینی و تیتر لاله‌زار"
                                 PremiumTemplate.PHOTO_PREMIUM ->
-                                    "نیوزروم بنفش، دیجیتال و مدرن"
+                                    "بنفش عمیق، یاسی روشن و قاب تصویر ظریف"
                                 PremiumTemplate.EDITORIAL_GLASS ->
-                                    "مینیمال قرمز، جسور و ادیتوریال"
+                                    "ذغالی، قرمز یاقوتی و چیدمان مجله‌ای"
                             },
                             color = Color(0xFFA4A4AE),
                             style = MaterialTheme.typography.labelSmall
@@ -873,3 +873,4 @@ private fun shareImages(
 
     context.startActivity(Intent.createChooser(intent, title))
 }
+

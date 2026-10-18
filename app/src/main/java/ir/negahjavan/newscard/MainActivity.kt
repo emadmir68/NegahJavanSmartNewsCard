@@ -10,9 +10,11 @@ import ir.negahjavan.newscard.ui.theme.NegahJavanTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ir.negahjavan.newscard.util.PremiumTypography.initialize(this)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         setContent {
             NegahJavanTheme { NewsCardApp() }
         }
     }
 }
+
