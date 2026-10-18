@@ -70,6 +70,7 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Upload premium card previews
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: premium-card-previews
@@ -120,7 +121,10 @@ jobs:
           git rebase origin/main
           mkdir -p dist
           cp build-final/NegahJavanSmartNewsCard-1.2.0-final.apk dist/NegahJavanSmartNewsCard-1.2.0-final.apk
+          mkdir -p dist/premium-previews
+          cp app/build/reports/premium-cards/*.png dist/premium-previews/
           git add dist/NegahJavanSmartNewsCard-1.2.0-final.apk
+          git add dist/premium-previews
           if git diff --cached --quiet; then
             echo "APK unchanged; nothing to commit."
           else
