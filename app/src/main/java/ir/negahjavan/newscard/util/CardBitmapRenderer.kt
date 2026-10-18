@@ -88,7 +88,7 @@ object CardBitmapRenderer {
         val badgeHeight = h * composition.badgeHeightRatio
 
         var contentTop = if (
-            !page.showImage &&
+            page.isFirst && !page.showImage &&
             composition.shortContentStartRatio > 0f
         ) {
             max(
@@ -471,75 +471,18 @@ paint.shader = LinearGradient(
         val width = measure.measureText(text) + padX * 2
         val left = right - width
 
-        when (template) {
-            PremiumTemplate.LUXURY_MINIMAL -> {
-                paint.color = Color.rgb(120, 23, 55)
-                canvas.drawRoundRect(
-                    left,
-                    top,
-                    right,
-                    top + height,
-                    height / 2f,
-                    height / 2f,
-                    paint
-                )
-            }
-            PremiumTemplate.PHOTO_PREMIUM -> {
-                paint.color = accentViolet
-                canvas.drawRoundRect(
-                    left,
-                    top,
-                    right,
-                    top + height,
-                    height / 2f,
-                    height / 2f,
-                    paint
-                )
-            }
-            PremiumTemplate.EDITORIAL_GLASS -> {
-                if (outlined) {
-                    paint.style = Paint.Style.STROKE
-                    paint.strokeWidth = max(2f, textSize * .08f)
-                    paint.color = accentRed
-                    canvas.drawRoundRect(
-                        left,
-                        top,
-                        right,
-                        top + height,
-                        height / 2f,
-                        height / 2f,
-                        paint
-                    )
-                    paint.style = Paint.Style.FILL
-                } else {
-                    paint.color = accentRed
-                    canvas.drawRoundRect(
-                        left,
-                        top,
-                        right,
-                        top + height,
-                        height / 2f,
-                        height / 2f,
-                        paint
-                    )
-                }
-            }
-        }
-
-        drawText(
-            canvas = canvas,
-            text = text,
-            x = right - padX,
-            y = top + height * .16f,
-            size = textSize,
-            color = when (template) {
-                PremiumTemplate.LUXURY_MINIMAL -> warmIvory
-                PremiumTemplate.PHOTO_PREMIUM -> Color.WHITE
-                PremiumTemplate.EDITORIAL_GLASS -> Color.WHITE
-            },
-            bold = true,
-            align = Paint.Align.RIGHT
-        )
+        val tint = accent(template)
+        paint.color = Color.argb(22, Color.red(tint), Color.green(tint), Color.blue(tint))
+        canvas.drawRoundRect(left, top, right, top + height, height * .22f, height * .22f, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = max(1f, textSize * .045f)
+        paint.color = Color.argb(110, Color.red(tint), Color.green(tint), Color.blue(tint))
+        canvas.drawRoundRect(left, top, right, top + height, height * .22f, height * .22f, paint)
+        paint.style = Paint.Style.FILL
+        measure.color = tint
+        measure.textAlign = Paint.Align.RIGHT
+        val baseline = top + (height - measure.ascent() - measure.descent()) / 2f
+        canvas.drawText(text, right - padX, baseline, measure)
     }
 
     private fun drawBrandFooter(
