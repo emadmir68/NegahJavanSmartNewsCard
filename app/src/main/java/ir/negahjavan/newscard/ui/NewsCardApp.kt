@@ -89,7 +89,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "PREMIUM STUDIO • 1.4.1",
+                            "PREMIUM STUDIO • 1.5.0",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -206,7 +206,61 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 )
             }
 
-            analysis?.let { result ->
+            analysis?.let { originalResult ->
+                var editedTitle by rememberSaveable(originalResult.fullText, originalResult.title) {
+                    mutableStateOf(originalResult.title)
+                }
+                var editedLead by rememberSaveable(originalResult.fullText, originalResult.lead) {
+                    mutableStateOf(originalResult.lead)
+                }
+                val result = remember(originalResult, editedTitle, editedLead) {
+                    originalResult.copy(
+                        title = editedTitle.trim().ifBlank { originalResult.title },
+                        lead = editedLead.trim()
+                    )
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF131318)
+                ) {
+                    Column(
+                        Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "ویرایش نهایی کارت",
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Right
+                        )
+                        OutlinedTextField(
+                            value = editedTitle,
+                            onValueChange = { editedTitle = it.take(220) },
+                            label = { Text("تیتر") },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                            maxLines = 4
+                        )
+                        OutlinedTextField(
+                            value = editedLead,
+                            onValueChange = { editedLead = it.take(360) },
+                            label = { Text("خلاصه / لید") },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                            maxLines = 4
+                        )
+                        Text(
+                            "تغییرات همین‌جا روی پیش‌نمایش، خروجی کارت، پست اینستاگرام و کپشن اعمال می‌شود.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF9999A3),
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
                 if (imageUri == null) {
                     OutlinedButton(
                         onClick = {

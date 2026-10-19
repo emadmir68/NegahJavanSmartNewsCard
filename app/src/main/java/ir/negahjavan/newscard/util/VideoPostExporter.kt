@@ -30,32 +30,71 @@ enum class VideoPostFormat(val fa: String, val height: Int) {
     POST("پست ۴:۵", 1350), REEL("ریلز ۹:۱۶", 1920)
 }
 
+enum class VideoExportPreset(val fa: String, val width: Int) {
+    FAST("سریع 720p", 720),
+    FULL_HD("کیفیت کامل 1080p", 1080);
+
+    fun height(format: VideoPostFormat): Int =
+        if (format == VideoPostFormat.POST) width * 5 / 4 else width * 16 / 9
+}
+
 @OptIn(UnstableApi::class)
 object VideoPostExporter {
-    fun overlay(context: Context, news: SmartAnalysis, template: InstagramTemplate, format: VideoPostFormat): Bitmap {
+    fun overlay(
+        context: Context,
+        news: SmartAnalysis,
+        template: InstagramTemplate,
+        format: VideoPostFormat,
+        layout: InstagramPostLayout = InstagramPostLayout(),
+        preset: VideoExportPreset = VideoExportPreset.FULL_HD
+    ): Bitmap {
         PremiumTypography.initialize(context)
-        val portrait = InstagramPostRenderer.draw(news, null, template, videoOverlay = true)
-        if (format == VideoPostFormat.POST) return portrait
-        val tall = Bitmap.createBitmap(1080, format.height, Bitmap.Config.ARGB_8888)
-        Canvas(tall).apply {
-            drawBitmap(portrait, Rect(0, 0, 1080, 180), Rect(0, 0, 1080, 180), null)
-            drawBitmap(portrait, Rect(0, 180, 1080, 1350), Rect(0, format.height - 1170, 1080, format.height), null)
+        val portrait = InstagramPostRenderer.draw(news, null, template, videoOverlay = true, layout = layout)
+        val full = if (format == VideoPostFormat.POST) {
+            portrait
+        } else {
+            Bitmap.createBitmap(1080, format.height, Bitmap.Config.ARGB_8888).also { tall ->
+                Canvas(tall).apply {
+                    drawBitmap(portrait, Rect(0, 0, 1080, 180), Rect(0, 0, 1080, 180), null)
+                    drawBitmap(portrait, Rect(0, 180, 1080, 1350), Rect(0, format.height - 1170, 1080, format.height), null)
+                }
+                portrait.recycle()
+            }
         }
-        portrait.recycle()
-        return tall
+
+        if (preset == VideoExportPreset.FULL_HD) return full
+        return Bitmap.createScaledBitmap(full, preset.width, preset.height(format), true).also {
+            if (it !== full) full.recycle()
+        }
     }
 
-    fun effects(overlay: Bitmap, format: VideoPostFormat): List<Effect> = listOf(
-        Presentation.createForWidthAndHeight(1080, format.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP),
+    fun effects(
+        overlay: Bitmap,
+        format: VideoPostFormat,
+        preset: VideoExportPreset = VideoExportPreset.FULL_HD
+    ): List<Effect> = listOf(
+        Presentation.createForWidthAndHeight(
+            preset.width,
+            preset.height(format),
+            Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
+        ),
         OverlayEffect(listOf(BitmapOverlay.createStaticBitmapOverlay(overlay)))
     )
 
     /** Must finish successfully before a MediaStore item is made visible or shared. */
-    suspend fun export(context: Context, input: Uri, news: SmartAnalysis, template: InstagramTemplate,
-                       format: VideoPostFormat, onProgress: (Int) -> Unit): File {
+    suspend fun export(
+        context: Context,
+        input: Uri,
+        news: SmartAnalysis,
+        template: InstagramTemplate,
+        format: VideoPostFormat,
+        layout: InstagramPostLayout = InstagramPostLayout(),
+        preset: VideoExportPreset = VideoExportPreset.FULL_HD,
+        onProgress: (Int) -> Unit
+    ): File {
         val output = File.createTempFile("negahjavan-video-", ".mp4", context.cacheDir)
         output.delete() // Transformer requires a new path.
-        val art = overlay(context, news, template, format)
+        val art = overlay(context, news, template, format, layout, preset)
         try {
             withContext(Dispatchers.Main.immediate) {
                 suspendCancellableCoroutine<Unit> { continuation ->
@@ -84,7 +123,7 @@ object VideoPostExporter {
                             .setVideoMimeType(MimeTypes.VIDEO_H264).setAudioMimeType(MimeTypes.AUDIO_AAC)
                             .addListener(listener).build()
                         val item = EditedMediaItem.Builder(MediaItem.fromUri(input))
-                            .setEffects(Effects(emptyList(), effects(art, format))).build()
+                            .setEffects(Effects(emptyList(), effects(art, format, preset))).build()
                         transformer!!.start(item, output.absolutePath)
                         handler.post(ticker)
                     } catch (failure: Exception) {
