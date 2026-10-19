@@ -98,10 +98,16 @@ class VideoPostExportTest {
                     metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
                 )
 
-                val width = metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
-                val height = metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toInt()
-                assertEquals(case.preset.width, width)
-                assertEquals(case.preset.height(case.format), height)
+                val encodedWidth = metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
+                val encodedHeight = metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toInt()
+                val rotation = metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+                    ?.toIntOrNull()
+                    ?.mod(360)
+                    ?: 0
+                val displayWidth = if (rotation == 90 || rotation == 270) encodedHeight else encodedWidth
+                val displayHeight = if (rotation == 90 || rotation == 270) encodedWidth else encodedHeight
+                assertEquals(case.preset.width, displayWidth)
+                assertEquals(case.preset.height(case.format), displayHeight)
 
                 val frame = requireNotNull(metadata.getFrameAtTime(500_000))
                 assertTrue(frame.width > 0 && frame.height > 0)
