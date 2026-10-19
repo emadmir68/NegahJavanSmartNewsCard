@@ -3,7 +3,7 @@ name: Android CI
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "ai-studio-1.1", "online-backend-1.2" ]
+    branches: [ "main", "ai-studio-1.1", "online-backend-1.2", "fix/zero-cost-stability-1.4.1" ]
     paths-ignore:
       - "dist/**"
   pull_request:
@@ -20,7 +20,9 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     env:
-      AI_BASE_URL: ${{ vars.AI_BASE_URL }}
+      # Keep official builds free by default. An empty endpoint forces the
+      # on-device analyzer and local image fallback, avoiding paid API calls.
+      AI_BASE_URL: ""
 
     steps:
       - name: Checkout
@@ -110,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build-final
-          FINAL="build-final/NegahJavanSmartNewsCard-1.4.0-final.apk"
+          FINAL="build-final/NegahJavanSmartNewsCard-1.4.1-final.apk"
 
           if [ -n "${SIGNING_KEY:-}" ] && [ -n "${STORE_PASSWORD:-}" ]; then
             echo "Permanent signing secrets detected; building signed release."
@@ -119,7 +121,13 @@ jobs:
             UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
             BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
             "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" aligned.apk
-            "$BUILD_TOOLS/apksigner" sign               --ks signing.jks               --ks-key-alias negahjavan               --ks-pass env:STORE_PASSWORD               --key-pass env:STORE_PASSWORD               --out "$FINAL"               aligned.apk
+            "$BUILD_TOOLS/apksigner" sign \
+              --ks signing.jks \
+              --ks-key-alias negahjavan \
+              --ks-pass env:STORE_PASSWORD \
+              --key-pass env:STORE_PASSWORD \
+              --out "$FINAL" \
+              aligned.apk
             "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$FINAL"
             rm -f signing.jks aligned.apk
           else
@@ -134,8 +142,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: NegahJavanSmartNewsCard-1.4.0
-          path: build-final/NegahJavanSmartNewsCard-1.4.0-final.apk
+          name: NegahJavanSmartNewsCard-1.4.1
+          path: build-final/NegahJavanSmartNewsCard-1.4.1-final.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -146,25 +154,29 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          TAG="v1.4.0"
-          APK_NAME="NegahJavanSmartNewsCard-1.4.0-final.apk"
+          TAG="v1.4.1"
+          APK_NAME="NegahJavanSmartNewsCard-1.4.1-final.apk"
           APK="build-final/$APK_NAME"
           test -s "$APK"
           (cd build-final && sha256sum "$APK_NAME" > "$APK_NAME.sha256")
           cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          # کارت‌ساز نگاه جوان ۱.۴.۰ — پست ویدیویی
-          
+          # کارت‌ساز نگاه جوان ۱.۴.۱ — نسخهٔ پایدار رایگان
+
+- تحلیل خبر روی گوشی و کاور گرافیکی محلی، بدون نیاز اجباری به API پولی
+- جلوگیری از نمایش نتیجهٔ تحلیل مربوط به متن قدیمی
+- حفظ قابلیت‌های فعلی کارت، پست اینستاگرام و خروجی ویدئو
+
           - انتخاب فیلم از گوشی و پیش‌نمایش زنده با قالب خبری
           - دو قالب طلایی/وزیرمتن و روشن/لاله‌زار
           - خروجی MP4 با صدای اصلی، در اندازه پست ۴:۵ و ریلز ۹:۱۶
           - ذخیره در گالری، اشتراک‌گذاری و کپی کپشن
-          
+
           تست‌های واحد، lint و آزمون ساخت MP4 در شبیه‌ساز اندروید قبل از انتشار اجرا شده‌اند.
           فایل APK از بخش Assets قابل دریافت است؛ نیازمند اندروید ۱۲ یا جدیدتر.
           انتشار نهایی در اینستاگرام توسط کاربر انجام می‌شود.
           NOTES
           printf '\nBuild commit: `%s`\n\nChecks: %s/%s/actions/runs/%s\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> "$RUNNER_TEMP/release-notes.md"
-          
+
           if gh release view "$TAG" --json isDraft,targetCommitish > "$RUNNER_TEMP/existing-release.json" 2>/dev/null; then
             if [ "$(jq -r .targetCommitish "$RUNNER_TEMP/existing-release.json")" != "$GITHUB_SHA" ]; then
               echo "::error::This version already belongs to another commit. Bump the version before publishing."
@@ -176,12 +188,12 @@ jobs:
             fi
           else
             gh release create "$TAG" --draft --target "$GITHUB_SHA" \
-              --title "NegahJavan Smart News Card 1.4.0 — Video Posts" \
+              --title "NegahJavan Smart News Card 1.4.1 — Free Stable Build" \
               --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
-          
+
           # Keep the release as a draft until both files have uploaded successfully.
           gh release upload "$TAG" "$APK" "$APK.sha256" --clobber
           gh release edit "$TAG" --draft=false --latest
           RELEASE_URL="$(gh release view "$TAG" --json url --jq .url)"
-          printf '## Download\n\n[Version 1.4.0](%s)\n' "$RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Download\n\n[Version 1.4.1](%s)\n' "$RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
