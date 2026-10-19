@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.network.SmartNewsService
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,16 +20,46 @@ class MainViewModel : ViewModel() {
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
+    private var analysisJob: Job? = null
+    private var requestVersion = 0L
+
     fun analyze(text: String) {
-        if (text.isBlank()) return
-        viewModelScope.launch {
+        val normalizedText = text.trim()
+        if (normalizedText.isBlank()) {
+            clear()
+            return
+        }
+
+        val request = ++requestVersion
+        analysisJob?.cancel()
+        analysisJob = viewModelScope.launch {
             _loading.value = true
-            _analysis.value = service.analyze(text)
-            _loading.value = false
+            try {
+                val result = service.analyze(normalizedText)
+                // A cancelled or stale request must never replace the newest result.
+                if (request == requestVersion) {
+                    _analysis.value = result
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Keep the UI usable if analysis fails; the next request can retry.
+                if (request == requestVersion) {
+                    _analysis.value = null
+                }
+            } finally {
+                if (request == requestVersion) {
+                    _loading.value = false
+                }
+            }
         }
     }
 
     fun clear() {
+        requestVersion++
+        analysisJob?.cancel()
+        analysisJob = null
         _analysis.value = null
+        _loading.value = false
     }
 }
