@@ -3,7 +3,7 @@ name: Android CI
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "ai-studio-1.1", "online-backend-1.2" ]
+    branches: [ "main", "ai-studio-1.1", "online-backend-1.2", "fix/zero-cost-stability-1.4.1" ]
     paths-ignore:
       - "dist/**"
   pull_request:
