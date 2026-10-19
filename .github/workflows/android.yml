@@ -123,7 +123,7 @@ jobs:
             "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" aligned.apk
             "$BUILD_TOOLS/apksigner" sign \
               --ks signing.jks \
-              --key-alias negahjavan \
+              --ks-key-alias negahjavan \
               --ks-pass env:STORE_PASSWORD \
               --key-pass env:STORE_PASSWORD \
               --out "$FINAL" \
