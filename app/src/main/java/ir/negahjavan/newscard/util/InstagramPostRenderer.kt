@@ -173,8 +173,8 @@ object InstagramPostRenderer {
         }
         val panelBottom = (panelTop + 530f).coerceAtMost(1272f)
 
-        if (videoOverlay && lightSurface) {
-            box(48f, panelTop, 1032f, panelBottom, ivory, 30f)
+        if (lightSurface && (videoOverlay || layout.contentPosition != PostContentPosition.BOTTOM)) {
+            box(48f, panelTop, 1032f, panelBottom, Color.argb(245, 250, 247, 238), 30f)
         }
 
         if (!lightSurface) {
