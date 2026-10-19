@@ -254,7 +254,7 @@ object InstagramPostRenderer {
         paint.color = ink
         paint.typeface = PremiumTypography.bold
         paint.textSize = 27f
-        canvas.drawText("negahjavan.ir", 78f, siteY + 37f, paint)
+        canvas.drawText("negahjavan.ir", 78f, siteY, paint)
 
         return bitmap
     }
