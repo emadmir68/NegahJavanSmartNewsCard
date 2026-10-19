@@ -260,7 +260,7 @@ object SmartPaginationEngine {
 
         var low = 1
         var high = text.length
-        var best = 1
+        var best = 0
 
         while (low <= high) {
             val mid = (low + high) / 2
@@ -280,6 +280,10 @@ object SmartPaginationEngine {
                 high = mid - 1
             }
         }
+
+        // If even the first character cannot fit, do not force it onto the
+        // page. Leave the text intact for the next continuation page.
+        if (best == 0) return "" to text
 
         val lowerBound = (best * .55f).toInt().coerceAtLeast(1)
         val candidateBoundaries = mutableListOf<Int>()
