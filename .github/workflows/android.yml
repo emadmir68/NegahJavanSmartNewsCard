@@ -76,8 +76,11 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Test real MP4 export on Android
+        timeout-minutes: 15
         uses: reactivecircus/android-emulator-runner@v2
         with:
+          disk-size: 2048M
+          emulator-boot-timeout: 300
           api-level: 35
           arch: x86_64
           target: google_apis
