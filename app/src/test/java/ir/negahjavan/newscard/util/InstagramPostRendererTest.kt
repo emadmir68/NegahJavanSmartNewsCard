@@ -34,6 +34,18 @@ class InstagramPostRendererTest {
         assertTrue(InstagramPostRenderer.caption(news.copy(fullText = "", bodyText = "متن جایگزین")).contains("متن جایگزین"))
     }
 
+    @Test fun videoOverlaysLeaveTheFootageVisibleAndKeepBrandAndText() {
+        val context = RuntimeEnvironment.getApplication<android.app.Application>()
+        for (template in InstagramTemplate.entries) for (format in VideoPostFormat.entries) {
+            val bitmap = VideoPostExporter.overlay(context, news, template, format)
+            assertEquals(format.height, bitmap.height)
+            assertEquals(0, Color.alpha(bitmap.getPixel(540, 250)))
+            assertEquals(255, Color.alpha(bitmap.getPixel(740, 80)))
+            assertTrue(Color.alpha(bitmap.getPixel(70, format.height - 230)) > 200)
+            bitmap.recycle()
+        }
+    }
+
     @Test fun twoDistinctTemplatesRenderPhotosFallbacksAndLongPersianTitles() {
         PremiumTypography.initialize(RuntimeEnvironment.getApplication())
         val photo = Bitmap.createBitmap(800, 500, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.rgb(90, 130, 150)) }

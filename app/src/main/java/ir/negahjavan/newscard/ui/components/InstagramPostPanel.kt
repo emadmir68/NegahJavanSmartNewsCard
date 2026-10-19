@@ -85,7 +85,7 @@ fun InstagramPostPanel(news: SmartAnalysis, imageUri: Uri?) {
                         catch (_: Exception) { status = "ذخیره یا اشتراک انجام نشد؛ دوباره تلاش کنید." }
                         finally { busy = false }
                     }
-                }) { Text(if (share) "اشتراک پست" else "ذخیره پست") }
+                }) { Text(if (share) "ارسال پست" else "ذخیره پست") }
             }
         }
         if (status.isNotBlank()) Text(status)

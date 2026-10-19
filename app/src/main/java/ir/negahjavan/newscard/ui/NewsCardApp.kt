@@ -35,6 +35,7 @@ import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
+import ir.negahjavan.newscard.ui.components.VideoPostPanel
 import ir.negahjavan.newscard.ui.components.InstagramPostPanel
 import ir.negahjavan.newscard.ui.components.NewsCardPreview
 import ir.negahjavan.newscard.ui.theme.BrandRed
@@ -178,6 +179,8 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     }
                 }
             }
+
+            VideoPostPanel(news = analysis, rawText = text)
 
             Button(
                 onClick = { vm.analyze(text) },

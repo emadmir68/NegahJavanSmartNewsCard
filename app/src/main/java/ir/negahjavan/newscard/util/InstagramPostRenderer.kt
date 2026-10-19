@@ -50,7 +50,7 @@ object InstagramPostRenderer {
         return withContext(Dispatchers.Default) { draw(news, photo, template) }
     }
 
-    internal fun draw(news: SmartAnalysis, photo: Bitmap?, template: InstagramTemplate): Bitmap {
+    internal fun draw(news: SmartAnalysis, photo: Bitmap?, template: InstagramTemplate, videoOverlay: Boolean = false): Bitmap {
         val bitmap = Bitmap.createBitmap(1080, 1350, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
@@ -58,7 +58,7 @@ object InstagramPostRenderer {
         val gold = Color.rgb(224, 194, 129)
         val ivory = Color.rgb(250, 247, 238)
         val editorial = template == InstagramTemplate.EDITORIAL_IVORY
-        canvas.drawColor(if (editorial) ivory else dark)
+        if (!videoOverlay) canvas.drawColor(if (editorial) ivory else dark)
         fun box(left: Float, top: Float, right: Float, bottom: Float, color: Int, radius: Float = 24f) {
             paint.shader = null; paint.color = color; paint.style = Paint.Style.FILL
             canvas.drawRoundRect(RectF(left, top, right, bottom), radius, radius, paint)
@@ -72,13 +72,14 @@ object InstagramPostRenderer {
                 dest.centerY() - photo.height * scale / 2, dest.centerX() + photo.width * scale / 2,
                 dest.centerY() + photo.height * scale / 2), paint)
             canvas.restore()
-        } else {
+        } else if (!videoOverlay) {
             paint.shader = LinearGradient(0f, 180f, 1080f, 720f,
                 intArrayOf(dark, Color.rgb(57, 96, 78)), null, Shader.TileMode.CLAMP)
             canvas.drawRect(48f, 180f, 1032f, 720f, paint)
             paint.shader = null
             text(canvas, "روایت امروز", 100f, 340f, 880, 180, 100f, 70f, 1, gold, PremiumTypography.headline)
         }
+        if (videoOverlay && editorial) box(48f, 742f, 1032f, 1272f, ivory, 30f)
         if (!editorial) {
             paint.shader = LinearGradient(0f, 450f, 0f, 1350f,
                 intArrayOf(Color.TRANSPARENT, Color.argb(240, 2, 18, 16)), null, Shader.TileMode.CLAMP)
