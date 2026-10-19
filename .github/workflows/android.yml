@@ -20,7 +20,9 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     env:
-      AI_BASE_URL: ${{ vars.AI_BASE_URL }}
+      # Keep official builds free by default. An empty endpoint forces the
+      # on-device analyzer and local image fallback, avoiding paid API calls.
+      AI_BASE_URL: ""
 
     steps:
       - name: Checkout
@@ -119,7 +121,13 @@ jobs:
             UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
             BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
             "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" aligned.apk
-            "$BUILD_TOOLS/apksigner" sign               --ks signing.jks               --ks-key-alias negahjavan               --ks-pass env:STORE_PASSWORD               --key-pass env:STORE_PASSWORD               --out "$FINAL"               aligned.apk
+            "$BUILD_TOOLS/apksigner" sign \
+              --ks signing.jks \
+              --key-alias negahjavan \
+              --ks-pass env:STORE_PASSWORD \
+              --key-pass env:STORE_PASSWORD \
+              --out "$FINAL" \
+              aligned.apk
             "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$FINAL"
             rm -f signing.jks aligned.apk
           else
@@ -153,18 +161,18 @@ jobs:
           (cd build-final && sha256sum "$APK_NAME" > "$APK_NAME.sha256")
           cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
           # کارت‌ساز نگاه جوان ۱.۴.۰ — پست ویدیویی
-          
+
           - انتخاب فیلم از گوشی و پیش‌نمایش زنده با قالب خبری
           - دو قالب طلایی/وزیرمتن و روشن/لاله‌زار
           - خروجی MP4 با صدای اصلی، در اندازه پست ۴:۵ و ریلز ۹:۱۶
           - ذخیره در گالری، اشتراک‌گذاری و کپی کپشن
-          
+
           تست‌های واحد، lint و آزمون ساخت MP4 در شبیه‌ساز اندروید قبل از انتشار اجرا شده‌اند.
           فایل APK از بخش Assets قابل دریافت است؛ نیازمند اندروید ۱۲ یا جدیدتر.
           انتشار نهایی در اینستاگرام توسط کاربر انجام می‌شود.
           NOTES
           printf '\nBuild commit: `%s`\n\nChecks: %s/%s/actions/runs/%s\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> "$RUNNER_TEMP/release-notes.md"
-          
+
           if gh release view "$TAG" --json isDraft,targetCommitish > "$RUNNER_TEMP/existing-release.json" 2>/dev/null; then
             if [ "$(jq -r .targetCommitish "$RUNNER_TEMP/existing-release.json")" != "$GITHUB_SHA" ]; then
               echo "::error::This version already belongs to another commit. Bump the version before publishing."
@@ -179,7 +187,7 @@ jobs:
               --title "NegahJavan Smart News Card 1.4.0 — Video Posts" \
               --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
-          
+
           # Keep the release as a draft until both files have uploaded successfully.
           gh release upload "$TAG" "$APK" "$APK.sha256" --clobber
           gh release edit "$TAG" --draft=false --latest
