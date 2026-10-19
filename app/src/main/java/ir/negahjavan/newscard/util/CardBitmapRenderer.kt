@@ -756,12 +756,16 @@ paint.shader = LinearGradient(
             values
         )
 
-        uri?.let { outUri ->
-            context.contentResolver.openOutputStream(outUri)?.use {
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+        if (uri == null) return@withContext null
+        try {
+            requireNotNull(context.contentResolver.openOutputStream(uri)).use {
+                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
             }
+            uri
+        } catch (failure: Exception) {
+            context.contentResolver.delete(uri, null, null)
+            throw failure
         }
-        uri
     }
 
     private suspend fun loadBitmap(
@@ -912,4 +916,5 @@ paint.shader = LinearGradient(
         )
     }
 }
+
 
