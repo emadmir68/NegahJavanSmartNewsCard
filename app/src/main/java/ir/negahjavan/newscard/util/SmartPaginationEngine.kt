@@ -84,19 +84,27 @@ object SmartPaginationEngine {
         val pages = mutableListOf<SmartPage>()
         var remaining = body
 
+        // Never invent extra space when the headline/image leave only a small
+        // body area. An artificial minimum here can draw text over the footer.
         val firstCapacity = firstPageBodyHeight(
             title = title,
             hasImage = hasImage,
             metrics = metrics
-        ).coerceAtLeast((bodySize * 4.2f).toInt())
+        ).coerceAtLeast(0)
 
-        val firstSplit = splitToFit(
-            text = remaining,
-            width = bodyWidth(metrics),
-            textSize = bodySize,
-            maxHeight = firstCapacity,
-            lineSpacing = metrics.profile.bodyLineSpacing
-        )
+        val firstSplit = if (firstCapacity > 0) {
+            splitToFit(
+                text = remaining,
+                width = bodyWidth(metrics),
+                textSize = bodySize,
+                maxHeight = firstCapacity,
+                lineSpacing = metrics.profile.bodyLineSpacing
+            )
+        } else {
+            // Keep the complete body for continuation pages instead of forcing
+            // even one line into a page that has no remaining safe space.
+            "" to remaining
+        }
 
         pages += SmartPage(
             title = title,
