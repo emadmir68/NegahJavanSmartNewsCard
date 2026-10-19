@@ -1,6 +1,7 @@
 name: Android CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main", "ai-studio-1.1", "online-backend-1.2" ]
     paths-ignore:
@@ -17,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       AI_BASE_URL: ${{ vars.AI_BASE_URL }}
 
@@ -94,7 +95,7 @@ jobs:
           script: ./gradlew connectedDebugAndroidTest
 
       - name: Upload premium card previews
-        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+        if: github.ref != 'refs/heads/main'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -129,7 +130,7 @@ jobs:
           ls -lh "$FINAL"
 
       - name: Upload tested APK artifact
-        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+        if: github.ref != 'refs/heads/main'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -139,7 +140,7 @@ jobs:
           retention-days: 7
 
       - name: Publish tested APK to GitHub Releases
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
