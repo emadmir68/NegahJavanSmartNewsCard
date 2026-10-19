@@ -35,7 +35,7 @@ class InstagramPostRendererTest {
     }
 
     @Test fun videoOverlaysLeaveTheFootageVisibleAndKeepBrandAndText() {
-        val context = RuntimeEnvironment.getApplication<android.app.Application>()
+        val context = RuntimeEnvironment.getApplication()
         for (template in InstagramTemplate.entries) for (format in VideoPostFormat.entries) {
             val bitmap = VideoPostExporter.overlay(context, news, template, format)
             assertEquals(format.height, bitmap.height)
