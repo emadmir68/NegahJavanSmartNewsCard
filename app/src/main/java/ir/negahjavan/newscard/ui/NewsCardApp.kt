@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -53,6 +54,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
     val scope = rememberCoroutineScope()
     val analysis by vm.analysis.collectAsState()
     val loading by vm.loading.collectAsState()
+    val sectionStateHolder = rememberSaveableStateHolder()
 
     val savedDraft = remember { DraftStore.load(context) }
     var text by rememberSaveable { mutableStateOf(savedDraft.text) }
@@ -61,6 +63,8 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
     }
     var previewIndex by remember { mutableStateOf(0) }
     var selectedTemplate by remember { mutableStateOf(PremiumTemplate.LUXURY_MINIMAL) }
+    var selectedTemplateManually by rememberSaveable { mutableStateOf(false) }
+    var lastTemplateAnalysisKey by rememberSaveable { mutableStateOf("") }
     var previewFormat by rememberSaveable { mutableStateOf(CardFormat.STORY) }
     var activeSection by rememberSaveable { mutableStateOf("card") }
     var designSettingsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -118,6 +122,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                 onSelect = { activeSection = it }
             )
 
+            sectionStateHolder.SaveableStateProvider(activeSection) {
             when (activeSection) {
                 "video" -> {
                     SectionHeader(
@@ -391,8 +396,14 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                             )
                         }
 
-                        LaunchedEffect(result.title, imageUri) {
-                            selectedTemplate = recommendedTemplate
+                        LaunchedEffect(originalResult.fullText, imageUri) {
+                            if (lastTemplateAnalysisKey != originalResult.fullText) {
+                                lastTemplateAnalysisKey = originalResult.fullText
+                                selectedTemplateManually = false
+                            }
+                            if (!selectedTemplateManually) {
+                                selectedTemplate = recommendedTemplate
+                            }
                             previewIndex = 0
                         }
 
@@ -476,7 +487,10 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                                     TemplateSelector(
                                         selected = selectedTemplate,
                                         recommended = recommendedTemplate,
-                                        onSelect = { selectedTemplate = it }
+                                        onSelect = {
+                                            selectedTemplate = it
+                                            selectedTemplateManually = true
+                                        }
                                     )
                                 }
                             }
@@ -511,6 +525,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                         )
                     }
                 }
+            }
             }
 
             Spacer(Modifier.height(28.dp))
