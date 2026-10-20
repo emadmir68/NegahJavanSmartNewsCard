@@ -69,13 +69,11 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
     var activeSection by rememberSaveable { mutableStateOf("card") }
     var designSettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var generatingAutoImage by remember { mutableStateOf(false) }
-    var editedTitle by rememberSaveable { mutableStateOf("") }
-    var editedLead by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(analysis?.fullText, analysis?.title, analysis?.lead) {
-        analysis?.let { current ->
-            editedTitle = current.title
-            editedLead = current.lead
-        }
+    var editedTitle by rememberSaveable(analysis?.fullText, analysis?.title) {
+        mutableStateOf(analysis?.title.orEmpty())
+    }
+    var editedLead by rememberSaveable(analysis?.fullText, analysis?.lead) {
+        mutableStateOf(analysis?.lead.orEmpty())
     }
     val result = remember(analysis, editedTitle, editedLead) {
         analysis?.let { current ->
