@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,6 +45,7 @@ fun VideoPostPanel(news: SmartAnalysis?, rawText: String) {
     var preset by rememberSaveable { mutableStateOf(VideoExportPreset.FULL_HD) }
     var contentPosition by rememberSaveable { mutableStateOf(PostContentPosition.BOTTOM) }
     var brandPosition by rememberSaveable { mutableStateOf(PostBrandPosition.RIGHT) }
+    var layoutSettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var title by rememberSaveable(news?.title, rawText) {
         mutableStateOf(news?.title ?: rawText.lineSequence().firstOrNull().orEmpty().take(180))
     }
@@ -87,7 +89,7 @@ fun VideoPostPanel(news: SmartAnalysis?, rawText: String) {
                 )
             }
             selected = uri.toString()
-            status = "فیلم انتخاب شد؛ تیتر، قالب و چیدمان را تنظیم کن."
+            status = "ویدئو انتخاب شد؛ حالا خروجی را تنظیم کن."
         }
     }
 
@@ -96,7 +98,7 @@ fun VideoPostPanel(news: SmartAnalysis?, rawText: String) {
         enabled = !busy,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(if (selected == null) "افزودن فیلم و ارسال پست" else "انتخاب فیلم دیگر")
+        Text(if (selected == null) "انتخاب ویدئو" else "تغییر ویدئو")
     }
 
     val input = selected?.let(Uri::parse) ?: return
@@ -108,8 +110,6 @@ fun VideoPostPanel(news: SmartAnalysis?, rawText: String) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("استودیوی ویدیویی نگاه جوان", style = MaterialTheme.typography.titleMedium)
-
         OutlinedTextField(
             value = title,
             onValueChange = { title = it.take(220) },
@@ -152,44 +152,74 @@ fun VideoPostPanel(news: SmartAnalysis?, rawText: String) {
             }
         }
 
-        Text("قالب", style = MaterialTheme.typography.labelLarge)
-        InstagramTemplate.entries.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                row.forEach { option ->
-                    FilterChip(
-                        selected = template == option,
-                        onClick = { template = option },
-                        enabled = !busy,
-                        label = { Text(option.fa) },
-                        modifier = Modifier.weight(1f)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
+        ) {
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(
+                    onClick = { layoutSettingsExpanded = !layoutSettingsExpanded },
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (layoutSettingsExpanded) "بستن تنظیمات چیدمان ▲"
+                        else "تنظیمات چیدمان · قالب و جای متن ▼"
                     )
                 }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
 
-        Text("جای متن", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-            PostContentPosition.entries.forEach { option ->
-                FilterChip(
-                    selected = contentPosition == option,
-                    onClick = { contentPosition = option },
-                    enabled = !busy,
-                    label = { Text(option.fa) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
+                if (layoutSettingsExpanded) {
+                    Text("قالب", style = MaterialTheme.typography.labelLarge)
+                    InstagramTemplate.entries.chunked(2).forEach { row ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            row.forEach { option ->
+                                FilterChip(
+                                    selected = template == option,
+                                    onClick = { template = option },
+                                    enabled = !busy,
+                                    label = { Text(option.fa) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
 
-        Text("جای لوگو", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PostBrandPosition.entries.forEach { option ->
-                FilterChip(
-                    selected = brandPosition == option,
-                    onClick = { brandPosition = option },
-                    enabled = !busy,
-                    label = { Text(option.fa) }
-                )
+                    Text("جای متن", style = MaterialTheme.typography.labelLarge)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        PostContentPosition.entries.forEach { option ->
+                            FilterChip(
+                                selected = contentPosition == option,
+                                onClick = { contentPosition = option },
+                                enabled = !busy,
+                                label = { Text(option.fa) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    Text("جای لوگو", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PostBrandPosition.entries.forEach { option ->
+                            FilterChip(
+                                selected = brandPosition == option,
+                                onClick = { brandPosition = option },
+                                enabled = !busy,
+                                label = { Text(option.fa) }
+                            )
+                        }
+                    }
+                }
             }
         }
 
