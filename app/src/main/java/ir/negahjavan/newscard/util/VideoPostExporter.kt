@@ -40,6 +40,37 @@ enum class VideoExportPreset(val fa: String, val width: Int) {
 
 @OptIn(UnstableApi::class)
 object VideoPostExporter {
+    /**
+     * Preserve source quality while keeping file sizes practical for social publishing.
+     * Media3 uses VBR by default, so we request a strong target bitrate without forcing
+     * a bitrate mode that may be unsupported by a device encoder.
+     */
+    internal fun targetVideoBitrate(sourceBitrate: Int?, preset: VideoExportPreset): Int {
+        val source = sourceBitrate?.takeIf { it > 0 }?.toLong()
+        return when (preset) {
+            VideoExportPreset.FAST ->
+                ((source?.times(3)?.div(4)) ?: 6_000_000L)
+                    .coerceIn(4_500_000L, 8_000_000L)
+                    .toInt()
+            VideoExportPreset.FULL_HD ->
+                ((source?.times(5)?.div(4)) ?: 16_000_000L)
+                    .coerceIn(12_000_000L, 24_000_000L)
+                    .toInt()
+        }
+    }
+
+    private fun sourceBitrate(context: Context, input: Uri): Int? {
+        val metadata = MediaMetadataRetriever()
+        return try {
+            metadata.setDataSource(context, input)
+            metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull()
+        } catch (_: Exception) {
+            null
+        } finally {
+            metadata.release()
+        }
+    }
+
     fun overlay(
         context: Context,
         news: SmartAnalysis,
@@ -92,6 +123,9 @@ object VideoPostExporter {
         preset: VideoExportPreset = VideoExportPreset.FULL_HD,
         onProgress: (Int) -> Unit
     ): File {
+        val requestedBitrate = withContext(Dispatchers.IO) {
+            targetVideoBitrate(sourceBitrate(context, input), preset)
+        }
         val output = File.createTempFile("negahjavan-video-", ".mp4", context.cacheDir)
         output.delete() // Transformer requires a new path.
         val art = overlay(context, news, template, format, layout, preset)
@@ -119,9 +153,19 @@ object VideoPostExporter {
                         }
                     }
                     try {
+                        val encoderFactory = DefaultEncoderFactory.Builder(context)
+                            .setRequestedVideoEncoderSettings(
+                                VideoEncoderSettings.Builder()
+                                    .setBitrate(requestedBitrate)
+                                    .build()
+                            )
+                            .build()
                         transformer = Transformer.Builder(context)
-                            .setVideoMimeType(MimeTypes.VIDEO_H264).setAudioMimeType(MimeTypes.AUDIO_AAC)
-                            .addListener(listener).build()
+                            .setEncoderFactory(encoderFactory)
+                            .setVideoMimeType(MimeTypes.VIDEO_H264)
+                            .setAudioMimeType(MimeTypes.AUDIO_AAC)
+                            .addListener(listener)
+                            .build()
                         val item = EditedMediaItem.Builder(MediaItem.fromUri(input))
                             .setEffects(Effects(emptyList(), effects(art, format, preset))).build()
                         transformer!!.start(item, output.absolutePath)
