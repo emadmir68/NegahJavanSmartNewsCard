@@ -446,7 +446,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                         }
 
                         PaginationStatus(
-                            cardResult = cardResult,
+                            result = cardResult,
                             storyPageCount = storyPageCount,
                             hasImage = imageUri != null
                         )
@@ -518,7 +518,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                         )
 
                         OutputActions(
-                            cardResult = cardResult,
+                            result = cardResult,
                             imageUri = imageUri,
                             context = context,
                             storyCount = storyPageCount,
