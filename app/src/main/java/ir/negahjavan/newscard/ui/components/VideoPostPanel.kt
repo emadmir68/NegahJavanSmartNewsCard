@@ -41,7 +41,7 @@ fun VideoPostPanel(news: SmartAnalysis?, rawText: String) {
 
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     var template by rememberSaveable { mutableStateOf(InstagramTemplate.PHOTO_GOLD) }
-    var format by rememberSaveable { mutableStateOf(VideoPostFormat.POST) }
+    var format by rememberSaveable("reel-default-v1.5.3") { mutableStateOf(VideoPostFormat.REEL) }
     var preset by rememberSaveable { mutableStateOf(VideoExportPreset.FULL_HD) }
     var contentPosition by rememberSaveable { mutableStateOf(PostContentPosition.BOTTOM) }
     var brandPosition by rememberSaveable { mutableStateOf(PostBrandPosition.RIGHT) }
@@ -127,6 +127,11 @@ fun VideoPostPanel(news: SmartAnalysis?, rawText: String) {
             maxLines = 4
         )
 
+        Text(
+            "برای هماهنگی با قاب ریلزها، ۹:۱۶ پیشنهاد می‌شود؛ خروجی پست ۴:۵ هم قابل انتخاب است.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             VideoPostFormat.entries.forEach { option ->
                 FilterChip(

@@ -20,8 +20,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 31
         targetSdk = 36
-        versionCode = 20
-        versionName = "1.5.2"
+        versionCode = 21
+        versionName = "1.5.3"
         buildConfigField("String", "AI_BASE_URL", "\u0022" + aiBaseUrl + "\u0022")
     }
 

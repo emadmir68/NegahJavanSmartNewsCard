@@ -124,7 +124,7 @@ object InstagramPostRenderer {
         if (!videoOverlay) canvas.drawColor(background)
 
         if (photo != null) {
-            val dest = if (lightSurface) RectF(48f, 180f, 1032f, 720f) else RectF(0f, 0f, 1080f, 1350f)
+            val dest = if (lightSurface) RectF(28f, 150f, 1052f, 720f) else RectF(0f, 0f, 1080f, 1350f)
             val scale = max(dest.width() / photo.width, dest.height() / photo.height)
             canvas.save()
             canvas.clipRect(dest)
@@ -148,12 +148,12 @@ object InstagramPostRenderer {
                 InstagramTemplate.MIDNIGHT_BLUE -> Color.rgb(20, 63, 102)
             }
             paint.shader = LinearGradient(
-                0f, 180f, 1080f, 720f,
+                0f, 150f, 1080f, 720f,
                 intArrayOf(background, gradientEnd),
                 null,
                 Shader.TileMode.CLAMP
             )
-            canvas.drawRect(48f, 180f, 1032f, 720f, paint)
+            canvas.drawRect(28f, 150f, 1052f, 720f, paint)
             paint.shader = null
             text(
                 canvas,
@@ -169,18 +169,18 @@ object InstagramPostRenderer {
         val panelTop = when (layout.contentPosition) {
             PostContentPosition.TOP -> 196f
             PostContentPosition.CENTER -> 450f
-            PostContentPosition.BOTTOM -> 742f
+            PostContentPosition.BOTTOM -> 700f
         }
-        val panelBottom = (panelTop + 530f).coerceAtMost(1272f)
+        val panelBottom = (panelTop + 610f).coerceAtMost(1320f)
 
         if (lightSurface && (videoOverlay || layout.contentPosition != PostContentPosition.BOTTOM)) {
-            box(48f, panelTop, 1032f, panelBottom, Color.argb(245, 250, 247, 238), 30f)
+            box(28f, panelTop, 1052f, panelBottom, Color.argb(245, 250, 247, 238), 30f)
         }
 
         if (!lightSurface) {
-            val fadeStart = (panelTop - 260f).coerceAtLeast(0f)
+            val fadeStart = (panelTop - 160f).coerceAtLeast(0f)
             paint.shader = LinearGradient(
-                0f, fadeStart, 0f, panelBottom + 78f,
+                0f, fadeStart, 0f, panelBottom + 40f,
                 intArrayOf(Color.TRANSPARENT, Color.argb(235, Color.red(background), Color.green(background), Color.blue(background))),
                 null,
                 Shader.TileMode.CLAMP
@@ -194,43 +194,43 @@ object InstagramPostRenderer {
                 InstagramTemplate.MIDNIGHT_BLUE -> Color.argb(230, 8, 26, 46)
                 InstagramTemplate.EDITORIAL_IVORY -> Color.TRANSPARENT
             }
-            box(48f, panelTop, 1032f, panelBottom, panelColor, 30f)
+            box(28f, panelTop, 1052f, panelBottom, panelColor, 30f)
             paint.color = accent
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = if (template == InstagramTemplate.BREAKING_RED) 4f else 2f
-            canvas.drawRoundRect(RectF(48f, panelTop, 1032f, panelBottom), 30f, 30f, paint)
+            canvas.drawRoundRect(RectF(28f, panelTop, 1052f, panelBottom), 30f, 30f, paint)
             paint.style = Paint.Style.FILL
         }
 
-        val brandLeft = if (layout.brandPosition == PostBrandPosition.RIGHT) 724f else 48f
-        val brandRight = brandLeft + 308f
+        val brandLeft = if (layout.brandPosition == PostBrandPosition.RIGHT) 700f else 48f
+        val brandRight = brandLeft + 332f
         val categoryLeft = if (layout.brandPosition == PostBrandPosition.RIGHT) 48f else 800f
         val categoryRight = categoryLeft + 232f
 
-        box(brandLeft, 52f, brandRight, 144f, ivory)
-        text(canvas, "نگاه جوان", brandLeft + 26f, 65f, 255, 70, 44f, 36f, 1, darkGreen, PremiumTypography.headline)
-        box(categoryLeft, 66f, categoryRight, 130f, accent, 18f)
-        text(canvas, news.category.fa, categoryLeft + 16f, 74f, 200, 50, 25f, 20f, 1, darkGreen, PremiumTypography.bold)
+        box(brandLeft, 42f, brandRight, 150f, ivory)
+        text(canvas, "نگاه جوان", brandLeft + 24f, 55f, 282, 82, 48f, 40f, 1, darkGreen, PremiumTypography.headline)
+        box(categoryLeft, 60f, categoryRight, 138f, accent, 18f)
+        text(canvas, news.category.fa, categoryLeft + 16f, 68f, 200, 60, 27f, 22f, 1, darkGreen, PremiumTypography.bold)
 
-        val strapY = panelTop + 28f
-        val titleY = panelTop + 83f
-        val leadY = panelTop + 338f
-        val dividerY = panelTop + 442f
-        val moreY = panelTop + 458f
-        val siteY = panelTop + 495f
+        val strapY = panelTop + 24f
+        val titleY = panelTop + 75f
+        val leadY = panelTop + 360f
+        val dividerY = panelTop + 470f
+        val moreY = panelTop + 486f
+        val siteY = panelTop + 548f
 
         text(
-            canvas, "نگاه جوان • روایت خبر", 78f, strapY, 924, 42, 22f, 20f, 1,
+            canvas, "نگاه جوان • روایت خبر", 58f, strapY, 964, 42, 24f, 22f, 1,
             if (lightSurface) darkGreen else accent, PremiumTypography.body
         )
         text(
-            canvas, news.title, 78f, titleY, 924, 250,
+            canvas, news.title, 58f, titleY, 964, 275,
             when (template) {
-                InstagramTemplate.EDITORIAL_IVORY -> 76f
-                InstagramTemplate.BREAKING_RED -> 70f
-                else -> 64f
+                InstagramTemplate.EDITORIAL_IVORY -> 86f
+                InstagramTemplate.BREAKING_RED -> 82f
+                else -> 78f
             },
-            38f, 3, ink,
+            42f, 3, ink,
             if (template == InstagramTemplate.EDITORIAL_IVORY || template == InstagramTemplate.BREAKING_RED) {
                 PremiumTypography.headline
             } else {
@@ -240,21 +240,21 @@ object InstagramPostRenderer {
         text(
             canvas,
             news.lead.ifBlank { news.bodyText },
-            78f, leadY, 924, 84, 29f, 23f, 2,
+            58f, leadY, 964, 90, 32f, 24f, 2,
             if (lightSurface) Color.rgb(65, 85, 76) else Color.rgb(220, 230, 226),
             PremiumTypography.body
         )
         paint.color = accent
         paint.strokeWidth = 2f
-        canvas.drawLine(78f, dividerY, 1002f, dividerY, paint)
+        canvas.drawLine(58f, dividerY, 1022f, dividerY, paint)
         text(
-            canvas, "ادامه خبر در کپشن", 540f, moreY, 462, 52, 28f, 24f, 1,
+            canvas, "ادامه خبر در کپشن", 540f, moreY, 482, 52, 30f, 25f, 1,
             if (lightSurface) darkGreen else accent, PremiumTypography.bold
         )
         paint.color = ink
         paint.typeface = PremiumTypography.bold
-        paint.textSize = 27f
-        canvas.drawText("negahjavan.ir", 78f, siteY, paint)
+        paint.textSize = 29f
+        canvas.drawText("negahjavan.ir", 58f, siteY, paint)
 
         return bitmap
     }

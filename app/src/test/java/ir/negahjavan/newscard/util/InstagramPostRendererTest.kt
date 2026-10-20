@@ -137,6 +137,7 @@ class InstagramPostRendererTest {
         try {
             assertEquals(0, Color.alpha(bottomRight.getPixel(540, 300)))
             assertTrue(Color.alpha(topLeft.getPixel(540, 300)) > 150)
+            assertTrue("Expanded panel should reach closer to the frame edge", Color.alpha(bottomRight.getPixel(40, 800)) > 150)
 
             val ivory = Color.rgb(250, 247, 238)
             assertNotEquals(ivory, bottomRight.getPixel(70, 80))
