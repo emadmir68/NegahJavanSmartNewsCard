@@ -217,7 +217,7 @@ object InstagramPostRenderer {
         val leadY = panelTop + 360f
         val dividerY = panelTop + 470f
         val moreY = panelTop + 486f
-        val siteY = panelTop + 548f
+        val siteY = panelBottom - 30f
 
         text(
             canvas, "نگاه جوان • روایت خبر", 58f, strapY, 964, 42, 24f, 22f, 1,
@@ -253,7 +253,8 @@ object InstagramPostRenderer {
         )
         paint.color = ink
         paint.typeface = PremiumTypography.bold
-        paint.textSize = 29f
+        paint.textSize = 33f
+        paint.isFakeBoldText = true
         canvas.drawText("negahjavan.ir", 58f, siteY, paint)
 
         return bitmap

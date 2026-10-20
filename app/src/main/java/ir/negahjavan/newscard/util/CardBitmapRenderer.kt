@@ -444,12 +444,13 @@ paint.shader = LinearGradient(
         }
 
     private fun drawBrandLockup(canvas: Canvas, paint: Paint, w: Int, h: Int, template: PremiumTemplate) {
+        val brandUnit = minOf(w, h).toFloat()
         val pad = w * .075f
         val tint = accent(template)
-        drawText(canvas, "نگاه جوان", w - pad, h * .027f, w * .040f, warmIvory, true, Paint.Align.RIGHT)
-        drawText(canvas, "پایگاه خبری", w - pad, h * .074f, w * .017f, tint, false, Paint.Align.RIGHT)
-        drawText(canvas, "NEGAH JAVAAN", pad, h * .032f, w * .019f, tint, true, Paint.Align.LEFT)
-        drawText(canvas, brandSite, pad, h * .068f, w * .017f, Color.rgb(178, 181, 190), false, Paint.Align.LEFT)
+        drawText(canvas, "نگاه جوان", w - pad, h * .027f, brandUnit * .052f, warmIvory, true, Paint.Align.RIGHT, extraBold = true)
+        drawText(canvas, "پایگاه خبری", w - pad, h * .088f, brandUnit * .020f, tint, true, Paint.Align.RIGHT, extraBold = true)
+        drawText(canvas, "NEGAH JAVAAN", pad, h * .032f, brandUnit * .025f, tint, true, Paint.Align.LEFT, extraBold = true)
+        drawText(canvas, brandSite, pad, h * .073f, brandUnit * .022f, Color.rgb(226, 228, 235), true, Paint.Align.LEFT, extraBold = true)
     }
 
     private fun drawBadge(
@@ -492,7 +493,8 @@ paint.shader = LinearGradient(
         h: Int,
         template: PremiumTemplate
     ) {
-        val y = h * .944f
+        val brandUnit = minOf(w, h).toFloat()
+        val y = h * .951f
 
         when (template) {
             PremiumTemplate.LUXURY_MINIMAL -> {
@@ -501,17 +503,18 @@ paint.shader = LinearGradient(
                     text = brandSite.uppercase(),
                     x = w * .50f,
                     y = y,
-                    size = w * .023f,
-                    color = Color.rgb(164, 166, 173),
+                    size = brandUnit * .030f,
+                    color = Color.rgb(226, 228, 235),
                     bold = true,
-                    align = Paint.Align.CENTER
+                    align = Paint.Align.CENTER,
+                    extraBold = true
                 )
                 paint.color = accentGold
                 canvas.drawRoundRect(
-                    w * .37f,
-                    h * .976f,
-                    w * .63f,
-                    h * .979f,
+                    w * .50f - brandUnit * .13f,
+                    h * .985f,
+                    w * .50f + brandUnit * .13f,
+                    h * .988f,
                     3f,
                     3f,
                     paint
@@ -524,17 +527,18 @@ paint.shader = LinearGradient(
                     text = brandSite.uppercase(),
                     x = w * .50f,
                     y = y,
-                    size = w * .023f,
-                    color = Color.rgb(188, 180, 228),
+                    size = brandUnit * .030f,
+                    color = Color.rgb(218, 210, 255),
                     bold = true,
-                    align = Paint.Align.CENTER
+                    align = Paint.Align.CENTER,
+                    extraBold = true
                 )
                 paint.color = accentViolet
                 canvas.drawRoundRect(
-                    w * .43f,
-                    h * .976f,
-                    w * .57f,
-                    h * .979f,
+                    w * .50f - brandUnit * .07f,
+                    h * .985f,
+                    w * .50f + brandUnit * .07f,
+                    h * .988f,
                     3f,
                     3f,
                     paint
@@ -547,20 +551,22 @@ paint.shader = LinearGradient(
                     text = brandSite,
                     x = w - w * .060f,
                     y = y,
-                    size = w * .024f,
-                    color = Color.rgb(208, 208, 214),
+                    size = brandUnit * .030f,
+                    color = Color.rgb(232, 233, 239),
                     bold = true,
-                    align = Paint.Align.RIGHT
+                    align = Paint.Align.RIGHT,
+                    extraBold = true
                 )
                 drawText(
                     canvas = canvas,
                     text = brandSocial,
                     x = w * .060f,
                     y = y,
-                    size = w * .024f,
+                    size = brandUnit * .030f,
                     color = Color.WHITE,
                     bold = true,
-                    align = Paint.Align.LEFT
+                    align = Paint.Align.LEFT,
+                    extraBold = true
                 )
             }
         }
@@ -895,7 +901,8 @@ paint.shader = LinearGradient(
         size: Float,
         color: Int,
         bold: Boolean,
-        align: Paint.Align
+        align: Paint.Align,
+        extraBold: Boolean = false
     ) {
         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
@@ -906,6 +913,7 @@ paint.shader = LinearGradient(
             } else {
                 PremiumTypography.body
             }
+            isFakeBoldText = extraBold
         }
 
         canvas.drawText(
