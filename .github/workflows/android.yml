@@ -112,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build-final
-          FINAL="build-final/NegahJavanSmartNewsCard-1.5.1-final.apk"
+          FINAL="build-final/NegahJavanSmartNewsCard-1.5.2-final.apk"
 
           if [ -n "${SIGNING_KEY:-}" ] && [ -n "${STORE_PASSWORD:-}" ]; then
             echo "Permanent signing secrets detected; building signed release."
@@ -142,8 +142,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: NegahJavanSmartNewsCard-1.5.1
-          path: build-final/NegahJavanSmartNewsCard-1.5.1-final.apk
+          name: NegahJavanSmartNewsCard-1.5.2
+          path: build-final/NegahJavanSmartNewsCard-1.5.2-final.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -154,16 +154,20 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          TAG="v1.5.1"
-          APK_NAME="NegahJavanSmartNewsCard-1.5.1-final.apk"
+          TAG="v1.5.2"
+          APK_NAME="NegahJavanSmartNewsCard-1.5.2-final.apk"
           APK="build-final/$APK_NAME"
           test -s "$APK"
           (cd build-final && sha256sum "$APK_NAME" > "$APK_NAME.sha256")
           cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          # کارت‌ساز نگاه جوان ۱.۵.۱ — خروجی ویدیوی باکیفیت
+          # کارت‌ساز نگاه جوان ۱.۵.۲ — رابط کاربری مرتب‌تر
           - تحلیل خبر روی گوشی و کاور گرافیکی محلی، بدون نیاز اجباری به API پولی
           - جلوگیری از نمایش نتیجهٔ تحلیل مربوط به متن قدیمی
-          - حفظ قابلیت‌های فعلی کارت، پست اینستاگرام و خروجی ویدئو\n          - خروجی 1080p با بیت‌ریت تطبیقی 12 تا 24 Mbps برای جلوگیری از افت محسوس کیفیت\n          - خروجی سریع 720p با بیت‌ریت 4.5 تا 8 Mbps
+          - رابط مرتب‌تر با سه بخش مستقل کارت خبر، پست اینستاگرام و ویدئو/ریلز
+          - تنظیمات طراحی و چیدمان پیشرفته به‌صورت جمع‌شونده
+          - حفظ قابلیت‌های فعلی کارت، پست اینستاگرام و خروجی ویدئو
+          - خروجی 1080p با بیت‌ریت تطبیقی 12 تا 24 Mbps
+          - خروجی سریع 720p با بیت‌ریت 4.5 تا 8 Mbps
 
           - انتخاب فیلم از گوشی و پیش‌نمایش زنده با قالب خبری
           - چهار قالب پست و ویدئو با امکان ویرایش و جابه‌جایی متن و برند
@@ -187,7 +191,7 @@ jobs:
             fi
           else
             gh release create "$TAG" --draft --target "$GITHUB_SHA" \
-              --title "NegahJavan Smart News Card 1.5.1 — High Quality Video" \
+              --title "NegahJavan Smart News Card 1.5.2 — Clean Studio UI" \
               --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
 
@@ -195,4 +199,4 @@ jobs:
           gh release upload "$TAG" "$APK" "$APK.sha256" --clobber
           gh release edit "$TAG" --draft=false --latest
           RELEASE_URL="$(gh release view "$TAG" --json url --jq .url)"
-          printf '## Download\n\n[Version 1.5.1](%s)\n' "$RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Download\n\n[Version 1.5.2](%s)\n' "$RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
