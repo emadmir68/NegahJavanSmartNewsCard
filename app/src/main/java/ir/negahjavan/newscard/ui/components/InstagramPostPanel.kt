@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 fun InstagramPostPanel(news: SmartAnalysis, imageUri: Uri?) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(true) }
     var template by rememberSaveable { mutableStateOf(InstagramTemplate.PHOTO_GOLD) }
     var contentPosition by rememberSaveable { mutableStateOf(PostContentPosition.BOTTOM) }
     var brandPosition by rememberSaveable { mutableStateOf(PostBrandPosition.RIGHT) }
