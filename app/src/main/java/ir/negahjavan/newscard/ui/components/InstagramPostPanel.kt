@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,6 +30,7 @@ fun InstagramPostPanel(news: SmartAnalysis, imageUri: Uri?) {
     var template by rememberSaveable { mutableStateOf(InstagramTemplate.PHOTO_GOLD) }
     var contentPosition by rememberSaveable { mutableStateOf(PostContentPosition.BOTTOM) }
     var brandPosition by rememberSaveable { mutableStateOf(PostBrandPosition.RIGHT) }
+    var layoutSettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var title by rememberSaveable(news.fullText, news.title) { mutableStateOf(news.title) }
     var summary by rememberSaveable(news.fullText, news.lead) { mutableStateOf(news.lead) }
     var busy by remember { mutableStateOf(false) }
@@ -93,44 +95,74 @@ fun InstagramPostPanel(news: SmartAnalysis, imageUri: Uri?) {
             maxLines = 4
         )
 
-        Text("قالب", style = MaterialTheme.typography.labelLarge)
-        InstagramTemplate.entries.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                row.forEach { option ->
-                    FilterChip(
-                        selected = template == option,
-                        onClick = { template = option },
-                        enabled = !busy,
-                        label = { Text(option.fa) },
-                        modifier = Modifier.weight(1f)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
+        ) {
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(
+                    onClick = { layoutSettingsExpanded = !layoutSettingsExpanded },
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (layoutSettingsExpanded) "بستن تنظیمات چیدمان ▲"
+                        else "تنظیمات چیدمان · قالب و جای متن ▼"
                     )
                 }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
 
-        Text("جای متن", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-            PostContentPosition.entries.forEach { option ->
-                FilterChip(
-                    selected = contentPosition == option,
-                    onClick = { contentPosition = option },
-                    enabled = !busy,
-                    label = { Text(option.fa) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
+                if (layoutSettingsExpanded) {
+                    Text("قالب", style = MaterialTheme.typography.labelLarge)
+                    InstagramTemplate.entries.chunked(2).forEach { row ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            row.forEach { option ->
+                                FilterChip(
+                                    selected = template == option,
+                                    onClick = { template = option },
+                                    enabled = !busy,
+                                    label = { Text(option.fa) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
 
-        Text("جای لوگو", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PostBrandPosition.entries.forEach { option ->
-                FilterChip(
-                    selected = brandPosition == option,
-                    onClick = { brandPosition = option },
-                    enabled = !busy,
-                    label = { Text(option.fa) }
-                )
+                    Text("جای متن", style = MaterialTheme.typography.labelLarge)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        PostContentPosition.entries.forEach { option ->
+                            FilterChip(
+                                selected = contentPosition == option,
+                                onClick = { contentPosition = option },
+                                enabled = !busy,
+                                label = { Text(option.fa) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    Text("جای لوگو", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PostBrandPosition.entries.forEach { option ->
+                            FilterChip(
+                                selected = brandPosition == option,
+                                onClick = { brandPosition = option },
+                                enabled = !busy,
+                                label = { Text(option.fa) }
+                            )
+                        }
+                    }
+                }
             }
         }
 
