@@ -36,6 +36,7 @@ import ir.negahjavan.newscard.model.CardFormat
 import ir.negahjavan.newscard.model.PremiumTemplate
 import ir.negahjavan.newscard.model.SmartAnalysis
 import ir.negahjavan.newscard.model.SmartPage
+import ir.negahjavan.newscard.premium.PremiumCardStudio
 import ir.negahjavan.newscard.ui.components.VideoPostPanel
 import ir.negahjavan.newscard.ui.components.InstagramPostPanel
 import ir.negahjavan.newscard.ui.components.NewsCardPreview
@@ -109,7 +110,7 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("نگاه جوان", fontWeight = FontWeight.Black)
                         Text(
-                            "PREMIUM STUDIO • 1.5.2",
+                            "PREMIUM STUDIO • 1.5.5",
                             style = MaterialTheme.typography.labelSmall,
                             color = BrandRed,
                             fontWeight = FontWeight.Bold
@@ -497,6 +498,14 @@ fun NewsCardApp(vm: MainViewModel = viewModel()) {
                                 }
                             }
                         }
+
+                        // Premium 1.5.5 integrated studio
+                        PremiumCardStudio(
+                            headline = cardResult.title,
+                            summary = cardResult.lead.ifBlank { cardResult.bodyText },
+                            imageUri = imageUri,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         Text(
                             "پیش‌نمایش کارت",
