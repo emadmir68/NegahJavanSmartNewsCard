@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>نگاه جوان | PREMIUM STUDIO 3.1</title>
+<title>نگاه جوان | PREMIUM STUDIO 3.2</title>
 <!-- Embedded Vazirmatn font, SIL Open Font License 1.1
 Copyright 2015 The Vazirmatn Project Authors (https://github.com/rastikerdar/vazirmatn)
 
@@ -492,6 +492,54 @@ button:disabled{opacity:.5;cursor:not-allowed}
  .preview-shell{grid-column:2;grid-row:2;position:sticky;top:18px}
  .hint{grid-column:1/-1}
 }
+/* 3.2: photo-safe automatic composition and direct Post/Story actions. */
+body{padding-bottom:155px}
+.range-wrap label{font-size:11px;color:#b6becb}
+.smart-intro{padding:10px 0 13px;font-size:13px;line-height:1.8;color:#bfc8d4}
+.smart-intro strong{display:block;font-size:16px;color:#f6f0e3}
+.smart-intro p{margin-top:4px}
+#smartPrepare{width:100%;margin:10px 0 0;background:#d4af63;color:#18130a;border:0;min-height:44px;font-size:13px}
+.check-row{display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.8;margin:10px 0}
+.check-row input{width:18px;height:18px;accent-color:var(--accent)}
+.micro-note{font-size:11px;color:#aab4c3;line-height:1.8;margin:6px 0}
+.caption-box{margin-top:12px}
+.publish-bar{position:fixed;z-index:20;bottom:0;left:50%;transform:translateX(-50%);width:min(460px,100%);padding:10px 12px max(12px,env(safe-area-inset-bottom));background:rgba(12,15,21,.98);border:1px solid #343a44;border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -12px 45px #0008}
+.publish-buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.send-button{min-height:49px;border:0;border-radius:11px;background:#d4af63;color:#19130a;font-size:14px;font-weight:800;cursor:pointer}
+.send-button.story{background:#252c38;color:#f3f6fa;border:1px solid #596579}
+.send-button small{display:block;font:600 10px/1.5 Arial,sans-serif;opacity:.8}
+.publish-status{color:#bbc6d6;font-size:10px;line-height:1.6;margin-top:6px;text-align:center;max-height:50px;overflow:auto}
+#news-card[class] .headline{text-wrap:balance;font-weight:800;line-height:1.48}
+.photo-image{display:none}
+#news-card.layout-smart .photo-shade{display:none}
+#news-card.layout-smart .card-photo{opacity:1;inset:auto;overflow:hidden;border-radius:24px;border:1px solid #ffffff20;background-size:cover;filter:none}
+#news-card.layout-smart:not(.has-photo) .card-photo{display:none}
+#news-card.layout-smart .card-photo::before{content:"";position:absolute;inset:-40px;background-image:inherit;background-size:cover;background-position:center;filter:blur(28px) brightness(.5);z-index:0}
+#news-card.layout-smart .photo-image{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:1;transform-origin:center}
+#news-card.layout-smart .card-inner{padding:64px 64px 48px}
+#news-card.layout-smart .card-header{min-height:120px;padding-bottom:26px}
+#news-card.layout-smart .brand-title{font-size:58px}
+#news-card.layout-smart .brand-kicker{font-size:21px}
+#news-card.layout-smart .brand-en .name{font-size:25px;letter-spacing:4px}
+#news-card.layout-smart .brand-en .url{font-size:20px}
+#news-card.layout-smart .card-body{justify-content:flex-end;margin:0;padding-inline:0;border:0;background:none;box-shadow:none;border-radius:0}
+#news-card.layout-smart:not(.has-photo) .card-body{justify-content:center}
+#news-card.layout-smart .badge{font-size:23px;margin-bottom:18px;padding:8px 19px;gap:12px;border-radius:11px}
+#news-card.layout-smart .badge-dot{width:9px;height:9px;box-shadow:none}
+#news-card.layout-smart .lead-box{margin-top:24px;padding:0 24px 0 0}
+#news-card.layout-smart .lead{line-height:1.75;color:#c8d0dc;text-wrap:balance}
+#news-card.layout-smart .headline{text-shadow:none;letter-spacing:0}
+#news-card.layout-smart .card-footer{min-height:72px;padding-top:24px}
+#news-card.layout-smart.format-square .card-inner{padding:44px 56px 34px}
+#news-card.layout-smart.format-square .card-header{min-height:98px;padding-bottom:20px}
+#news-card.layout-smart.format-square .brand-title{font-size:47px}
+#news-card.layout-smart.format-square .brand-kicker{font-size:17px}
+#news-card.layout-smart.format-square .brand-en .name{font-size:21px}
+#news-card.layout-smart.format-square .brand-en .url{font-size:17px}
+#news-card.layout-smart.format-square .card-footer{min-height:58px;padding-top:18px}
+#news-card.layout-smart.format-square .lead-box{margin-top:18px}
+/* Extra breathing room in the tall format for the publishing interface. */
+#news-card.layout-smart:not(.format-post):not(.format-square) .card-inner{padding-top:130px;padding-bottom:150px}
 
 </style>
 </head>
@@ -499,14 +547,19 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <div class="studio">
   <header class="studio-header">
     <h1>نگاه جوان</h1>
-    <p>PREMIUM STUDIO • 3.1</p>
+    <p>PREMIUM STUDIO • 3.2</p>
   </header>
 
   <section class="panel">
+    <div class="smart-intro"><strong>عکس و متن خبر؛ چیدمان خودکار</strong>
+      <p>پست و استوری را با اندازهٔ مناسب آماده و ارسال کنید.</p>
+      <button id="smartPrepare" class="chip" disabled>آماده‌سازی خودکار</button>
+    </div>
     <div class="panel-section">
       <div class="label">قالب کارت</div>
       <div class="row">
-        <button class="chip active" data-layout="editorial">ادیتوریال + عکس</button>
+        <button class="chip active" data-layout="smart">خودکار</button>
+        <button class="chip" data-layout="editorial">ادیتوریال + عکس</button>
         <button class="chip" data-layout="breaking">Breaking</button>
         <button class="chip" data-layout="glass">Glass</button>
       </div>
@@ -532,8 +585,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
     <div class="panel-section">
       <details open><summary>متن خبر</summary>
+        <label for="articleInput" class="field-label">متن کامل خبر — اختیاری</label>
+        <textarea id="articleInput" class="text-editor" rows="3" maxlength="20000" placeholder="خبر را اینجا بچسبانید؛ تیتر اولیه و خلاصه از همین متن آماده می‌شود."></textarea>
+        <label class="check-row"><input id="autoSummary" type="checkbox" checked>خلاصهٔ خودکار از متن کامل خبر</label>
+        <p class="micro-note" id="summaryNote" hidden></p>
         <label for="headlineInput" class="field-label">تیتر</label>
-        <textarea id="headlineInput" class="text-editor" rows="3" maxlength="20000" spellcheck="false"></textarea>
+        <textarea id="headlineInput" placeholder="تیتر خبر را بنویسید یا متن کامل خبر را وارد کنید" class="text-editor" rows="3" maxlength="20000" spellcheck="false"></textarea>
         <label for="leadInput" class="field-label">خلاصهٔ خبر</label>
         <textarea id="leadInput" class="text-editor" rows="2" maxlength="20000"></textarea>
         <label for="badgeInput" class="field-label">برچسب خبر</label>
@@ -548,6 +605,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
         <label class="chip file-btn">لوگوی دلخواه<input id="logoInput" type="file" accept="image/*"></label>
         <button class="chip small" id="removePhoto">حذف عکس</button>
         <button class="chip small" id="removeLogo">حذف لوگو</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="chip active" data-photo-fit="contain">نمایش کامل عکس</button>
+        <button class="chip" data-photo-fit="cover">پرکردن قاب</button>
       </div>
       <div class="range-wrap">
         <label for="zoomRange">زوم عکس</label>
@@ -596,13 +657,17 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <a id="openPNG" target="_blank" rel="noopener">نمایش تصویر</a>
       <button class="chip small" id="sharePNG" hidden>اشتراک‌گذاری</button>
     </div>
+    <details class="caption-box"><summary>کپشن آماده</summary>
+      <textarea id="captionInput" class="text-editor" rows="4" readonly aria-label="کپشن خبر"></textarea>
+      <button id="copyCaption" class="chip small" style="margin-top:8px">کپی کپشن</button>
+    </details>
     <p class="save-status" id="saveStatus">پیش‌نویس پس از ویرایش، روی همین مرورگر ذخیره می‌شود.</p>
   </section>
 
   <div class="preview-shell" id="previewShell">
     <div class="preview-stage" id="previewStage">
       <article id="news-card" class="layout-editorial" dir="rtl" lang="fa">
-        <div class="card-photo" id="cardPhoto"></div>
+        <div class="card-photo" id="cardPhoto"><img id="photoImage" class="photo-image" alt=""></div>
         <div class="photo-shade"></div>
 
         <div class="card-inner">
@@ -631,15 +696,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
             </div>
 
             <div class="headline-wrap">
-              <div class="headline" id="headline" contenteditable="true" data-plain>
-                <span class="hl-gold">صابرین</span> نیوز در ساعات گذشته ایران به تمام کشورهای منطقه هشدار داده است
-              </div>
+              <div class="headline" id="headline" contenteditable="true" data-plain></div>
             </div>
 
             <div class="lead-box">
-              <div class="lead" id="lead" contenteditable="true" data-plain>
-                کشورهای منطقه یک هشدار بی‌سابقه در مورد جنگ دریافت کرده‌اند.
-              </div>
+              <div class="lead" id="lead" contenteditable="true" data-plain></div>
             </div>
           </main>
 
@@ -659,6 +720,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <p class="hint">متن را در کادرها یا روی کارت ویرایش کنید. برای رنگی‌کردن، بخشی از تیتر را روی کارت انتخاب کنید. تغییر تیتر در کادر، رنگ‌بندی آن را پاک می‌کند. فونت و ابزارها بدون اینترنت کار می‌کنند.</p>
 </div>
 
+
+<div class="publish-bar" aria-label="ارسال تصویر">
+  <div class="publish-buttons">
+    <button class="send-button" data-send="post" disabled>ارسال پست<small>1080 × 1350</small></button>
+    <button class="send-button story" data-send="story" disabled>ارسال استوری<small>1080 × 1920</small></button>
+  </div>
+  <div id="publishStatus" class="publish-status" role="status" aria-live="polite">فایل آماده می‌شود؛ انتشار نهایی در برنامهٔ مقصد است.</div>
+</div>
 <script>
 (() => {
   'use strict';
@@ -668,11 +737,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
   const exportBtn=$('exportBtn'), status=$('status'), warning=$('fitWarning');
   const formats={story:{w:1080,h:1920,label:'استوری ۹:۱۶'},post:{w:1080,h:1350,label:'پست ۴:۵'},square:{w:1080,h:1080,label:'مربع ۱:۱'}};
   const STORE='negahjavan.studio.draft.v1';
-  const state={format:'story',layout:'editorial',theme:'gold',autoFit:true,manualFont:64,leadFont:36,zoom:100,posX:50,posY:50,photo:'',logo:''};
+  const state={format:'post',layout:'smart',theme:'gold',autoFit:true,manualFont:54,leadFont:32,zoom:100,posX:50,posY:50,photo:'',logo:'',article:'',autoSummary:true,titleGenerated:true,photoFit:'contain'};
   let ready=false, busy=false, imageJobs=0, saveTimer=0, frame=0, selectedRange=null, resultURL='';
-  let exportBlob=null, exportName='', photoTicket=0, logoTicket=0;
+  let exportBlob=null, exportName='', photoTicket=0, logoTicket=0, exportFormat='', sharing=false;
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,Number(n)));
-  const message=t=>{status.textContent=t;};
+  const message=t=>{status.textContent=t;if($('publishStatus'))$('publishStatus').textContent=t;};
   function segmentsFromDOM(root){
     const runs=[];
     function add(text,color){if(!text)return; const last=runs[runs.length-1];if(last&&last.color===color)last.text+=text;else runs.push({text,color});}
@@ -688,6 +757,29 @@ button:disabled{opacity:.5;cursor:not-allowed}
     walk(root);return runs;
   }
   const headlineText=()=>segmentsFromDOM(headline).map(r=>r.text).join('');
+  function shortenWords(text,limit){
+    const clean=text.replace(/\s+/g,' ').trim();if(clean.length<=limit)return clean;
+    const cut=clean.slice(0,limit-1),space=cut.lastIndexOf(' ');
+    return (space>limit*.55?cut.slice(0,space):cut).trimEnd()+'…';
+  }
+  function makeSummary(){
+    if(!state.autoSummary||!state.article.trim())return;
+    const sentences=state.article.trim().split(/(?<=[.!؟!])\s+|\n+/u).map(s=>s.trim()).filter(Boolean);
+    const title=headlineText().replace(/\s+/g,' ').trim();
+    const candidates=sentences.filter(s=>s.replace(/\s+/g,' ').trim()!==title);
+    const source=(candidates.length?candidates:sentences).slice(0,2).join(' ');
+    const limit={story:175,post:135,square:95}[state.format];
+    lead.textContent=shortenWords(source,limit);
+    $('summaryNote').hidden=false;
+    $('summaryNote').textContent='خلاصه از متن خبر انتخاب شده؛ متن کامل محفوظ است.';
+    syncEditors();
+  }
+  function captionText(){
+    const title=headlineText().trim(),source=state.article.trim()||lead.innerText.trim();
+    const bodyText=source.startsWith(title)?source:title+(source?'\n\n'+source:'');
+    return bodyText+'\n\nنگاه جوان | negahjavan.ir\n@NEGAHJAVAN';
+  }
+  function updateCaption(){ $('captionInput').value=captionText(); }
   function renderSegments(runs){
     const fragment=document.createDocumentFragment();
     for(const run of runs){
@@ -710,6 +802,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
     $('autoFitBtn').classList.toggle('active',state.autoFit);
     $('autoFitBtn').setAttribute('aria-pressed',String(state.autoFit));
     $('autoFitBtn').textContent=state.autoFit?'اندازه خودکار':'اندازه دستی';
+    $('autoSummary').checked=state.autoSummary;
+    document.querySelectorAll('[data-photo-fit]').forEach(b=>{const on=b.dataset.photoFit===state.photoFit;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   }
   function resizePreview(){
     const {w,h}=formats[state.format];
@@ -725,7 +819,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
     document.body.className=state.theme==='gold'?'':'theme-'+state.theme;
     card.style.width=w+'px';card.style.height=h+'px';
     photo.style.backgroundImage=state.photo?`url("${state.photo}")`:'none';
-    photo.style.backgroundPosition=`${state.posX}% ${state.posY}%`;photo.style.transform=`scale(${state.zoom/100})`;
+    photo.style.backgroundPosition=`${state.posX}% ${state.posY}%`;photo.style.transform=state.layout==='smart'?'none':`scale(${state.zoom/100})`;
+    const photoImage=$('photoImage');
+    if(state.photo)photoImage.src=state.photo;else photoImage.removeAttribute('src');
+    photoImage.style.objectFit=state.photoFit;photoImage.style.objectPosition=`${state.posX}% ${state.posY}%`;photoImage.style.transform=`scale(${state.zoom/100})`;
+    for(const property of ['top','left','width','height','right','bottom'])photo.style[property]='';
+    makeSummary();
     const logo=$('brandLogo');
     if(state.logo){logo.src=state.logo;logo.style.display='block';}else{logo.removeAttribute('src');logo.style.display='none';}
     $('brandText').style.display=state.logo?'none':'';
@@ -733,7 +832,31 @@ button:disabled{opacity:.5;cursor:not-allowed}
       $(id).value=state[key];$(id.replace('Range','Out')).value=state[key]+'%';
     }
     $('leadRange').value=state.leadFont;
-    updateButtons();resizePreview();fitContent();
+    updateButtons();resizePreview();fitContent();updateCaption();
+  }
+  function requiredContentHeight(){
+    return [...body.children].reduce((height,el)=>{if(el.hidden)return height;const c=getComputedStyle(el);return height+el.offsetHeight+parseFloat(c.marginTop)+parseFloat(c.marginBottom);},0);
+  }
+  function placeSmartPhoto(final=false){
+    if(state.layout!=='smart'){body.style.paddingTop='';body.style.paddingBottom='';return;}
+    body.style.paddingBottom='24px';
+    if(!state.photo){body.style.paddingTop='28px';return;}
+    const minPhoto={story:440,post:300,square:210}[state.format];
+    let photoHeight=minPhoto;
+    if(final)photoHeight=Math.max(minPhoto,body.clientHeight-requiredContentHeight()-90);
+    body.style.paddingTop=(photoHeight+58)+'px';
+    Object.assign(photo.style,{top:(body.offsetTop+14)+'px',left:body.offsetLeft+'px',width:body.clientWidth+'px',height:photoHeight+'px',right:'auto',bottom:'auto'});
+  }
+  function hasOrphanLine(){
+    const rows=[];const walker=document.createTreeWalker(headline,NodeFilter.SHOW_TEXT);
+    for(let node;node=walker.nextNode();){
+      for(const match of node.textContent.matchAll(/\S+/gu)){
+        const range=document.createRange();range.setStart(node,match.index);range.setEnd(node,match.index+match[0].length);
+        const r=range.getBoundingClientRect();let row=rows.find(x=>Math.abs(x.top-r.top)<2);
+        if(!row){row={top:r.top,count:0};rows.push(row);}row.count++;
+      }
+    }
+    rows.sort((a,b)=>a.top-b.top);return rows.length>1&&rows[rows.length-1].count===1;
   }
   function contentFits(){
     const css=getComputedStyle(body);
@@ -750,7 +873,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
   function fitContent(){
     card.querySelector('.lead-box').hidden=!lead.innerText.trim();
     card.querySelector('.badge').hidden=!badge.innerText.trim();
-    const base={story:{editorial:66,breaking:74,glass:64},post:{editorial:60,breaking:66,glass:58},square:{editorial:50,breaking:56,glass:48}};
+    placeSmartPhoto();
+    const base={story:{smart:62,editorial:62,breaking:68,glass:60},post:{smart:52,editorial:54,breaking:60,glass:52},square:{smart:44,editorial:46,breaking:52,glass:44}};
     let hs=state.autoFit?base[state.format][state.layout]:state.manualFont;
     let ls=Math.min(state.leadFont,state.format==='square'?30:state.format==='post'?34:42);
     const minH=state.format==='square'?30:34,minL=state.format==='square'?22:24;
@@ -762,27 +886,33 @@ button:disabled{opacity:.5;cursor:not-allowed}
       if(ls>minL){ls--;lead.style.fontSize=ls+'px';changed=true;}
       if(!changed)break;
     }
+    if(state.autoFit&&contentFits()){
+      for(let i=0;i<8&&hs>minH&&hasOrphanLine();i++){hs--;headline.style.fontSize=hs+'px';}
+    }
+    placeSmartPhoto(true);
     const fits=contentFits(), empty=!headlineText().trim();
     warning.hidden=fits&&!empty;
     warning.textContent=empty?'تیتر خبر را وارد کنید.':fits?'':'متن در این کارت جا نمی‌شود. متن را کوتاه‌تر کنید، اندازهٔ تیتر را کاهش دهید یا ابعاد بزرگ‌تری انتخاب کنید. خروجی تا رفع مشکل غیرفعال است.';
-    exportBtn.disabled=!ready||busy||imageJobs>0||!fits||empty;
+    exportBtn.disabled=!ready||busy||sharing||imageJobs>0||!fits||empty;
+    document.querySelectorAll('[data-send]').forEach(b=>b.disabled=!ready||busy||sharing||imageJobs>0||empty);
+    $('smartPrepare').disabled=!ready||busy||sharing||imageJobs>0;
     $('fontRange').value=hs;$('fontOut').value=hs+'px';$('leadOut').value=ls+'px';
     card.dataset.fits=String(fits&&!empty);
     return fits&&!empty;
   }
   function invalidateResult(){
-    exportBlob=null;$('resultActions').hidden=true;
+    exportBlob=null;exportFormat='';$('resultActions').hidden=true;
     if(resultURL){URL.revokeObjectURL(resultURL);resultURL='';}
   }
   function changed(){
     invalidateResult();syncEditors();cancelAnimationFrame(frame);
-    frame=requestAnimationFrame(()=>{fitContent();scheduleSave();});
+    frame=requestAnimationFrame(()=>{fitContent();updateCaption();scheduleSave();});
     const f=formats[state.format];message(`${f.label} · ${f.w} × ${f.h}`);
   }
   function saveDraft(){
     if(!ready)return;
     try{
-      const draft={version:1,...state,headline:segmentsFromDOM(headline),lead:lead.innerText,badge:badge.innerText};
+      const draft={version:1,appVersion:'3.2',...state,headline:segmentsFromDOM(headline),lead:lead.innerText,badge:badge.innerText};
       localStorage.setItem(STORE,JSON.stringify(draft));
       $('saveStatus').textContent='پیش‌نویس روی همین مرورگر ذخیره شد.';
     }catch(e){$('saveStatus').textContent='ذخیرهٔ خودکار در این مرورگر ممکن نشد؛ پیش از بستن صفحه خروجی بگیرید.';}
@@ -793,13 +923,18 @@ button:disabled{opacity:.5;cursor:not-allowed}
     try{
       const raw=localStorage.getItem(STORE);if(!raw)return;
       const d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.headline))return;
-      for(const [key,allowed] of Object.entries({format:Object.keys(formats),layout:['editorial','breaking','glass'],theme:['gold','crimson','platinum']}))if(allowed.includes(d[key]))state[key]=d[key];
+      for(const [key,allowed] of Object.entries({format:Object.keys(formats),layout:['smart','editorial','breaking','glass'],theme:['gold','crimson','platinum'],photoFit:['contain','cover']}))if(allowed.includes(d[key]))state[key]=d[key];
       for(const [key,min,max] of [['manualFont',30,104],['leadFont',24,42],['zoom',100,165],['posX',0,100],['posY',0,100]])if(Number.isFinite(d[key]))state[key]=clamp(d[key],min,max);
       if(typeof d.autoFit==='boolean')state.autoFit=d.autoFit;
       for(const key of ['photo','logo'])if(isImageData(d[key]))state[key]=d[key];
       renderSegments(d.headline.filter(r=>r&&typeof r.text==='string').map(r=>({text:r.text.slice(0,20000),color:r.color})));
       if(typeof d.lead==='string')lead.textContent=d.lead.slice(0,20000);
       if(typeof d.badge==='string')badge.textContent=d.badge.slice(0,100);
+      if(typeof d.article==='string')state.article=d.article.slice(0,20000);
+      if(typeof d.autoSummary==='boolean')state.autoSummary=d.autoSummary;
+      if(typeof d.titleGenerated==='boolean')state.titleGenerated=d.titleGenerated;
+      if(d.appVersion!=='3.2'){state.layout='smart';state.autoFit=true;state.zoom=100;state.titleGenerated=false;}
+      $('articleInput').value=state.article;
       $('saveStatus').textContent='پیش‌نویس قبلی بازیابی شد.';
     }catch(e){$('saveStatus').textContent='پیش‌نویس قبلی قابل بازیابی نبود؛ ذخیرهٔ خودکار پس از ویرایش دوباره امتحان می‌شود.';}
   }
@@ -837,14 +972,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
       const data=await normalizeImage(file,kind==='logo');
       if(ticket!==(kind==='photo'?photoTicket:logoTicket))return;
       state[kind]=data;
-      if(kind==='photo'){state.zoom=100;state.posX=50;state.posY=50;if(state.layout==='breaking')state.layout='editorial';}
+      if(kind==='photo'){state.zoom=100;state.posX=50;state.posY=50;if(state.layout==='breaking')state.layout='smart';}
       applyState();changed();
     }catch(err){message(err.message);}
     finally{imageJobs--;e.target.value='';fitContent();}
   });
   $('removePhoto').addEventListener('click',()=>{photoTicket++;state.photo='';state.zoom=100;state.posX=50;state.posY=50;applyState();changed();});
   $('removeLogo').addEventListener('click',()=>{logoTicket++;state.logo='';applyState();changed();});
-  for(const key of ['layout','format','theme'])document.querySelectorAll('[data-'+key+']').forEach(b=>b.addEventListener('click',()=>{state[key]=b.dataset[key];applyState();changed();}));
+  for(const key of ['layout','format','theme'])document.querySelectorAll('[data-'+key+']').forEach(b=>b.addEventListener('click',()=>{state[key]=b.dataset[key];if(key==='layout'&&state.layout==='smart'){state.autoFit=true;state.zoom=100;}applyState();changed();}));
   for(const [id,key] of [['zoomRange','zoom'],['posRange','posY'],['posXRange','posX']])$(id).addEventListener('input',()=>{state[key]=Number($(id).value);applyState();changed();});
   $('autoFitBtn').addEventListener('click',()=>{state.manualFont=parseFloat(getComputedStyle(headline).fontSize);state.autoFit=!state.autoFit;updateButtons();changed();});
   function setManual(size){state.autoFit=false;state.manualFont=clamp(size,30,104);updateButtons();changed();}
@@ -852,7 +987,33 @@ button:disabled{opacity:.5;cursor:not-allowed}
   $('fontDown').addEventListener('click',()=>setManual(parseFloat(getComputedStyle(headline).fontSize)-2));
   $('fontUp').addEventListener('click',()=>setManual(parseFloat(getComputedStyle(headline).fontSize)+2));
   $('leadRange').addEventListener('input',()=>{state.leadFont=Number($('leadRange').value);changed();});
-  for(const [id,el] of [['headlineInput',headline],['leadInput',lead],['badgeInput',badge]])$(id).addEventListener('input',()=>{el.textContent=$(id).value;selectedRange=null;changed();});
+  for(const [id,el] of [['headlineInput',headline],['leadInput',lead],['badgeInput',badge]])$(id).addEventListener('input',()=>{
+    el.textContent=$(id).value;if(el===headline)state.titleGenerated=false;
+    if(el===lead){state.autoSummary=false;$('autoSummary').checked=false;$('summaryNote').hidden=true;}
+    selectedRange=null;changed();
+  });
+  $('articleInput').addEventListener('input',()=>{
+    state.article=$('articleInput').value;
+    if(state.titleGenerated||!headlineText().trim()){
+      const first=state.article.split(/\n+/).find(s=>s.trim());
+      if(first){headline.textContent=shortenWords(first,105);state.titleGenerated=true;}
+    }
+    makeSummary();syncEditors();changed();
+  });
+  $('autoSummary').addEventListener('change',()=>{state.autoSummary=$('autoSummary').checked;makeSummary();changed();});
+  function prepareSmart(){
+    state.layout='smart';state.autoFit=true;state.zoom=100;state.posX=50;state.posY=50;state.photoFit='contain';
+    if(!state.article.trim()&&lead.innerText.trim().length>175)state.article=headlineText()+'\n'+lead.innerText.trim();
+    $('articleInput').value=state.article;
+    if(state.article.trim()){state.autoSummary=true;makeSummary();}
+    applyState();changed();
+  }
+  $('smartPrepare').addEventListener('click',prepareSmart);
+  document.querySelectorAll('[data-photo-fit]').forEach(b=>b.addEventListener('click',()=>{state.photoFit=b.dataset.photoFit;applyState();changed();}));
+  $('copyCaption').addEventListener('click',async()=>{
+    updateCaption();try{await navigator.clipboard.writeText(captionText());message('کپشن کپی شد.');}
+    catch(e){$('captionInput').focus();$('captionInput').select();message('کپشن انتخاب شد؛ از گزینهٔ کپی مرورگر استفاده کنید.');}
+  });
   document.addEventListener('selectionchange',()=>{
     const sel=getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return;
     const range=sel.getRangeAt(0);
@@ -883,10 +1044,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
     el.focus();const sel=getSelection();let range;
     if(sel.rangeCount&&el.contains(sel.getRangeAt(0).commonAncestorContainer))range=sel.getRangeAt(0);
     else{range=document.createRange();range.selectNodeContents(el);range.collapse(false);}
-    range.deleteContents();const node=document.createTextNode(text.replace(/\r\n?/g,'\n'));range.insertNode(node);range.setStartAfter(node);range.collapse(true);sel.removeAllRanges();sel.addRange(range);changed();
+    range.deleteContents();const node=document.createTextNode(text.replace(/\r\n?/g,'\n'));range.insertNode(node);range.setStartAfter(node);range.collapse(true);sel.removeAllRanges();sel.addRange(range);
+    if(el===headline)state.titleGenerated=false;
+    if(el===lead){state.autoSummary=false;$('autoSummary').checked=false;$('summaryNote').hidden=true;}
+    changed();
   }
   for(const el of [headline,lead,badge]){
-    el.addEventListener('input',()=>{selectedRange=null;changed();});
+    el.addEventListener('input',()=>{if(el===headline)state.titleGenerated=false;if(el===lead){state.autoSummary=false;$('autoSummary').checked=false;$('summaryNote').hidden=true;}selectedRange=null;changed();});
     el.addEventListener('paste',e=>{e.preventDefault();insertPlain(el,e.clipboardData.getData('text/plain'));});
     el.addEventListener('drop',e=>{e.preventDefault();insertPlain(el,e.dataTransfer.getData('text/plain'));});
     el.addEventListener('beforeinput',e=>{if(['insertParagraph','insertLineBreak'].includes(e.inputType)){e.preventDefault();insertPlain(el,'\n');}});
@@ -915,38 +1079,66 @@ button:disabled{opacity:.5;cursor:not-allowed}
     const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
     if(!png)throw new Error('ساخت PNG ناموفق بود؛ دوباره تلاش کنید.');return png;
   }
-  exportBtn.addEventListener('click',async()=>{
-    if(busy||imageJobs||!fitContent())return;
+  function canShareFile(file){
+    try{return typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare({files:[file]});}catch(e){return false;}
+  }
+  async function sharePrepared(){
+    if(!exportBlob||sharing)return;
+    const file=new File([exportBlob],exportName,{type:'image/png'});
+    if(!canShareFile(file)){
+      $('downloadPNG').click();message('تصویر آماده است. این مرورگر ارسال مستقیم فایل ندارد؛ PNG را دریافت و در برنامهٔ مقصد انتخاب کنید.');return;
+    }
+    sharing=true;fitContent();
+    try{
+      await navigator.share({files:[file],title:exportFormat==='story'?'استوری نگاه جوان':'پست نگاه جوان'});
+      message('تصویر به بخش اشتراک‌گذاری تحویل داده شد. انتشار نهایی در برنامهٔ مقصد انجام می‌شود.');
+    }catch(err){
+      if(err.name==='AbortError')message('ارسال لغو شد؛ تصویر آماده باقی مانده است.');
+      else if(err.name==='NotAllowedError')message('تصویر آماده است؛ برای بازشدن پنجرهٔ ارسال، یک بار دیگر «ارسال» یا «اشتراک‌گذاری» را بزنید.');
+      else message('ارسال مستقیم انجام نشد؛ از دریافت PNG یا نمایش تصویر استفاده کنید.');
+    }finally{sharing=false;fitContent();}
+  }
+  async function makeOutput(sendFormat=null){
+    if(busy||sharing||imageJobs||!ready)return;
+    // Cached files can enter the native share sheet directly in the tap handler.
+    if(sendFormat&&exportBlob&&exportFormat===sendFormat&&state.format===sendFormat)return sharePrepared();
+    if(sendFormat){
+      invalidateResult();
+      state.format=sendFormat;state.autoFit=true;applyState();
+      if(!fitContent()&&state.layout==='smart'&&lead.innerText.trim().length>175)prepareSmart();
+      saveDraft();
+    }
+    if(!fitContent()){message(warning.textContent);warning.scrollIntoView({block:'center',behavior:'smooth'});return;}
     busy=true;exportBtn.disabled=true;exportBtn.textContent='در حال ساخت تصویر…';
     // Freeze the snapshot while images/fonts finish loading.
     const panel=document.querySelector('.panel'),editables=[headline,lead,badge];
-    panel.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true);
+    document.querySelectorAll('.panel button,.panel input,.panel textarea,[data-send]').forEach(el=>el.disabled=true);
     editables.forEach(el=>el.setAttribute('contenteditable','false'));
     try{
       const png=await renderPNG();invalidateResult();exportBlob=png;
+      exportFormat=state.format;
       exportName=`NegahJavan_${state.format}_${Date.now()}.png`;resultURL=URL.createObjectURL(png);
       const link=$('downloadPNG');link.href=resultURL;link.download=exportName;$('openPNG').href=resultURL;
       $('resultActions').hidden=false;
-      $('sharePNG').hidden=!(navigator.canShare&&navigator.canShare({files:[new File([png],exportName,{type:'image/png'})]}));
-      link.click();const f=formats[state.format];message(`تصویر ${f.w} × ${f.h} آماده شد؛ اگر دانلود شروع نشد، از دکمهٔ زیر استفاده کنید.`);
+      $('sharePNG').hidden=!canShareFile(new File([png],exportName,{type:'image/png'}));
+      if(sendFormat)await sharePrepared();
+      else{link.click();const f=formats[state.format];message(`تصویر ${f.w} × ${f.h} آماده شد؛ اگر دانلود شروع نشد، از دکمهٔ زیر استفاده کنید.`);}
     }catch(err){console.error(err);message('خروجی ساخته نشد. '+(err.message||'دوباره تلاش کنید.'));}
     finally{
       busy=false;panel.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=false);
       editables.forEach(el=>el.setAttribute('contenteditable','true'));exportBtn.textContent='دریافت PNG با ابعاد دقیق';fitContent();
     }
-  });
-  $('sharePNG').addEventListener('click',async()=>{
-    if(!exportBlob)return;
-    try{await navigator.share({files:[new File([exportBlob],exportName,{type:'image/png'})]});}
-    catch(err){if(err.name!=='AbortError')message('اشتراک‌گذاری انجام نشد؛ از دریافت یا نمایش تصویر استفاده کنید.');}
-  });
+  }
+  exportBtn.addEventListener('click',()=>makeOutput());
+  document.querySelectorAll('[data-send]').forEach(b=>b.addEventListener('click',()=>makeOutput(b.dataset.send)));
+  $('sharePNG').addEventListener('click',sharePrepared);
   window.addEventListener('resize',resizePreview);
   window.addEventListener('pagehide',saveDraft);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDraft();});
   // Remove indentation whitespace from the shipped sample, preserving highlight spans.
   renderSegments(segmentsFromDOM(headline).map(r=>({...r,text:r.text.replace(/\s+/g,' ')})));
   const sample=segmentsFromDOM(headline);if(sample.length){sample[0].text=sample[0].text.trimStart();sample[sample.length-1].text=sample[sample.length-1].text.trimEnd();renderSegments(sample);}
-  lead.textContent=lead.innerText.trim();restoreDraft();syncEditors();applyState();
+  lead.textContent=lead.innerText.trim();restoreDraft();syncEditors();applyState();updateCaption();
   waitForFonts().then(()=>{ready=true;fitContent();message(`${formats[state.format].label} · 1080 × ${formats[state.format].h}`);}).catch(err=>message(err.message));
 })();
 
