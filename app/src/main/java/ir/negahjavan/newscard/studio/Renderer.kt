@@ -37,18 +37,23 @@ object StudioRenderer{
   var box=RectF(margin,top,width-margin,bottom);var image:RectF?=null
   if(photo!=null&&!overlay){
    image=RectF(box)
-   if(p.style!=Style.PHOTO){
-    if(width>=height||(photo.height>photo.width&&height<width*1.5f)){image.right=width*.46f;box.left=image.right+18*s}
-    else{image.bottom=top+(bottom-top)*.48f;box.top=image.bottom+18*s}
+   if(width>=height||(photo.height>photo.width&&height<width*1.5f)){
+    // Preserve portraits in a generous, separate image column.
+    image.right=width*.46f;box.left=image.right+18*s
+   }else when(p.style){
+    Style.PHOTO->{image.left=0f;image.right=width.toFloat();image.bottom=top+(bottom-top)*.52f;box.top=image.bottom+16*s}
+    Style.BREAKING->{box.bottom=top+(bottom-top)*.57f;image.top=box.bottom+18*s}
+    Style.EDITORIAL->{image.bottom=top+(bottom-top)*.38f;box.top=image.bottom+22*s}
+    else->{image.bottom=top+(bottom-top)*.46f;box.top=image.bottom+18*s}
    }
   }
-  val font=p.font.face(c);val bodyFont=p.font.bodyFace(c);val pad=if(overlay||p.style==Style.PHOTO)14*s else 0f
+  val font=p.font.face(c);val bodyFont=p.font.bodyFace(c);val pad=if(overlay)14*s else 0f
   val w=(box.width()-pad*2).toInt()
   val quote=if(p.style==Style.QUOTE)layout("“",w,32*s,font).height+4*s else 0f
-  val metric=if(p.style==Style.STAT)Regex("[۰-۹0-9]+(?:[٫.,][۰-۹0-9]+)?(?:[ ٪]*درصد|٪)?").find(p.title)?.value else null
+  val metric:String?=null // Never repeat a number already present in the headline.
   val ornament=if(metric!=null)layout(metric,w,34*s,font).height+8*s else quote
   val reserve=30*s+ornament
-  val available=box.height()*(if(photo!=null&&p.style==Style.PHOTO).65f else 1f)-2*pad-reserve
+  val available=box.height()-2*pad-reserve
   require(available>40*s){"فضای قابل استفاده برای این چیدمان کافی نیست."}
   var size=p.titleSize*s;val target=available*(if(p.summary.isBlank())1f else .60f)
   if(p.auto)while(size>18*s&&layout(p.title,w,size,font).height>target)size=max(18*s,size-s)
@@ -99,6 +104,13 @@ object StudioRenderer{
     if(value.isBlank())return 0
     val l=layout(value,w,size,font,color);canvas.save();canvas.translate(x,y);l.draw(canvas);canvas.restore();return l.height
    }
+   if(!plan.overlay){
+    // Masthead and section rules give the page a deliberate editorial grid.
+    paint.color=accent;paint.strokeWidth=0.6f*s
+    if(p.showBrand)canvas.drawLine(margin,54*s,plan.width-margin,54*s,paint)
+    if(p.style==Style.BREAKING){paint.color=accent;canvas.drawRect(0f,0f,plan.width.toFloat(),4*s,paint)}
+    if(p.style==Style.EDITORIAL){paint.color=Color.rgb(224,217,202);canvas.drawRect(0f,0f,8*s,plan.height.toFloat(),paint)}
+   }
    if(p.showBrand){
     var size=min(p.brandSize,page.titleSize*.65f)*s
     while(layout(p.brand,(plan.width-margin*2).toInt(),size,font).lineCount>1&&size>7*s)size-=s
@@ -106,28 +118,38 @@ object StudioRenderer{
     text(p.brand,margin,28*s,(plan.width-margin*2).toInt(),size,if(plan.overlay)Color.WHITE else ink)
    }
    var box=RectF(plan.text)
-   if(page.kind=="article"||page.kind=="closing")box=RectF(margin,plan.text.top,plan.width-margin,plan.text.bottom)
-   val panel=plan.overlay||(p.style==Style.PHOTO&&visiblePhoto)
+   if(page.kind=="article"||page.kind=="closing")box=RectF(margin,(if(plan.height>plan.width*1.5f)76 else 58)*s,plan.width-margin,plan.height-(if(plan.height>plan.width*1.5f)76 else 46)*s)
+   val panel=plan.overlay
    val pad=if(panel)14*s else 0f;val w=(box.width()-pad*2).toInt()
    val title=if(page.title.isBlank())null else layout(page.title,w,page.titleSize*s,font,ink)
    val body=if(page.body.isBlank())null else layout(page.body,w,p.bodySize*s,p.font.bodyFace(c),ink)
-   val metric=if(p.style==Style.STAT&&page.title.isNotBlank())Regex("[۰-۹0-9]+(?:[٫.,][۰-۹0-9]+)?(?:[ ٪]*درصد|٪)?").find(page.title)?.value else null
+   val metric:String?=null
    val ornament=if(metric!=null)layout(metric,w,34*s,font).height+8*s else if(p.style==Style.QUOTE&&page.kind!="article"&&page.kind!="closing")layout("“",w,32*s,font).height+4*s else 0f
    val gap=if(title!=null&&body!=null)10*s else 0f
    val actual=30*s+ornament+(title?.height?:0)+(body?.height?:0)+gap+2*pad
-   val factor=when(p.position){Position.AUTO->if(!visiblePhoto&&!plan.overlay).46f else 1f;Position.TOP->0f;Position.CENTER->.5f;Position.BOTTOM->1f}
+   val factor=when(p.position){Position.AUTO->if(plan.overlay)1f else if(visiblePhoto||page.kind=="article")0f else when(p.style){Style.EDITORIAL,Style.BREAKING->.12f;Style.PHOTO->.60f;Style.QUOTE->.30f;Style.STAT->.20f;else->.25f};Position.TOP->0f;Position.CENTER->.5f;Position.BOTTOM->1f}
    var y=box.top+max(0f,box.height()-actual)*factor
    if(panel){paint.color=if(light)Color.argb(244,247,243,233)else Color.argb(233,8,25,25);canvas.drawRoundRect(RectF(box.left,y,box.right,y+actual),6*s,6*s,paint)}
    y+=pad
-   text(if(page.kind=="article")"ادامهٔ خبر"else if(page.kind=="closing")"پایان"else p.category,box.left+pad,y,w,10*s,accent);y+=30*s
+   if(!plan.overlay&&p.style==Style.SIGNATURE){
+    paint.color=accent;canvas.drawRect(box.left,y+7*s,box.left+28*s,y+8*s,paint)
+   }
+   if(!plan.overlay&&p.style==Style.BREAKING){
+    paint.color=accent;canvas.drawRect(box.right-pad-66*s,y-2*s,box.right-pad+4*s,y+20*s,paint)
+   }
+   text(if(page.kind=="article")"ادامهٔ خبر"else if(page.kind=="closing")"پایان"else if(p.style==Style.BREAKING)"خبر فوری" else p.category,box.left+pad,y,w,10*s,if(p.style==Style.BREAKING&&!plan.overlay)Color.WHITE else accent);y+=30*s
    if(metric!=null)y+=text(metric,box.left+pad,y,w,34*s,accent)+8*s
    else if(p.style==Style.QUOTE&&page.kind!="article"&&page.kind!="closing")y+=text("“",box.left+pad,y,w,32*s,accent)+4*s
-   if(p.style==Style.BREAKING){paint.color=accent;canvas.drawRect(box.right-pad-2*s,y,box.right-pad,y+(title?.height?.toFloat()?:12*s),paint)}
+
    fun drawLayout(l:StaticLayout){canvas.save();canvas.translate(box.left+pad,y);l.draw(canvas);canvas.restore();y+=l.height}
    title?.let{drawLayout(it);y+=gap};body?.let{drawLayout(it)}
    val footer=plan.height-(if(plan.height>plan.width*1.5f)48 else 24)*s
    if(plan.overlay&&(p.showSite||plan.pages.size>1)){paint.color=if(light)Color.argb(235,247,243,233)else Color.argb(210,8,25,25);canvas.drawRoundRect(RectF(margin-5*s,footer-12*s,plan.width-margin+5*s,footer+22*s),4*s,4*s,paint)}
-   paint.color=accent;paint.strokeWidth=s;canvas.drawLine(margin,footer-8*s,plan.width-margin,footer-8*s,paint)
+   if(p.showSite||plan.pages.size>1){
+    paint.color=accent;paint.strokeWidth=.6f*s
+    if(p.style==Style.EDITORIAL||p.style==Style.BREAKING)canvas.drawLine(margin,footer-8*s,plan.width-margin,footer-8*s,paint)
+    else canvas.drawLine(plan.width-margin-28*s,footer-8*s,plan.width-margin,footer-8*s,paint)
+   }
    if(p.showSite){
     var size=10*s;val fw=(plan.width-margin*2-55*s).toInt()
     while(layout(p.site,fw,size,font).lineCount>1&&size>6*s)size-=s

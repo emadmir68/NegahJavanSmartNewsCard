@@ -21,6 +21,21 @@ class StudioRegressionTest{
  private fun normalized(s:String)=s.replace('\u00a0',' ').replace(Regex("\\s+")," ").trim()
  private fun save(name:String,b:Bitmap){val f=File("build/reports/studio-158/$name.png");requireNotNull(f.parentFile).mkdirs();f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}
  private fun photo()=Bitmap.createBitmap(700,1100,Bitmap.Config.ARGB_8888).also{b->val ca=Canvas(b);ca.drawColor(Color.rgb(43,79,70));val p=Paint(Paint.ANTI_ALIAS_FLAG);p.color=Color.rgb(193,157,92);ca.drawCircle(350f,320f,190f,p);p.color=Color.rgb(20,39,34);ca.drawRoundRect(110f,530f,590f,1100f,160f,160f,p)}
+ @Test fun photoAndTextNeverOverlapInCoverLayouts(){
+  val b=photo()
+  for(style in Style.entries)for(ratio in Ratio.entries){
+   val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,style=style,ratio=ratio),b)
+   assertFalse("$style $ratio",RectF.intersects(plan.text,requireNotNull(plan.photo)))
+  }
+  b.recycle()
+ }
+ @Test fun storyTemplatesHaveDistinctGeometry(){
+  val b=photo()
+  val plans=listOf(Style.PHOTO,Style.EDITORIAL,Style.BREAKING).map{StudioRenderer.plan(c,Project(title=title,style=it),b)}
+  assertEquals(3,plans.map{it.text.toString()}.distinct().size)
+  assertTrue(plans[2].text.bottom<requireNotNull(plans[2].photo).top)
+  b.recycle()
+ }
  @Test fun manualAndAutomaticSize(){for(r in Ratio.entries){val p=Project(title=title,summary=summary,ratio=r,auto=false,titleSize=22f);assertTrue(StudioRenderer.plan(c,p).pages.all{it.titleSize==22f});assertTrue(StudioRenderer.plan(c,p.copy(auto=true)).pages.all{it.titleSize<=22f})}}
  @Test fun preservesLongInputWithoutEllipsis(){val t=(1..30).joinToString(" "){"تیتر شماره $it بدون حذف"};val b=(1..80).joinToString(" "){"جزئیات خبر $it برای خواندن کامل"};for(r in Ratio.entries){val plan=StudioRenderer.plan(c,Project(title=t,summary=b,ratio=r));assertEquals(normalized(t),normalized(plan.pages.joinToString(" "){it.title}));assertEquals(normalized(b),normalized(plan.pages.joinToString(" "){it.body}));assertTrue(plan.pages.size>1)}}
  @Test fun whitespaceDoesNotLoseSummaryWords(){val b="  "+summary.repeat(20)+"   ";val plan=StudioRenderer.plan(c,Project(title=title,summary=b,ratio=Ratio.SQUARE));assertEquals(normalized(b),normalized(plan.pages.joinToString(" "){it.body}))}
