@@ -1,0 +1,11 @@
+{
+  "name": "negahjavan-premium-studio",
+  "version": "3.1.0",
+  "private": true,
+  "scripts": {
+    "test": "node regression.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.51.1"
+  }
+}
