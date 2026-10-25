@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         ir.negahjavan.newscard.util.PremiumTypography.initialize(this)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         setContent {
-            NegahJavanTheme { NewsCardApp() }
+            NegahJavanTheme { ir.negahjavan.newscard.studio.StudioApp() }
         }
     }
 }

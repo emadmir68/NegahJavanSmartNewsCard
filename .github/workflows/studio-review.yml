@@ -1,0 +1,46 @@
+name: Studio review checks
+on:
+  push:
+    branches: [studio-1.5.8-design-review]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/studio-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: studio-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Tests, lint and APK
+        run: bash gradlew --no-daemon --max-workers=2 testDebugUnitTest lintDebug assembleDebug
+      - name: Preserve test results and native card previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-review-reports-${{ github.sha }}
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 90
+      - name: Preserve APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-1.5.8-apk-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 90

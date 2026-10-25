@@ -20,8 +20,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 31
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.5.4"
+        versionCode = 26
+        versionName = "1.5.8"
         buildConfigField("String", "AI_BASE_URL", "\u0022" + aiBaseUrl + "\u0022")
     }
 
@@ -35,6 +35,7 @@ android {
     }
 
     buildTypes {
+        debug { applicationIdSuffix = ".studio158" }
         release {
             isMinifyEnabled = false
             proguardFiles(

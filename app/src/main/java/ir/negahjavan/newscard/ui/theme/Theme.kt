@@ -23,7 +23,7 @@ private val PremiumType = Typography(
     headlineLarge = BaseTypography.headlineLarge.copy(fontFamily = PersianHeadline),
     headlineMedium = BaseTypography.headlineMedium.copy(fontFamily = PersianHeadline),
     headlineSmall = BaseTypography.headlineSmall.copy(fontFamily = PersianHeadline),
-    titleLarge = BaseTypography.titleLarge.copy(fontFamily = PersianHeadline),
+    titleLarge = BaseTypography.titleLarge.copy(fontFamily = PersianBody, fontWeight = FontWeight.Bold),
     titleMedium = BaseTypography.titleMedium.copy(fontFamily = PersianBody),
     titleSmall = BaseTypography.titleSmall.copy(fontFamily = PersianBody),
     bodyLarge = BaseTypography.bodyLarge.copy(fontFamily = PersianBody),
@@ -39,10 +39,11 @@ val BrandBlack = Color(0xFF0B0B0E)
 val SoftBlack = Color(0xFF15151B)
 
 private val Scheme = darkColorScheme(
-    primary = BrandRed,
+    primary = Color(0xFFD3B77D),
+    secondary = Color(0xFF9AC7B7),
     background = BrandBlack,
     surface = SoftBlack,
-    onPrimary = Color.White,
+    onPrimary = Color(0xFF182722),
     onBackground = Color.White,
     onSurface = Color.White
 )
