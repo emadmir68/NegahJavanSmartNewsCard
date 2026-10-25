@@ -19,7 +19,7 @@ const dir=__dirname, file=process.env.STUDIO_HTML||path.join(dir,'NegahJavan_Pre
   return {photo,logo:c.toDataURL('image/png').split(',')[1]};
  });
  fs.writeFileSync(path.join(dir,'fixture-photo.jpg'),Buffer.from(fixtures.photo,'base64'));fs.writeFileSync(path.join(dir,'fixture-logo.png'),Buffer.from(fixtures.logo,'base64'));
- await page.goto('file://'+file);await page.waitForFunction(()=>!document.querySelector('#exportBtn').disabled);
+ await page.goto('file://'+file);await page.waitForFunction(()=>!document.querySelector('#smartPrepare').disabled);
  assert.equal(await page.evaluate(()=>document.fonts.check('850 66px Vazirmatn','خبر فارسی')),true);
  assert.equal(await page.locator('.signature .handle').evaluate(e=>getComputedStyle(e).direction),'ltr');
  const draftTitle='افتتاح مسیر تازه برای توسعهٔ گردشگری جنوب کرمان';
@@ -41,10 +41,10 @@ const dir=__dirname, file=process.env.STUDIO_HTML||path.join(dir,'NegahJavan_Pre
  }
  for(const hasPhoto of [false,true]){
    if(hasPhoto){await page.locator('#photoInput').setInputFiles(path.join(dir,'fixture-photo.jpg'));await page.waitForFunction(()=>document.querySelector('#news-card').classList.contains('has-photo'));}
-   for(const layout of ['editorial','breaking','glass'])for(const format of ['story','post','square']){
+   for(const layout of ['smart','editorial','breaking','glass'])for(const format of ['story','post','square']){
      await page.locator('[data-layout='+layout+']').click();await page.locator('[data-format='+format+']').click();
      await page.waitForFunction(()=>!document.querySelector('#exportBtn').disabled);
-     const m=await measure();assert.equal(m.fits,'true');assert.equal(m.dir,'rtl');assert.ok(m.headerGap>=-1);assert.ok(m.footerGap>=-1);
+     const m=await measure();if(layout==='smart'&&hasPhoto){const gap=await page.evaluate(()=>document.querySelector('.badge').getBoundingClientRect().top-document.querySelector('#cardPhoto').getBoundingClientRect().bottom);assert.ok(gap>10,'photo must not overlap text');}assert.equal(m.fits,'true');assert.equal(m.dir,'rtl');assert.ok(m.headerGap>=-1);assert.ok(m.footerGap>=-1);
      const label=`${hasPhoto?'photo':'type'}-${layout}-${format}`;cases.push({label,...m});
      await exportImage(label,{story:1920,post:1350,square:1080}[format]);
    }
@@ -81,7 +81,7 @@ const dir=__dirname, file=process.env.STUDIO_HTML||path.join(dir,'NegahJavan_Pre
  await page.locator('#photoInput').setInputFiles({name:'oversize.jpg',mimeType:'image/jpeg',buffer:Buffer.alloc(26*1024*1024)});
  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('۲۵ مگابایت'));
  // Store a full-size preview of the same DOM used for the final export.
- await page.locator('[data-theme=gold]').click();await page.locator('[data-format=post]').click();await page.locator('[data-layout=editorial]').click();
+ await page.locator('[data-theme=gold]').click();await page.locator('[data-format=post]').click();await page.locator('[data-layout=smart]').click();
  await exportImage('visual-reference',1350);
  await page.setViewportSize({width:1300,height:2200});
  await page.evaluate(()=>{const c=document.querySelector('#news-card');document.body.append(c);c.style.position='absolute';c.style.left='0';c.style.top='0';});
