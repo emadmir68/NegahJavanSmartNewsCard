@@ -87,13 +87,15 @@ object StudioRenderer{
   if(p.crop){val r=cropRect(b.width,b.height,d.width(),d.height(),p.x,p.y,p.zoom);canvas.drawBitmap(b,Rect(r.left.toInt(),r.top.toInt(),r.right.toInt(),r.bottom.toInt()),d,paint)}
   else{
    // Low-resolution backdrop fills letterboxes while preserving the entire foreground photo.
-   val tiny=Bitmap.createScaledBitmap(b,24,max(1,24*b.height/b.width),true)
+   val longest=max(b.width,b.height)
+   val tiny=Bitmap.createScaledBitmap(b,max(1,24*b.width/longest),max(1,24*b.height/longest),true)
    try{
     val back=cropRect(tiny.width,tiny.height,d.width(),d.height(),.5f,.5f,1f)
     canvas.drawBitmap(tiny,Rect(back.left.toInt(),back.top.toInt(),max(back.left.toInt()+1,back.right.toInt()),max(back.top.toInt()+1,back.bottom.toInt())),d,paint)
     paint.color=if(p.style==Style.EDITORIAL||p.style==Style.QUOTE)Color.argb(190,247,243,233)else Color.argb(150,8,24,24)
     canvas.drawRect(d,paint)
    }finally{if(tiny!==b)tiny.recycle()}
+   paint.alpha=255
    val sc=min(d.width()/b.width,d.height()/b.height)
    canvas.drawBitmap(b,null,RectF(d.centerX()-b.width*sc/2,d.centerY()-b.height*sc/2,d.centerX()+b.width*sc/2,d.centerY()+b.height*sc/2),paint)
   }
