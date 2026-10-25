@@ -42,7 +42,13 @@ object StudioRenderer{
     image.right=width*.46f;box.left=image.right+18*s
    }else when(p.style){
     Style.PHOTO->{image.left=0f;image.right=width.toFloat();image.bottom=top+(bottom-top)*.52f;box.top=image.bottom+16*s}
-    Style.BREAKING->{box.bottom=top+(bottom-top)*.57f;image.top=box.bottom+18*s}
+    Style.BREAKING->{
+     val tw=box.width().toInt()
+     val measured=30*s+layout(p.title,tw,p.titleSize*s,p.font.face(c)).height+
+      (if(p.summary.isBlank())0 else layout(p.summary,tw,p.bodySize*s,p.font.bodyFace(c)).height)+10*s
+     box.bottom=top+measured.coerceIn((bottom-top)*.30f,(bottom-top)*.60f)
+     image.top=box.bottom+18*s
+    }
     Style.EDITORIAL->{image.bottom=top+(bottom-top)*.38f;box.top=image.bottom+22*s}
     else->{image.bottom=top+(bottom-top)*.46f;box.top=image.bottom+18*s}
    }
@@ -50,8 +56,7 @@ object StudioRenderer{
   val font=p.font.face(c);val bodyFont=p.font.bodyFace(c);val pad=if(overlay)14*s else 0f
   val w=(box.width()-pad*2).toInt()
   val quote=if(p.style==Style.QUOTE)layout("“",w,32*s,font).height+4*s else 0f
-  val metric:String?=null // Never repeat a number already present in the headline.
-  val ornament=if(metric!=null)layout(metric,w,34*s,font).height+8*s else quote
+  val ornament=quote
   val reserve=30*s+ornament
   val available=box.height()-2*pad-reserve
   require(available>40*s){"فضای قابل استفاده برای این چیدمان کافی نیست."}
@@ -80,7 +85,18 @@ object StudioRenderer{
  private fun photo(canvas:Canvas,b:Bitmap,d:RectF,p:Project,paint:Paint){
   canvas.save();canvas.clipRect(d)
   if(p.crop){val r=cropRect(b.width,b.height,d.width(),d.height(),p.x,p.y,p.zoom);canvas.drawBitmap(b,Rect(r.left.toInt(),r.top.toInt(),r.right.toInt(),r.bottom.toInt()),d,paint)}
-  else{val sc=min(d.width()/b.width,d.height()/b.height);canvas.drawBitmap(b,null,RectF(d.centerX()-b.width*sc/2,d.centerY()-b.height*sc/2,d.centerX()+b.width*sc/2,d.centerY()+b.height*sc/2),paint)}
+  else{
+   // Low-resolution backdrop fills letterboxes while preserving the entire foreground photo.
+   val tiny=Bitmap.createScaledBitmap(b,24,max(1,24*b.height/b.width),true)
+   try{
+    val back=cropRect(tiny.width,tiny.height,d.width(),d.height(),.5f,.5f,1f)
+    canvas.drawBitmap(tiny,Rect(back.left.toInt(),back.top.toInt(),max(back.left.toInt()+1,back.right.toInt()),max(back.top.toInt()+1,back.bottom.toInt())),d,paint)
+    paint.color=if(p.style==Style.EDITORIAL||p.style==Style.QUOTE)Color.argb(190,247,243,233)else Color.argb(150,8,24,24)
+    canvas.drawRect(d,paint)
+   }finally{if(tiny!==b)tiny.recycle()}
+   val sc=min(d.width()/b.width,d.height()/b.height)
+   canvas.drawBitmap(b,null,RectF(d.centerX()-b.width*sc/2,d.centerY()-b.height*sc/2,d.centerX()+b.width*sc/2,d.centerY()+b.height*sc/2),paint)
+  }
   canvas.restore()
  }
  fun draw(c:Context,plan:Plan,index:Int,photo:Bitmap?=null):Bitmap{
@@ -123,8 +139,7 @@ object StudioRenderer{
    val pad=if(panel)14*s else 0f;val w=(box.width()-pad*2).toInt()
    val title=if(page.title.isBlank())null else layout(page.title,w,page.titleSize*s,font,ink)
    val body=if(page.body.isBlank())null else layout(page.body,w,p.bodySize*s,p.font.bodyFace(c),ink)
-   val metric:String?=null
-   val ornament=if(metric!=null)layout(metric,w,34*s,font).height+8*s else if(p.style==Style.QUOTE&&page.kind!="article"&&page.kind!="closing")layout("“",w,32*s,font).height+4*s else 0f
+   val ornament=if(p.style==Style.QUOTE&&page.kind!="article"&&page.kind!="closing")layout("“",w,32*s,font).height+4*s else 0f
    val gap=if(title!=null&&body!=null)10*s else 0f
    val actual=30*s+ornament+(title?.height?:0)+(body?.height?:0)+gap+2*pad
    val factor=when(p.position){Position.AUTO->if(plan.overlay)1f else if(visiblePhoto||page.kind=="article")0f else when(p.style){Style.EDITORIAL,Style.BREAKING->.12f;Style.PHOTO->.60f;Style.QUOTE->.30f;Style.STAT->.20f;else->.25f};Position.TOP->0f;Position.CENTER->.5f;Position.BOTTOM->1f}
@@ -138,8 +153,7 @@ object StudioRenderer{
     paint.color=accent;canvas.drawRect(box.right-pad-66*s,y-2*s,box.right-pad+4*s,y+20*s,paint)
    }
    text(if(page.kind=="article")"ادامهٔ خبر"else if(page.kind=="closing")"پایان"else if(p.style==Style.BREAKING)"خبر فوری" else p.category,box.left+pad,y,w,10*s,if(p.style==Style.BREAKING&&!plan.overlay)Color.WHITE else accent);y+=30*s
-   if(metric!=null)y+=text(metric,box.left+pad,y,w,34*s,accent)+8*s
-   else if(p.style==Style.QUOTE&&page.kind!="article"&&page.kind!="closing")y+=text("“",box.left+pad,y,w,32*s,accent)+4*s
+   if(p.style==Style.QUOTE&&page.kind!="article"&&page.kind!="closing")y+=text("“",box.left+pad,y,w,32*s,accent)+4*s
 
    fun drawLayout(l:StaticLayout){canvas.save();canvas.translate(box.left+pad,y);l.draw(canvas);canvas.restore();y+=l.height}
    title?.let{drawLayout(it);y+=gap};body?.let{drawLayout(it)}
