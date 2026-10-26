@@ -10,7 +10,7 @@ const dir=__dirname,html=process.env.STUDIO_HTML||path.join(dir,'NegahJavan_Prem
  await page.goto('file://'+html);await page.waitForFunction(()=>!document.querySelector('#smartPrepare').disabled);
  assert.equal(await page.locator('#headlineInput').inputValue(),'');assert.equal(await page.locator('[data-send=post]').isDisabled(),true);
  const article='بازگشایی کتابخانهٔ مرکزی شهر\nکتابخانهٔ مرکزی پس از پایان عملیات بازسازی دوباره به روی علاقه‌مندان باز شد. سالن مطالعه و بخش کودک این مجموعه نوسازی شده است. ساعات فعالیت کتابخانه در اطلاعیهٔ مدیریت اعلام می‌شود.';
- await page.locator('#articleInput').fill(article);await page.waitForFunction(()=>!document.querySelector('[data-send=post]').disabled);
+ await page.locator('#sourceDetails').evaluate(e=>e.open=true);await page.locator('#articleInput').fill(article);await page.waitForFunction(()=>!document.querySelector('[data-send=post]').disabled);
  assert.equal(await page.locator('#headlineInput').inputValue(),'بازگشایی کتابخانهٔ مرکزی شهر');
  for(const [format,max] of [['post',135],['story',175],['square',95]]){
   await page.locator('[data-format='+format+']').click();const lead=await page.locator('#leadInput').inputValue();assert.ok(lead.length<=max);assert.ok(article.includes(lead.replace(/…$/,'')));assert.ok((await page.locator('#captionInput').inputValue()).includes(article));
@@ -32,7 +32,7 @@ const dir=__dirname,html=process.env.STUDIO_HTML||path.join(dir,'NegahJavan_Prem
  await page.locator('#leadInput').fill('کشورهای منطقه یک هشدار بی‌سابقه در مورد جنگ دریافت کرده‌اند.');
  async function assertSmartLayout(){
   const data=await page.evaluate(()=>{
-   const r=s=>document.querySelector(s).getBoundingClientRect(),photo=r('#cardPhoto'),badge=r('.badge'),head=r('.card-header');
+   const r=s=>document.querySelector(s).getBoundingClientRect(),photo=r('#cardPhoto'),badge=r('#headline'),head=r('.card-header');
    const node=document.querySelector('#headline'),rows=[],walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);
    for(let t;t=walker.nextNode();)for(const m of t.textContent.matchAll(/\S+/gu)){const range=document.createRange();range.setStart(t,m.index);range.setEnd(t,m.index+m[0].length);const b=range.getBoundingClientRect();let row=rows.find(v=>Math.abs(v.top-b.top)<2);if(!row){row={top:b.top,count:0};rows.push(row);}row.count++;}
    rows.sort((a,b)=>a.top-b.top);
@@ -67,8 +67,8 @@ const dir=__dirname,html=process.env.STUDIO_HTML||path.join(dir,'NegahJavan_Prem
  await page.locator('[data-send=story]').click();await page.waitForFunction(()=>window.shared.length===3);assert.equal(await page.evaluate(()=>window.shared[2].name),beforeName);
  let unwantedDownloads=0;page.on('download',()=>unwantedDownloads++);await page.evaluate(()=>window.shareMode='abort');await page.locator('[data-send=story]').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('لغو شد'));assert.equal(unwantedDownloads,0);
  await page.locator('#leadInput').fill('این متن بلند برای آزمایش خلاصه‌سازی خودکار نوشته شده است. '.repeat(15));
- await page.locator('#articleInput').fill('');const fullLead=(await page.locator('#leadInput').inputValue()).trim();await page.locator('#smartPrepare').click();assert.ok((await page.locator('#articleInput').inputValue()).includes(fullLead));assert.ok((await page.locator('#leadInput').inputValue()).length<=175);
- await page.waitForFunction(text=>{const d=JSON.parse(localStorage.getItem('negahjavan.studio.draft.v1')||'null');return d&&d.article.includes(text)&&d.appVersion==='3.2'},fullLead);
+ await page.locator('#sourceDetails').evaluate(e=>e.open=true);await page.locator('#articleInput').fill('');const fullLead=(await page.locator('#leadInput').inputValue()).trim();await page.locator('#smartPrepare').click();assert.ok((await page.locator('#articleInput').inputValue()).includes(fullLead));assert.ok((await page.locator('#leadInput').inputValue()).length<=175);
+ await page.waitForFunction(text=>{const d=JSON.parse(localStorage.getItem('negahjavan.studio.draft.v1')||'null');return d&&d.article.includes(text)&&d.appVersion==='4.0'},fullLead);
  await page.reload();await page.waitForFunction(()=>!document.querySelector('#smartPrepare').disabled);assert.equal(await page.locator('[data-layout=smart]').getAttribute('aria-pressed'),'true');assert.ok((await page.locator('#articleInput').inputValue()).includes(fullLead));
  assert.deepEqual(errors,[]);assert.deepEqual(network,[]);
  fs.writeFileSync(path.join(dir,'smart-results.json'),JSON.stringify({status:'PASS',measurements,checks:['fresh draft has no sample news','source-derived title and summary','source retained in caption','manual text respected','portrait not cropped or covered','balanced headline','post/story dimensions','native-share API stubs','activation retry reuses file','cancel does not download','automatic long-lead extraction','draft migration and restore']},null,2));
