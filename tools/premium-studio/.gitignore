@@ -5,3 +5,4 @@ out-*.png
 preview-reference.png
 test-results.json
 smart-results.json
+qa-*.png
