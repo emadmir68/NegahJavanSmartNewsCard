@@ -95,7 +95,7 @@ class StudioRegressionTest{
   save("design-contact-sheet",board);board.recycle();landscape.recycle()
  }
  @Test fun allFontsStylesRatiosRender(){val photo=photo();for(font in StudioFont.entries)for(style in Style.entries)for(ratio in Ratio.entries)for(hasPhoto in listOf(false,true)){
-  val p=Project(title=title,summary=summary,font=font,style=style,ratio=ratio);val plan=StudioRenderer.plan(c,p,if(hasPhoto)photo else null)
+  val p=Project(title=title,summary=summary,font=font,style=style,ratio=ratio);val plan=try{StudioRenderer.plan(c,p,if(hasPhoto)photo else null)}catch(e:Exception){throw AssertionError("Render failed: $font $style $ratio photo=$hasPhoto",e)}
   assertEquals(normalized(title),normalized(plan.pages.joinToString(" "){it.title}));assertEquals(normalized(summary),normalized(plan.pages.joinToString(" "){it.body}))
   for(i in plan.pages.indices){assertTrue("Text overflow: $font $style $ratio page $i",StudioRenderer.blockHeight(c,plan,plan.pages[i])<=StudioRenderer.pageBox(plan,plan.pages[i]).height()+1f);val b=StudioRenderer.draw(c,plan,i,if(hasPhoto)photo else null);assertEquals(ratio.w,b.width);assertEquals(ratio.h,b.height);if(font==StudioFont.VAZIR&&i==0)save("${style}-${ratio}-${hasPhoto}",b);b.recycle()}
  };photo.recycle()}

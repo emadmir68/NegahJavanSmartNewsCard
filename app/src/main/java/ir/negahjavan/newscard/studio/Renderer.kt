@@ -21,7 +21,9 @@ object StudioRenderer{
   while(rest.isNotEmpty()){
    val l=layout(rest,width,size,font)
    if(l.height<=height){result+=rest;break}
-   val count=(0 until l.lineCount).takeWhile{l.getLineBottom(it)<=height}.size
+   var count=(0 until l.lineCount).takeWhile{l.getLineBottom(it)<=height}.size
+   // A fresh paragraph can have different final-line font padding from the source layout.
+   while(count>0&&layout(rest.substring(0,l.getLineEnd(count-1)).trimEnd(),width,size,font).height>height)count--
    require(count>0){"فضای متن کافی نیست؛ اندازهٔ فونت را کاهش دهید."}
    val end=l.getLineEnd(count-1);require(end>0)
    result+=rest.substring(0,end).trimEnd();rest=rest.substring(end).trimStart()
@@ -68,10 +70,14 @@ object StudioRenderer{
     val textWidth=box.width().toInt()
     val measured=reserve(c,p,textWidth,s,"cover")+layout(p.title,textWidth,p.titleSize*s,font).height+
      (if(p.summary.isBlank())0 else min(layout(p.summary,textWidth,p.bodySize*s,bodyFont).height,layout("آ",textWidth,p.bodySize*s,bodyFont).height*3))+12*s
-    val textHeight=measured.coerceIn(full.height()*.27f,full.height()*.59f)
+    val minTitleSize=(if(p.auto)min(p.titleSize,16f)else p.titleSize)*s
+    val firstLine=layout(p.title,textWidth,minTitleSize,font)
+    val oneLine=layout(p.title.substring(0,firstLine.getLineEnd(0)).trimEnd(),textWidth,minTitleSize,font).height
+    val minimum=reserve(c,p,textWidth,s,"cover")+oneLine+8*s
+    val textHeight=measured.coerceIn(max(full.height()*.27f,minimum),max(full.height()*.59f,minimum))
     val natural=box.width()*photo.height/photo.width
     val preferred=when(p.style){Style.PHOTO->.57f;Style.EDITORIAL->.43f;Style.BREAKING->.55f;Style.QUOTE->.35f;else->.49f}
-    val photoHeight=min(natural, min(full.height()*preferred,full.height()-textHeight-gap)).coerceAtLeast(full.height()*.18f)
+    val photoHeight=min(natural, min(full.height()*preferred,full.height()-textHeight-gap)).coerceAtLeast(24*s)
     if(p.style==Style.BREAKING){
      box.bottom=full.top+textHeight
      image.top=box.bottom+gap;image.bottom=min(full.bottom,image.top+photoHeight)
@@ -174,7 +180,7 @@ object StudioRenderer{
     }
    }
    if(p.showBrand){
-    var size=min(p.brandSize,12f)*s;val brandWidth=(plan.width-margin*2-12*s).toInt()
+    var size=p.brandSize*s;val brandWidth=(plan.width-margin*2-12*s).toInt()
     while(layout(p.brand,brandWidth,size,font).lineCount>1&&size>6*s)size-=.5f*s
     if(plan.overlay){paint.color=Color.argb(210,10,25,23);canvas.drawRoundRect(RectF(margin,headerY-2*s,plan.width-margin,headerY+24*s),3*s,3*s,paint)}
     text(p.brand,margin,headerY,brandWidth,size,if(plan.overlay)Color.WHITE else ink)
