@@ -66,7 +66,8 @@ class StudioRegressionTest{
   assertEquals(normalized(body),normalized(plan.pages.joinToString(" "){it.body}))
   for(page in plan.pages.drop(1)){
    assertEquals("continued",page.kind)
-   assertTrue(StudioRenderer.pageBox(plan,page).height()>plan.text.height())
+   val full=StudioRenderer.pageBox(plan,page)
+   assertTrue(full.width()*full.height()>plan.text.width()*plan.text.height())
    assertTrue(StudioRenderer.blockHeight(c,plan,page)<=StudioRenderer.pageBox(plan,page).height()+1f)
   }
   b.recycle()
