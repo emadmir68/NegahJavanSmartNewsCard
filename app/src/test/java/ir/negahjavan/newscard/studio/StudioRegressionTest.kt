@@ -42,7 +42,18 @@ class StudioRegressionTest{
  @Test fun numberUnitsRemainTogetherAndIndicesStable(){val t="۴۰ درصد و ۱۲ میلیون تومان افزایش";val got=StudioText.keepUnits(t);assertEquals(t.length,got.length);assertTrue(got.contains("۴۰\u00a0درصد"));assertTrue(got.contains("۱۲\u00a0میلیون\u00a0تومان"))}
  @Test fun captionUsesEditedTitleWithoutOldHeadline(){val(t,b)=StudioText.prepare("تیتر قبلی\nمتن اصلی این خبر برای انتشار کامل است.");val p=Project(raw=t+"\n"+b,title="تیتر تازه",article=b);assertFalse(p.caption().contains("تیتر قبلی"));assertTrue(p.caption().contains("تیتر تازه"));assertTrue(p.caption().contains(b))}
  @Test fun suggestedSummaryIsAnExactSourceSentence(){val body="گزارش عمومی درباره موضوع دیگری منتشر شده است. قیمت اینترنت ۴۰ درصد افزایش یافته است.";assertEquals("قیمت اینترنت ۴۰ درصد افزایش یافته است.",StudioText.summary(title,body))}
- @Test fun squarePortraitKeepsFullWidthHeadline(){val b=photo();val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,ratio=Ratio.SQUARE),b);assertTrue(plan.text.width()>900);assertTrue(plan.text.top>requireNotNull(plan.photo).bottom);b.recycle()}
+ @Test fun portraitFitKeepsSubjectLargeAndTextReadable(){
+  val b=photo()
+  for(ratio in listOf(Ratio.SQUARE,Ratio.POST)){
+   val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,ratio=ratio),b)
+   val frame=requireNotNull(plan.photo)
+   val subjectWidth=minOf(frame.width(),frame.height()*b.width/b.height)
+   assertTrue("Portrait subject too small in $ratio",subjectWidth>=350)
+   assertTrue("Headline column too narrow in $ratio",plan.text.width()>=450)
+  }
+  b.recycle()
+ }
+
  @Test fun cropStaysInsideSourceAndAllowsPanZoom(){val a=StudioRenderer.cropRect(1920,1080,1080f,1920f,0f,0f,1f);val b=StudioRenderer.cropRect(1920,1080,1080f,1920f,1f,1f,2f);assertEquals(0f,a.left,.01f);assertTrue(b.width()<a.width());assertTrue(b.right<=1920&&b.bottom<=1080);assertFalse(Project().videoCrop)}
  @Test fun carouselPreservesArticleAndHasClosing(){val article=(1..60).joinToString(" "){"متن کامل خبر شماره $it"};for(style in Style.entries){val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,article=article,carousel=true,closingText="برای خبرهای بیشتر همراه ما باشید",ratio=Ratio.POST,style=style));assertEquals("cover",plan.pages.first().kind);assertEquals("closing",plan.pages.last().kind);assertEquals(article,normalized(plan.pages.filter{it.kind=="article"}.joinToString(" "){it.body}));for(i in listOf(0,1,plan.pages.lastIndex)){val b=StudioRenderer.draw(c,plan,i);save("carousel-$style-$i",b);b.recycle()}}}
  @Test fun projectRestoresAllFields(){val p=Project(title=title,summary=summary,article="محتوا",font=StudioFont.AMIRI,titleSize=21f,ratio=Ratio.SQUARE,crop=true,x=.2f,y=.7f,zoom=2f,video="content://video",image="file:///image",videoCrop=true,vy=.1f,showBrand=false,showSite=false,fullHd=false,closingText="متن پایان قابل ویرایش",exports=listOf("content://saved"));ProjectStore.save(c,p);assertEquals(p,ProjectStore.load(c));ProjectStore.save(c,p,true);assertTrue(ProjectStore.list(c).contains(p))}

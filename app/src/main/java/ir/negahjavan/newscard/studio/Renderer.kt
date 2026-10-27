@@ -9,8 +9,11 @@ import kotlin.math.*
 data class Page(val title:String,val body:String,val titleSize:Float,val kind:String="cover")
 data class Plan(val project:Project,val width:Int,val height:Int,val text:RectF,val photo:RectF?,val pages:List<Page>,val overlay:Boolean=false,val fullText:RectF=RectF(text))
 object StudioRenderer{
- fun layout(text:String,width:Int,size:Float,font:Typeface,color:Int=Color.WHITE,rtl:Boolean=true):StaticLayout{
-  val safe=StudioText.keepUnits(text)
+ fun layout(text:String,width:Int,size:Float,font:Typeface,color:Int=Color.WHITE,rtl:Boolean=true,emphasis:Int?=null):StaticLayout{
+  val safe=SpannableString(StudioText.keepUnits(text))
+  if(emphasis!=null)Regex("[0-9۰-۹٠-٩]+(?:[٫.,][0-9۰-۹٠-٩]+)?(?:\\u00a0(?:درصد|میلیون|میلیارد|تومان|ریال|دلار|٪))*").find(safe)?.let{
+   safe.setSpan(android.text.style.ForegroundColorSpan(emphasis),it.range.first,it.range.last+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+  }
   return StaticLayout.Builder.obtain(safe,0,safe.length,TextPaint(Paint.ANTI_ALIAS_FLAG).apply{textSize=size;typeface=font;this.color=color},width.coerceAtLeast(1))
    .setTextDirection(if(rtl)TextDirectionHeuristics.RTL else TextDirectionHeuristics.FIRSTSTRONG_LTR).setAlignment(Layout.Alignment.ALIGN_NORMAL)
    .setBreakStrategy(LineBreaker.BREAK_STRATEGY_BALANCED).setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE).setIncludePad(true).setLineSpacing(0f,1.04f).build()
@@ -51,20 +54,27 @@ object StudioRenderer{
    (if(page.body.isBlank())0 else layout(page.body,w,p.bodySize*s,p.font.bodyFace(c)).height)+
    (if(page.title.isNotBlank()&&page.body.isNotBlank())12*s else 0f)
  }
+ private fun brandLayout(c:Context,p:Project,width:Int,s:Float,color:Int=Color.WHITE):StaticLayout{
+  val font=p.font.face(c);val w=(width-60*s).toInt();var size=p.brandSize*s
+  while(layout(p.brand,w,size,font).lineCount>1&&size>6*s)size-=.5f*s
+  return layout(p.brand,w,size,font,color)
+ }
  fun plan(c:Context,p:Project,photo:Bitmap?=null,overlay:Boolean=false,width:Int=p.ratio.w,height:Int=p.ratio.h):Plan{
   require(p.title.isNotBlank()){ "تیتر را وارد کنید." }
   require(p.brand.length<=60&&p.site.length<=80&&p.category.length<=30){"نام رسانه، نشانی یا دسته‌بندی بیش از اندازه طولانی است."}
   val s=min(width,height)/360f;val margin=24*s;val story=height>width*1.5f
-  val top=(if(story)90 else 66)*s
-  val bottom=height-(if(story)84 else 48)*s
+  val headerY=(if(story)52 else 26)*s
+  val top=if(p.showBrand)max((if(story)90 else 66)*s,headerY+brandLayout(c,p,width,s).height+24*s)else (if(story)64 else 26)*s
+  val bottom=height-(if(story)84 else 56)*s
   val full=RectF(margin,top,width-margin,bottom)
   val box=RectF(full);var image:RectF?=null
   val font=p.font.face(c);val bodyFont=p.font.bodyFace(c)
-  // A wide card has room for columns. Portrait and square cards keep a full-width headline.
+  // Use columns only when they preserve a large portrait or when the output itself is wide.
   if(photo!=null&&!overlay){
    image=RectF(full)
-   if(width>height*1.3f){
-    image.right=width*.48f;box.left=image.right+22*s
+   val portraitColumn=!p.crop&&photo.height>photo.width*1.15f&&height<width*1.5f
+   if(width>height*1.3f||portraitColumn){
+    image.right=width*(if(portraitColumn).46f else .48f);box.left=image.right+18*s
    }else{
     val gap=(if(p.style==Style.EDITORIAL)20 else 16)*s
     val textWidth=box.width().toInt()
@@ -166,11 +176,12 @@ object StudioRenderer{
    }
    val story=plan.height>plan.width*1.5f
    val headerY=(if(story)52 else 26)*s
+   val masthead=brandLayout(c,p,plan.width,s,if(plan.overlay)Color.WHITE else ink)
    if(!plan.overlay){
     // A restrained masthead and a consistent green/gold signature leave the headline in charge.
     if(p.showBrand){
      paint.color=if(light)Color.rgb(212,210,199)else Color.rgb(63,82,72);paint.strokeWidth=.45f*s
-     canvas.drawLine(margin,headerY+27*s,plan.width-margin,headerY+27*s,paint)
+     canvas.drawLine(margin,headerY+masthead.height+8*s,plan.width-margin,headerY+masthead.height+8*s,paint)
      paint.color=accent;canvas.drawRect(plan.width-margin-2*s,headerY+3*s,plan.width-margin,headerY+17*s,paint)
     }
     if(p.style==Style.SIGNATURE){
@@ -180,15 +191,14 @@ object StudioRenderer{
     }
    }
    if(p.showBrand){
-    var size=p.brandSize*s;val brandWidth=(plan.width-margin*2-12*s).toInt()
-    while(layout(p.brand,brandWidth,size,font).lineCount>1&&size>6*s)size-=.5f*s
-    if(plan.overlay){paint.color=Color.argb(210,10,25,23);canvas.drawRoundRect(RectF(margin,headerY-2*s,plan.width-margin,headerY+24*s),3*s,3*s,paint)}
-    text(p.brand,margin,headerY,brandWidth,size,if(plan.overlay)Color.WHITE else ink)
+    if(plan.overlay){paint.color=Color.argb(210,10,25,23);canvas.drawRoundRect(RectF(margin,headerY-2*s,plan.width-margin,headerY+masthead.height+4*s),3*s,3*s,paint)}
+    canvas.save();canvas.translate(margin,headerY);masthead.draw(canvas);canvas.restore()
    }
+
    val box=pageBox(plan,page)
    val panel=plan.overlay
    val pad=if(panel)14*s else 0f;val w=(box.width()-pad*2).toInt()
-   val title=if(page.title.isBlank())null else layout(page.title,w,page.titleSize*s,font,ink)
+   val title=if(page.title.isBlank())null else layout(page.title,w,page.titleSize*s,font,ink,emphasis=if(p.style==Style.STAT)accent else null)
    val body=if(page.body.isBlank())null else layout(page.body,w,p.bodySize*s,p.font.bodyFace(c),muted)
    val gap=if(title!=null&&body!=null)12*s else 0f
    val actual=blockHeight(c,plan,page)
@@ -211,7 +221,7 @@ object StudioRenderer{
 
    fun drawLayout(l:StaticLayout){canvas.save();canvas.translate(box.left+pad,y);l.draw(canvas);canvas.restore();y+=l.height}
    title?.let{drawLayout(it);y+=gap};body?.let{drawLayout(it)}
-   val footer=plan.height-(if(plan.height>plan.width*1.5f)63 else 24)*s
+   val footer=plan.height-(if(plan.height>plan.width*1.5f)63 else 32)*s
    if(plan.overlay&&(p.showSite||plan.pages.size>1)){paint.color=if(light)Color.argb(235,247,243,233)else Color.argb(210,8,25,25);canvas.drawRoundRect(RectF(margin-5*s,footer-12*s,plan.width-margin+5*s,footer+22*s),4*s,4*s,paint)}
    if(p.showSite||plan.pages.size>1){
     paint.color=if(light)Color.rgb(212,210,199)else Color.rgb(63,82,72);paint.strokeWidth=.45f*s
