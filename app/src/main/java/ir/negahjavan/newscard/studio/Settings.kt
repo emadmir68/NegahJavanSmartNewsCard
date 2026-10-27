@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
   0->{
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("اندازهٔ خودکار تیتر");Switch(p.auto,{change(p.copy(auto=it))})}
    Text(if(p.auto)"تیتر در صورت نیاز کوچک می‌شود؛ متن بلند به صفحهٔ بعد می‌رود."else"اندازهٔ انتخابی حفظ می‌شود؛ متن بلند به صفحهٔ بعد می‌رود.",style=MaterialTheme.typography.bodySmall)
-   SettingSlider(if(p.auto)"حداکثر اندازهٔ تیتر"else"اندازهٔ تیتر",p.titleSize,18f..40f){change(p.copy(titleSize=it))}
+   SettingSlider(if(p.auto)"حداکثر اندازهٔ تیتر"else"اندازهٔ تیتر",p.titleSize,16f..40f){change(p.copy(titleSize=it))}
    SettingSlider("اندازهٔ خلاصه و متن",p.bodySize,10f..18f){change(p.copy(bodySize=it))}
    Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){Position.entries.forEach{v->FilterChip(p.position==v,{change(p.copy(position=v))},label={Text(v.fa)})}}
   }

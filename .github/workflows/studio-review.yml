@@ -42,7 +42,7 @@ jobs:
       - name: Preserve APK
         uses: actions/upload-artifact@v4
         with:
-          name: studio-1.5.8-apk-${{ github.sha }}
+          name: studio-1.5.9-apk-${{ github.sha }}
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 90
@@ -52,11 +52,10 @@ jobs:
           set -euo pipefail
           preview_dir="docs/design/previews/$GITHUB_SHA"
           mkdir -p "$preview_dir"
-          cp app/build/reports/studio-158/*-STORY-false.png "$preview_dir/"
-          cp app/build/reports/studio-158/*-STORY-true.png "$preview_dir/"
+          cp app/build/reports/studio-158/*.png "$preview_dir/"
           printf 'Native Android renders for commit %s. Photo samples use a synthetic test image.\n' "$GITHUB_SHA" > "$preview_dir/README.txt"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$preview_dir"
-          git commit -m "Save native card previews for $GITHUB_SHA"
+          git diff --cached --quiet || git commit -m "Save native card previews for $GITHUB_SHA"
           git push origin "HEAD:$GITHUB_REF_NAME"

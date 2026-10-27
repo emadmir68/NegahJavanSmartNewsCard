@@ -42,16 +42,61 @@ class StudioRegressionTest{
  @Test fun numberUnitsRemainTogetherAndIndicesStable(){val t="۴۰ درصد و ۱۲ میلیون تومان افزایش";val got=StudioText.keepUnits(t);assertEquals(t.length,got.length);assertTrue(got.contains("۴۰\u00a0درصد"));assertTrue(got.contains("۱۲\u00a0میلیون\u00a0تومان"))}
  @Test fun captionUsesEditedTitleWithoutOldHeadline(){val(t,b)=StudioText.prepare("تیتر قبلی\nمتن اصلی این خبر برای انتشار کامل است.");val p=Project(raw=t+"\n"+b,title="تیتر تازه",article=b);assertFalse(p.caption().contains("تیتر قبلی"));assertTrue(p.caption().contains("تیتر تازه"));assertTrue(p.caption().contains(b))}
  @Test fun suggestedSummaryIsAnExactSourceSentence(){val body="گزارش عمومی درباره موضوع دیگری منتشر شده است. قیمت اینترنت ۴۰ درصد افزایش یافته است.";assertEquals("قیمت اینترنت ۴۰ درصد افزایش یافته است.",StudioText.summary(title,body))}
- @Test fun portraitIsWideEnoughInSquare(){val b=photo();val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,ratio=Ratio.SQUARE),b);val box=requireNotNull(plan.photo);assertTrue(box.width()>400);assertTrue(plan.text.left>box.right);b.recycle()}
+ @Test fun squarePortraitKeepsFullWidthHeadline(){val b=photo();val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,ratio=Ratio.SQUARE),b);assertTrue(plan.text.width()>900);assertTrue(plan.text.top>requireNotNull(plan.photo).bottom);b.recycle()}
  @Test fun cropStaysInsideSourceAndAllowsPanZoom(){val a=StudioRenderer.cropRect(1920,1080,1080f,1920f,0f,0f,1f);val b=StudioRenderer.cropRect(1920,1080,1080f,1920f,1f,1f,2f);assertEquals(0f,a.left,.01f);assertTrue(b.width()<a.width());assertTrue(b.right<=1920&&b.bottom<=1080);assertFalse(Project().videoCrop)}
- @Test fun carouselPreservesArticleAndHasClosing(){val article=(1..60).joinToString(" "){"متن کامل خبر شماره $it"};for(style in Style.entries){val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,article=article,carousel=true,ratio=Ratio.POST,style=style));assertEquals("cover",plan.pages.first().kind);assertEquals("closing",plan.pages.last().kind);assertEquals(article,normalized(plan.pages.filter{it.kind=="article"}.joinToString(" "){it.body}));for(i in listOf(0,1,plan.pages.lastIndex)){val b=StudioRenderer.draw(c,plan,i);save("carousel-$style-$i",b);b.recycle()}}}
- @Test fun projectRestoresAllFields(){val p=Project(title=title,summary=summary,article="محتوا",font=StudioFont.AMIRI,titleSize=21f,ratio=Ratio.SQUARE,crop=true,x=.2f,y=.7f,zoom=2f,video="content://video",image="file:///image",videoCrop=true,vy=.1f,showBrand=false,showSite=false,fullHd=false,exports=listOf("content://saved"));ProjectStore.save(c,p);assertEquals(p,ProjectStore.load(c));ProjectStore.save(c,p,true);assertTrue(ProjectStore.list(c).contains(p))}
+ @Test fun carouselPreservesArticleAndHasClosing(){val article=(1..60).joinToString(" "){"متن کامل خبر شماره $it"};for(style in Style.entries){val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,article=article,carousel=true,closingText="برای خبرهای بیشتر همراه ما باشید",ratio=Ratio.POST,style=style));assertEquals("cover",plan.pages.first().kind);assertEquals("closing",plan.pages.last().kind);assertEquals(article,normalized(plan.pages.filter{it.kind=="article"}.joinToString(" "){it.body}));for(i in listOf(0,1,plan.pages.lastIndex)){val b=StudioRenderer.draw(c,plan,i);save("carousel-$style-$i",b);b.recycle()}}}
+ @Test fun projectRestoresAllFields(){val p=Project(title=title,summary=summary,article="محتوا",font=StudioFont.AMIRI,titleSize=21f,ratio=Ratio.SQUARE,crop=true,x=.2f,y=.7f,zoom=2f,video="content://video",image="file:///image",videoCrop=true,vy=.1f,showBrand=false,showSite=false,fullHd=false,closingText="متن پایان قابل ویرایش",exports=listOf("content://saved"));ProjectStore.save(c,p);assertEquals(p,ProjectStore.load(c));ProjectStore.save(c,p,true);assertTrue(ProjectStore.list(c).contains(p))}
  @Test fun videoPaginationAndTooShortDuration(){val pages=List(3){Page("خبر","",24f)};assertEquals(0,StudioVideo.pageAt(0,9000,pages));assertEquals(1,StudioVideo.pageAt(3000000,9000,pages));assertEquals(2,StudioVideo.pageAt(9000000,9000,pages));val plan=StudioRenderer.plan(c,Project(title=(title+" ").repeat(20)),overlay=true);assertThrows(IllegalArgumentException::class.java){StudioVideo.validate(plan,StudioVideo.Info(1920,1080,1000))}}
  @Test fun videoGivesLongerPagesMoreReadingTime(){val pages=listOf(Page("الف".repeat(300),"",24f),Page("پایان","",24f));assertEquals(0,StudioVideo.pageAt(15_000_000,24000,pages));assertEquals(1,StudioVideo.pageAt(23_900_000,24000,pages))}
  @Test fun videoTopReallyStartsNearTop(){for(pos in Position.entries){val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,position=pos),overlay=true);val b=StudioRenderer.draw(c,plan,0);save("video-$pos",b);if(pos==Position.TOP)assertTrue(Color.alpha(b.getPixel(540,300))>150);if(pos==Position.BOTTOM)assertEquals(0,Color.alpha(b.getPixel(540,300)));b.recycle()}}
+ @Test fun continuationsReleasePhotoSpaceAndPreserveText(){
+  val b=photo();val body=(1..120).joinToString(" "){"جزئیات شماره $it"}
+  val plan=StudioRenderer.plan(c,Project(title=title,summary=body,ratio=Ratio.POST),b)
+  assertEquals(normalized(body),normalized(plan.pages.joinToString(" "){it.body}))
+  for(page in plan.pages.drop(1)){
+   assertEquals("continued",page.kind)
+   assertTrue(StudioRenderer.pageBox(plan,page).height()>plan.text.height())
+   assertTrue(StudioRenderer.blockHeight(c,plan,page)<=StudioRenderer.pageBox(plan,page).height()+1f)
+  }
+  b.recycle()
+ }
+ @Test fun longCategoryAndManualTypefaceCannotOverflow(){
+  for(style in Style.entries)for(ratio in Ratio.entries){
+   val plan=StudioRenderer.plan(c,Project(title=title.repeat(6),summary=summary.repeat(7),category="گزارش ویژه اقتصاد و فناوری",style=style,ratio=ratio,auto=false,titleSize=40f,font=StudioFont.KUFI),overlay=true)
+   assertTrue(plan.pages.all{it.titleSize==40f})
+   for(page in plan.pages)assertTrue("$style $ratio",StudioRenderer.blockHeight(c,plan,page)<=StudioRenderer.pageBox(plan,page).height()+1f)
+  }
+ }
+ @Test fun closingIsOptionalAndLongClosingIsNotTruncated(){
+  val p=Project(title=title,article=summary,carousel=true)
+  assertFalse(StudioRenderer.plan(c,p).pages.any{it.kind=="closing"})
+  val ending=(1..100).joinToString(" "){"پایان شماره $it"}
+  val plan=StudioRenderer.plan(c,p.copy(closingText=ending))
+  assertEquals(ending,normalized(plan.pages.filter{it.kind=="closing"}.joinToString(" "){it.body}))
+ }
+ @Test fun designContactSheet(){
+  val board=Bitmap.createBitmap(1128,1480,Bitmap.Config.ARGB_8888);val canvas=Canvas(board)
+  canvas.drawColor(Color.rgb(227,229,222));val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  val landscape=Bitmap.createBitmap(1200,800,Bitmap.Config.ARGB_8888)
+  val scene=Canvas(landscape);scene.drawColor(Color.rgb(199,211,201))
+  paint.color=Color.rgb(67,99,89);scene.drawRect(0f,470f,1200f,800f,paint)
+  paint.color=Color.rgb(25,43,45);scene.drawRoundRect(430f,80f,770f,710f,30f,30f,paint)
+  paint.color=Color.rgb(225,207,156);scene.drawRoundRect(450f,120f,750f,650f,12f,12f,paint)
+  for(i in 0..3){paint.color=Color.rgb(53+i*8,86+i*6,77+i*5);scene.drawRect(480f+i*62,560f-i*82,520f+i*62,600f,paint)}
+  val samples=listOf(Style.SIGNATURE,Style.EDITORIAL,Style.BREAKING,Style.PHOTO,Style.QUOTE,Style.STAT)
+  for((i,style) in samples.withIndex()){
+   val project=Project(title=title,summary=summary,style=style,category="خبر نمونه",ratio=Ratio.STORY)
+   val plan=StudioRenderer.plan(c,project,landscape);val bitmap=StudioRenderer.draw(c,plan,0,landscape)
+   val left=12f+(i%3)*372f;val top=12f+(i/3)*734f
+   paint.alpha=255;canvas.drawBitmap(bitmap,null,RectF(left,top,left+360,top+640),paint);bitmap.recycle()
+   val label=StudioRenderer.layout(style.fa,360,19f,StudioFont.VAZIR.face(c),Color.rgb(38,52,44))
+   canvas.save();canvas.translate(left,top+652);label.draw(canvas);canvas.restore()
+  }
+  save("design-contact-sheet",board);board.recycle();landscape.recycle()
+ }
  @Test fun allFontsStylesRatiosRender(){val photo=photo();for(font in StudioFont.entries)for(style in Style.entries)for(ratio in Ratio.entries)for(hasPhoto in listOf(false,true)){
   val p=Project(title=title,summary=summary,font=font,style=style,ratio=ratio);val plan=StudioRenderer.plan(c,p,if(hasPhoto)photo else null)
   assertEquals(normalized(title),normalized(plan.pages.joinToString(" "){it.title}));assertEquals(normalized(summary),normalized(plan.pages.joinToString(" "){it.body}))
-  for(i in plan.pages.indices){val b=StudioRenderer.draw(c,plan,i,if(hasPhoto)photo else null);assertEquals(ratio.w,b.width);assertEquals(ratio.h,b.height);if(font==StudioFont.VAZIR&&i==0)save("${style}-${ratio}-${hasPhoto}",b);b.recycle()}
+  for(i in plan.pages.indices){assertTrue("Text overflow: $font $style $ratio page $i",StudioRenderer.blockHeight(c,plan,plan.pages[i])<=StudioRenderer.pageBox(plan,plan.pages[i]).height()+1f);val b=StudioRenderer.draw(c,plan,i,if(hasPhoto)photo else null);assertEquals(ratio.w,b.width);assertEquals(ratio.h,b.height);if(font==StudioFont.VAZIR&&i==0)save("${style}-${ratio}-${hasPhoto}",b);b.recycle()}
  };photo.recycle()}
 }

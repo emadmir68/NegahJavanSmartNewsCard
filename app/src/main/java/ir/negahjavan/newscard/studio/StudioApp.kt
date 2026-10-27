@@ -86,7 +86,7 @@ private data class Preview(val key:Project,val plan:Plan,val bitmap:Bitmap,val i
   }
  }
  CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){
-  Scaffold(topBar={TopAppBar(title={Column{Text("نگاه جوان");Text("استودیوی کارت · ۱.۵.۸",style=MaterialTheme.typography.labelSmall)}},actions={TextButton({projects=true},enabled=!busy){Text("پروژه‌ها")}})},bottomBar={
+  Scaffold(topBar={TopAppBar(title={Column{Text("نگاه جوان");Text("استودیوی کارت · ۱.۵.۹",style=MaterialTheme.typography.labelSmall)}},actions={TextButton({projects=true},enabled=!busy){Text("پروژه‌ها")}})},bottomBar={
    Surface(shadowElevation=8.dp){Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp)){
     if(busy){LinearProgressIndicator(progress={progress/100f},modifier=Modifier.fillMaxWidth());TextButton({job?.cancel()}){Text("لغو خروجی")}}
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -100,7 +100,7 @@ private data class Preview(val key:Project,val plan:Plan,val bitmap:Bitmap,val i
     if(vm.status.isNotBlank())Text(vm.status,style=MaterialTheme.typography.bodySmall)
     HorizontalDivider();Text("پیش‌نمایش خروجی",style=MaterialTheme.typography.titleLarge)
     val shown=preview
-    Box(Modifier.fillMaxWidth().then(if(shown==null)Modifier.height(100.dp)else Modifier.aspectRatio(p.ratio.w.toFloat()/p.ratio.h)),contentAlignment=Alignment.Center){
+    Box(Modifier.fillMaxWidth().then(if(shown==null)Modifier.height(100.dp)else Modifier.heightIn(max=420.dp).aspectRatio(shown.plan.width.toFloat()/shown.plan.height)),contentAlignment=Alignment.Center){
      if(shown!=null){if(shown.key.mode=="video"&&shown.info!=null&&shown.key.video.isNotBlank())VideoPreview(shown)else Image(shown.bitmap.asImageBitmap(),"پیش‌نمایش کارت",modifier=Modifier.fillMaxSize())}else Text("برای شروع تیتر را وارد کنید.")
      if(preparing)CircularProgressIndicator()
     }
@@ -113,10 +113,10 @@ private data class Preview(val key:Project,val plan:Plan,val bitmap:Bitmap,val i
     OutlinedButton({StudioMedia.copy(c,p);vm.status="کپشن کامل کپی شد"},enabled=p.title.isNotBlank()){Text("کپی کپشن کامل")}
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("متن خبر","طراحی","رسانه").forEachIndexed{i,label->FilterChip(editor==i,{editor=i},enabled=!busy,label={Text(label)},modifier=Modifier.weight(1f))}}
     if(editor==0){
-     OutlinedTextField(p.raw,{vm.update(p.copy(raw=it,title="",summary="",article=""))},enabled=!busy,label={Text("متن کامل خبر")},modifier=Modifier.fillMaxWidth(),minLines=3,maxLines=7)
+     OutlinedTextField(p.raw,{vm.update(p.copy(raw=it))},enabled=!busy,label={Text("متن کامل خبر")},modifier=Modifier.fillMaxWidth(),minLines=3,maxLines=7)
      Button({page=0;vm.prepare()},enabled=!busy&&p.raw.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text("آماده‌سازی تیتر و خلاصه")}
      OutlinedTextField(p.title,{page=0;vm.update(p.copy(title=it))},enabled=!busy,label={Text("تیتر · قابل ویرایش")},modifier=Modifier.fillMaxWidth(),maxLines=5)
-     OutlinedTextField(p.summary,{page=0;vm.update(p.copy(summary=it))},enabled=!busy,label={Text("خلاصهٔ پیشنهادی · پیش از انتشار بررسی شود")},modifier=Modifier.fillMaxWidth(),maxLines=5)
+     OutlinedTextField(p.summary,{page=0;vm.update(p.copy(summary=it))},enabled=!busy,label={Text("خلاصه · اختیاری")},modifier=Modifier.fillMaxWidth(),maxLines=5)
      OutlinedTextField(p.article,{vm.update(p.copy(article=it))},enabled=!busy,label={Text("متن کامل کپشن / اسلایدها")},modifier=Modifier.fillMaxWidth(),maxLines=5)
      OutlinedTextField(p.category,{vm.update(p.copy(category=it))},enabled=!busy,label={Text("دسته‌بندی")},modifier=Modifier.fillMaxWidth())
     }
@@ -128,6 +128,7 @@ private data class Preview(val key:Project,val plan:Plan,val bitmap:Bitmap,val i
      }else{
       Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton({picker.launch(arrayOf("image/*"))},enabled=!busy){Text(if(p.image.isBlank())"افزودن عکس"else"تغییر عکس")};if(p.image.isNotBlank())TextButton({vm.update(p.copy(image=""))},enabled=!busy){Text("حذف عکس")}}
       Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("کاروسل با متن کامل");Switch(p.carousel,{page=0;vm.update(p.copy(carousel=it))},enabled=!busy)}
+      if(p.carousel)OutlinedTextField(p.closingText,{vm.update(p.copy(closingText=it))},enabled=!busy,label={Text("متن صفحهٔ پایانی · خالی بگذارید تا حذف شود")},modifier=Modifier.fillMaxWidth(),maxLines=4)
      }
     }
     if(editor==1){
