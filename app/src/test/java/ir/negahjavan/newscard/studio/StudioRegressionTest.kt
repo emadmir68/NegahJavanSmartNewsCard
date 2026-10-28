@@ -113,14 +113,14 @@ class StudioRegressionTest{
    canvas.save();canvas.translate(left,top+652);label.draw(canvas);canvas.restore()
   }
   save("design-contact-sheet",board)
-  val reference=File("../docs/design/previews/c24a75dcfeaa1b1a523bf9a1c22439f30c703966/design-contact-sheet.png")
+  val reference=File("../docs/design/previews/7a1c74761f3c5d2ceca38f63ba07f0339331c9a2/design-contact-sheet.png")
   if(reference.isFile){
    val before=BitmapFactory.decodeFile(reference.path)
    val comparison=Bitmap.createBitmap(760,724,Bitmap.Config.ARGB_8888);val compare=Canvas(comparison)
    compare.drawColor(Color.rgb(235,237,240))
    compare.drawBitmap(before,Rect(12,12,372,652),RectF(12f,12f,372f,652f),paint)
    compare.drawBitmap(board,Rect(12,12,372,652),RectF(388f,12f,748f,652f),paint)
-   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۷.۰","نشان هماهنگ با کارت · ۱.۷.۱").withIndex()){
+   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۷.۱","چیدمان تازه · ۱.۸.۰").withIndex()){
     val caption=StudioRenderer.layout(labelText,360,19f,StudioFont.VAZIR.face(c),Color.rgb(26,28,33))
     compare.save();compare.translate(12f+i*376,664f);caption.draw(compare);compare.restore()
    }
@@ -144,7 +144,7 @@ class StudioRegressionTest{
  }
  @Test fun realHeadlineWeightAndLegacyDefaults(){
   assertEquals(900,StudioFont.ESTEDAD.face(c).weight)
-  assertEquals(400,StudioFont.CAIRO.bodyFace(c).weight)
+  assertEquals(500,StudioFont.CAIRO.bodyFace(c).weight)
   val old=Project(title=title,font=StudioFont.VAZIR,titleSize=21f,bodySize=12f).json().apply{remove("typographyVersion");remove("bodyFont");remove("useLogo");remove("fullLogo")}
   val updated=Project.read(old)
   assertEquals(StudioFont.ESTEDAD,updated.font);assertEquals(StudioFont.CAIRO,updated.bodyFont)
@@ -194,7 +194,7 @@ class StudioRegressionTest{
   }
  }
  @Test fun logoInHeaderHasNoStickerBacking(){
-  val backgrounds=mapOf(Style.SIGNATURE to "#111419",Style.EDITORIAL to "#FFFFFF",Style.PHOTO to "#090D11",Style.BREAKING to "#D9082D",Style.QUOTE to "#F0EFEC",Style.STAT to "#E8E9EB")
+  val backgrounds=mapOf(Style.SIGNATURE to "#111419",Style.EDITORIAL to "#FFFFFF",Style.PHOTO to "#090D11",Style.BREAKING to "#C70B28",Style.QUOTE to "#F0EFEC",Style.STAT to "#101923")
   val board=Bitmap.createBitmap(1080,720,Bitmap.Config.ARGB_8888);val canvas=Canvas(board);canvas.drawColor(Color.rgb(30,34,40))
   val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
   for((i,style)in Style.entries.withIndex()){
@@ -205,7 +205,7 @@ class StudioRegressionTest{
    // This exact pixel was the white support rectangle in version 1.7.0.
    assertEquals("White backing returned: $style",expected,bitmap.getPixel((rect.left-5).toInt(),(rect.top+10).toInt()))
    assertEquals("Counter must reveal header: $style",expected,bitmap.getPixel((rect.left+425*rect.width()/1264).toInt(),(rect.top+215*rect.width()/1264).toInt()))
-   canvas.drawBitmap(bitmap,Rect(0,120,1080,390),RectF((i%2)*540f,(i/2)*240f,(i%2)*540f+540,(i/2)*240f+135),paint)
+   canvas.drawBitmap(bitmap,Rect(0,90,1080,360),RectF((i%2)*540f,(i/2)*240f,(i%2)*540f+540,(i/2)*240f+135),paint)
    val caption=StudioRenderer.layout(style.fa,480,25f,StudioFont.ESTEDAD.bodyFace(c),Color.rgb(240,240,240))
    canvas.save();canvas.translate((i%2)*540f+30,(i/2)*240f+160);caption.draw(canvas);canvas.restore()
    bitmap.recycle()
@@ -227,6 +227,104 @@ class StudioRegressionTest{
    canvas.save();canvas.translate(x,666f);caption.draw(canvas);canvas.restore()
   }
   save("typography-options",board);board.recycle()
+ }
+ @Test fun shortSquareSummaryStaysCompleteOnTheCover(){
+  val image=photo();val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,ratio=Ratio.SQUARE),image)
+  assertEquals("A short summary should not need a second card",1,plan.pages.size)
+  assertEquals(summary,plan.pages.single().body)
+  assertEquals(title,plan.pages.single().title)
+  image.recycle()
+ }
+ @Test fun textOnlyCoverBalancesSpaceAndSingleCardsHaveNoFolio(){
+  for(style in Style.entries){
+   val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,style=style))
+   val page=plan.pages.first();val top=StudioRenderer.contentTop(c,plan,page)
+   val above=top-plan.text.top;val below=plan.text.bottom-top-StudioRenderer.blockHeight(c,plan,page)
+   assertEquals("Unbalanced text-only cover: $style",above,below,1f)
+   assertFalse(StudioRenderer.showsPageNumber(plan))
+  }
+  val long=StudioRenderer.plan(c,Project(title=title,article=summary.repeat(80),carousel=true))
+  assertTrue(StudioRenderer.showsPageNumber(long))
+ }
+ @Test fun statisticalFeatureKeepsEveryWordAndDoesNotRepeatTheNumber(){
+  for(ratio in Ratio.entries){
+   val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,style=Style.STAT,ratio=ratio))
+   assertEquals("۴۰ درصد",plan.pages.first().feature)
+   val visible=normalized(plan.pages.joinToString(" "){it.feature+" "+it.visualTitle})
+   assertEquals(normalized(title).split(" ").sorted(),visible.split(" ").sorted())
+   assertEquals(title,plan.pages.joinToString(" "){it.title})
+  }
+  val noNumber=StudioRenderer.plan(c,Project(title="گزارش بررسی کیفیت خدمات",style=Style.STAT))
+  assertTrue(noNumber.pages.all{it.feature.isEmpty()})
+  val decimal=StudioRenderer.plan(c,Project(title="تغییر شاخص به −۱۲٫۵ درصد رسید",style=Style.STAT))
+  assertEquals("−۱۲٫۵ درصد",decimal.pages.first().feature)
+ }
+ @Test fun quotationAttributionIsSeparateAndNeverTruncated(){
+  for(byline in listOf("گویندهٔ نمونه",("شرح گوینده و سمت سازمانی ").repeat(100))){
+   val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,style=Style.QUOTE,byline=byline,ratio=Ratio.SQUARE))
+   assertEquals(normalized(byline),normalized(plan.pages.joinToString(" "){it.byline}))
+   assertEquals(summary,normalized(plan.pages.joinToString(" "){it.body}))
+   for(page in plan.pages)assertTrue(StudioRenderer.blockHeight(c,plan,page)<=StudioRenderer.pageBox(plan,page).height()+1)
+  }
+  val pages=listOf(Page("خبر","",26f,byline="الف".repeat(300)),Page("پایان","",26f))
+  assertEquals(0,StudioVideo.pageAt(15_000_000,24000,pages))
+ }
+ @Test fun sentenceBoundariesAndPersianPhrasesPreserveSource(){
+  val text="از شب گذشته و برای مردم ۴۰ درصد افزایش گزارش شد."
+  val kept=StudioText.keepPhrases(text)
+  assertEquals(text.length,kept.length);assertEquals(text,normalized(kept))
+  assertTrue(kept.contains("از\u00a0شب"));assertTrue(kept.contains("۴۰\u00a0درصد"))
+  val first="این یک جملهٔ کامل است."
+  val rest=" این جملهٔ دوم بسیار طولانی است و برای بررسی حفظ جمله هنگام صفحه‌بندی چندین بار ادامه پیدا می‌کند."
+  val font=StudioFont.CAIRO.bodyFace(c)
+  val height=StudioRenderer.layout(first+" این جمله",420,30f,font,spacing=1.06f).height.toFloat()
+  val parts=StudioRenderer.split(first+rest,420,height,30f,font,1.06f,sentences=true)
+  assertEquals(first,parts.first());assertEquals(first+rest,normalized(parts.joinToString(" ")))
+ }
+ @Test fun specializedTemplatesHaveTheirOwnVisualFocus(){
+  val samples=listOf(
+   Project(title="نمونهٔ خبر فوری برای بررسی طراحی کارت",summary="این محتوا آزمایشی است و خبر واقعی محسوب نمی‌شود.",style=Style.BREAKING),
+   Project(title="کیفیت خدمات باید با هزینهٔ پرداختی مردم متناسب باشد",byline="گویندهٔ فرضی · متن آزمایشی",style=Style.QUOTE),
+   Project(title="در نمونهٔ آزمایشی رضایت کاربران ۴۰ درصد افزایش یافت",summary="این عدد صرفاً برای نمایش قالب آماری است.",style=Style.STAT)
+  )
+  val board=Bitmap.createBitmap(1128,724,Bitmap.Config.ARGB_8888);val canvas=Canvas(board);canvas.drawColor(Color.rgb(235,237,240))
+  val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  for((i,p)in samples.withIndex()){
+   val plan=StudioRenderer.plan(c,p.copy(category="نمونهٔ طراحی"));val bitmap=StudioRenderer.draw(c,plan,0)
+   save("focus-${p.style}",bitmap)
+   val x=12f+i*372f;canvas.drawBitmap(bitmap,null,RectF(x,12f,x+360,652f),paint)
+   val caption=StudioRenderer.layout(p.style.fa,360,20f,StudioFont.ESTEDAD.bodyFace(c),Color.BLACK)
+   canvas.save();canvas.translate(x,665f);caption.draw(canvas);canvas.restore();bitmap.recycle()
+  }
+  save("specialized-templates",board);board.recycle()
+ }
+ @Test fun realPhotoCardsPreserveTheWholePhotoAndClearAllText(){
+  val board=Bitmap.createBitmap(1128,1480,Bitmap.Config.ARGB_8888);val canvas=Canvas(board);canvas.drawColor(Color.rgb(235,237,240))
+  val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  for((row,name)in listOf("webb-portrait.jpg","webb-landscape.png").withIndex()){
+   val file=File("src/test/resources/photos/$name");assertTrue("Missing verified photo fixture $name",file.isFile)
+   val b=BitmapFactory.decodeFile(file.path,BitmapFactory.Options().apply{inSampleSize=2})
+   for((col,style)in listOf(Style.SIGNATURE,Style.EDITORIAL,Style.PHOTO).withIndex()){
+    val p=Project(title="آینهٔ تلسکوپ جیمز وب در اتاق تمیز",summary="تصویر آرشیوی برای بررسی قاب و خوانایی کارت.",category="نمونهٔ طراحی",site=if(row==0)"NASA / Chris Gunn"else"NASA",style=style)
+    for(ratio in Ratio.entries){
+     val plan=StudioRenderer.plan(c,p.copy(ratio=ratio),b);val frame=requireNotNull(plan.photo)
+     val fit=StudioRenderer.containedPhotoRect(b.width,b.height,frame)
+     assertEquals(b.width.toFloat()/b.height,fit.width()/fit.height(),.001f)
+     assertFalse(RectF.intersects(fit,plan.text))
+     val output=StudioRenderer.draw(c,plan,0,b)
+     save("real-${row}-${style}-${ratio}",output)
+     if(ratio==Ratio.STORY){
+      val x=12f+col*372;val y=12f+row*734
+      canvas.drawBitmap(output,null,RectF(x,y,x+360,y+640),paint)
+      val label=StudioRenderer.layout(style.fa,360,19f,StudioFont.ESTEDAD.bodyFace(c),Color.BLACK)
+      canvas.save();canvas.translate(x,y+650);label.draw(canvas);canvas.restore()
+     }
+     output.recycle()
+    }
+   }
+   b.recycle()
+  }
+  save("real-photo-contact-sheet",board);board.recycle()
  }
  @Test fun allFontsStylesRatiosRender(){val photo=photo();for(font in StudioFont.entries)for(style in Style.entries)for(ratio in Ratio.entries)for(hasPhoto in listOf(false,true)){
   val p=Project(title=title,summary=summary,font=font,style=style,ratio=ratio);val plan=try{StudioRenderer.plan(c,p,if(hasPhoto)photo else null)}catch(e:Exception){throw AssertionError("Render failed: $font $style $ratio photo=$hasPhoto",e)}

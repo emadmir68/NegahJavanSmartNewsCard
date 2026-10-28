@@ -12,15 +12,15 @@ object StudioBrandMark {
  data class Colors(val ink:Int,val accent:Int)
 
  fun colors(style:Style):Colors=when(style){
-  Style.SIGNATURE,Style.PHOTO->Colors(Color.rgb(249,249,246),Color.rgb(239,38,70))
+  Style.SIGNATURE,Style.PHOTO,Style.STAT->Colors(Color.rgb(249,249,246),Color.rgb(239,38,70))
   Style.BREAKING->Colors(Color.rgb(255,255,252),Color.rgb(24,27,33))
   else->Colors(Color.rgb(23,27,33),Color.rgb(217,8,45))
  }
 
  fun size(p:Project,s:Float):Pair<Float,Float>{
   val scale=s*p.brandSize/12f
-  val width=132*scale
-  return width to width*ASPECT+(if(p.fullLogo)16*scale else 0f)
+  val width=104*scale
+  return width to width*ASPECT+(if(p.fullLogo)14*scale else 0f)
  }
 
  fun draw(c:Context,canvas:Canvas,box:RectF,p:Project,s:Float){

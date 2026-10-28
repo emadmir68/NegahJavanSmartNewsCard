@@ -13,7 +13,7 @@ enum class StudioFont(val fa:String,val res:Int) {
  ESTEDAD("استعداد",R.font.estedad_black),
  VAZIR("وزیرمتن",R.font.vazirmatn_bold),LALEZAR("لاله‌زار",R.font.lalezar),CAIRO("قاهره",R.font.cairo),KUFI("کوفی",R.font.kufi),AMIRI("امیری",R.font.amiri),AREF("عارف",R.font.aref);
  fun face(c:Context)=if(this==ESTEDAD)c.resources.getFont(res)else Typeface.create(c.resources.getFont(res),700,false)
- fun bodyFace(c:Context)=when(this){ESTEDAD->c.resources.getFont(R.font.estedad_regular);VAZIR->c.resources.getFont(R.font.vazirmatn_regular);else->Typeface.create(c.resources.getFont(res),400,false)}
+ fun bodyFace(c:Context)=when(this){ESTEDAD->c.resources.getFont(R.font.estedad_regular);VAZIR->c.resources.getFont(R.font.vazirmatn_regular);CAIRO,KUFI->Typeface.create(c.resources.getFont(res),500,false);else->Typeface.create(c.resources.getFont(res),400,false)}
 }
 enum class Style(val fa:String){SIGNATURE("امضای نگاه جوان"),EDITORIAL("تحریریهٔ سفید"),PHOTO("جلد مشکی"),BREAKING("بولتن قرمز"),QUOTE("نقل‌قول"),STAT("گزارش آماری")}
 enum class Ratio(val fa:String,val w:Int,val h:Int){STORY("استوری",1080,1920),POST("پست ۴:۵",1080,1350),SQUARE("مربع",1080,1080),WIDE("افقی",1920,1080)}
@@ -76,4 +76,5 @@ object StudioText{
   return body.split(Regex("(?<=[.!؟?؛])\\s+|\\n+")).map{it.trim()}.filter{it.length in 20..220&&it!=title}.maxByOrNull{s->keys.count{s.contains(it)}*5+if(s.any{it.isDigit()})3 else 0}.orEmpty()
  }
  fun keepUnits(t:String)=Regex("[0-9۰-۹٠-٩]+(?:[٫.,][0-9۰-۹٠-٩]+)?[ \\t]+(?:درصد|میلیون|میلیارد|تومان|ریال|دلار|کیلومتر|متر|نفر|٪)(?:[ \\t]+(?:تومان|ریال|دلار))?").replace(t){m->m.value.replace(' ','\u00a0').replace('\t','\u00a0')}
+ fun keepPhrases(t:String)=Regex("(?<!\\S)(?:از|به|در|با|تا|برای|بدون|روی|زیر|و)[ \\t]+(?=\\S)").replace(keepUnits(t)){it.value.replace(' ','\u00a0').replace('\t','\u00a0')}
 }

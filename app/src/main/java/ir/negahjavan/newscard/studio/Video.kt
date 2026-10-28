@@ -75,7 +75,7 @@ object StudioVideo {
             return if(rotation%180==0)Info(w,h,duration)else Info(h,w,duration)
         }finally{m.release()}
     }
-    private fun readingTime(page:Page)=maxOf(3000L,(page.title.length.toLong()+page.body.length)*65L)
+    private fun readingTime(page:Page)=maxOf(3000L,(page.title.length.toLong()+page.body.length+page.byline.length)*65L)
     fun pageAt(timeUs:Long,duration:Long,pages:List<Page>):Int {
         val total=pages.sumOf(::readingTime)
         val position=(timeUs/1000.0/duration.coerceAtLeast(1))*total
