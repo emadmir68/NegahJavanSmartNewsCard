@@ -56,7 +56,7 @@ class StudioRegressionTest{
 
  @Test fun cropStaysInsideSourceAndAllowsPanZoom(){val a=StudioRenderer.cropRect(1920,1080,1080f,1920f,0f,0f,1f);val b=StudioRenderer.cropRect(1920,1080,1080f,1920f,1f,1f,2f);assertEquals(0f,a.left,.01f);assertTrue(b.width()<a.width());assertTrue(b.right<=1920&&b.bottom<=1080);assertFalse(Project().videoCrop)}
  @Test fun carouselPreservesArticleAndHasClosing(){val article=(1..60).joinToString(" "){"متن کامل خبر شماره $it"};for(style in Style.entries){val plan=StudioRenderer.plan(c,Project(title=title,summary=summary,article=article,carousel=true,closingText="برای خبرهای بیشتر همراه ما باشید",ratio=Ratio.POST,style=style));assertEquals("cover",plan.pages.first().kind);assertEquals("closing",plan.pages.last().kind);assertEquals(article,normalized(plan.pages.filter{it.kind=="article"}.joinToString(" "){it.body}));for(i in listOf(0,1,plan.pages.lastIndex)){val b=StudioRenderer.draw(c,plan,i);save("carousel-$style-$i",b);b.recycle()}}}
- @Test fun projectRestoresAllFields(){val p=Project(title=title,summary=summary,article="محتوا",font=StudioFont.AMIRI,titleSize=21f,ratio=Ratio.SQUARE,crop=true,x=.2f,y=.7f,zoom=2f,video="content://video",image="file:///image",videoCrop=true,vy=.1f,showBrand=false,showSite=false,fullHd=false,closingText="متن پایان قابل ویرایش",exports=listOf("content://saved"));ProjectStore.save(c,p);assertEquals(p,ProjectStore.load(c));ProjectStore.save(c,p,true);assertTrue(ProjectStore.list(c).contains(p))}
+ @Test fun projectRestoresAllFields(){val p=Project(title=title,summary=summary,article="محتوا",font=StudioFont.AMIRI,bodyFont=StudioFont.AREF,useLogo=false,fullLogo=true,titleSize=21f,ratio=Ratio.SQUARE,crop=true,x=.2f,y=.7f,zoom=2f,video="content://video",image="file:///image",videoCrop=true,vy=.1f,showBrand=false,showSite=false,fullHd=false,closingText="متن پایان قابل ویرایش",exports=listOf("content://saved"));ProjectStore.save(c,p);assertEquals(p,ProjectStore.load(c));ProjectStore.save(c,p,true);assertTrue(ProjectStore.list(c).contains(p))}
  @Test fun reopeningAnOldProjectRequiresFreshDesignedExports(){
   val p=Project(title=title,summary=summary,font=StudioFont.AMIRI,titleSize=29f,exports=listOf("content://old-card"))
   val legacy=p.json().apply{remove("exportRendererVersion")}
@@ -95,7 +95,7 @@ class StudioRegressionTest{
  }
  @Test fun designContactSheet(){
   val board=Bitmap.createBitmap(1128,1480,Bitmap.Config.ARGB_8888);val canvas=Canvas(board)
-  canvas.drawColor(Color.rgb(227,229,222));val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  canvas.drawColor(Color.rgb(235,237,240));val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
   val landscape=Bitmap.createBitmap(1200,800,Bitmap.Config.ARGB_8888)
   val scene=Canvas(landscape);scene.drawColor(Color.rgb(199,211,201))
   paint.color=Color.rgb(67,99,89);scene.drawRect(0f,470f,1200f,800f,paint)
@@ -106,21 +106,22 @@ class StudioRegressionTest{
   for((i,style) in samples.withIndex()){
    val project=Project(title=title,summary=summary,style=style,category="خبر نمونه",ratio=Ratio.STORY)
    val plan=StudioRenderer.plan(c,project,landscape);val bitmap=StudioRenderer.draw(c,plan,0,landscape)
+   if(i==0)save("brand-story",bitmap)
    val left=12f+(i%3)*372f;val top=12f+(i/3)*734f
    paint.alpha=255;canvas.drawBitmap(bitmap,null,RectF(left,top,left+360,top+640),paint);bitmap.recycle()
-   val label=StudioRenderer.layout(style.fa,360,19f,StudioFont.VAZIR.face(c),Color.rgb(38,52,44))
+   val label=StudioRenderer.layout(style.fa,360,19f,StudioFont.VAZIR.face(c),Color.rgb(26,28,33))
    canvas.save();canvas.translate(left,top+652);label.draw(canvas);canvas.restore()
   }
   save("design-contact-sheet",board)
-  val reference=File("../docs/design/previews/726a578ca61bf9772d6c936989f6f749edae4c9a/design-contact-sheet.png")
+  val reference=File("../docs/design/previews/4bd6ee589f935cc4cee458101fba1cb632cc7f7e/design-contact-sheet.png")
   if(reference.isFile){
    val before=BitmapFactory.decodeFile(reference.path)
    val comparison=Bitmap.createBitmap(760,724,Bitmap.Config.ARGB_8888);val compare=Canvas(comparison)
-   compare.drawColor(Color.rgb(227,229,222))
+   compare.drawColor(Color.rgb(235,237,240))
    compare.drawBitmap(before,Rect(12,12,372,652),RectF(12f,12f,372f,652f),paint)
    compare.drawBitmap(board,Rect(12,12,372,652),RectF(388f,12f,748f,652f),paint)
-   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۵.۹","طراحی تازه · ۱.۶.۰").withIndex()){
-    val caption=StudioRenderer.layout(labelText,360,19f,StudioFont.VAZIR.face(c),Color.rgb(38,52,44))
+   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۶.۰","لوگو و تایپوگرافی · ۱.۷.۰").withIndex()){
+    val caption=StudioRenderer.layout(labelText,360,19f,StudioFont.VAZIR.face(c),Color.rgb(26,28,33))
     compare.save();compare.translate(12f+i*376,664f);caption.draw(compare);compare.restore()
    }
    save("design-before-after",comparison);comparison.recycle();before.recycle()
@@ -141,9 +142,59 @@ class StudioRegressionTest{
   }
   photo.recycle()
  }
+ @Test fun realHeadlineWeightAndLegacyDefaults(){
+  assertEquals(900,StudioFont.ESTEDAD.face(c).weight)
+  assertEquals(400,StudioFont.CAIRO.bodyFace(c).weight)
+  val old=Project(title=title,font=StudioFont.VAZIR,titleSize=21f,bodySize=12f).json().apply{remove("typographyVersion");remove("bodyFont");remove("useLogo");remove("fullLogo")}
+  val updated=Project.read(old)
+  assertEquals(StudioFont.ESTEDAD,updated.font);assertEquals(StudioFont.CAIRO,updated.bodyFont)
+  assertEquals(26f,updated.titleSize,0f);assertEquals(13f,updated.bodySize,0f)
+  assertTrue(updated.useLogo);assertFalse(updated.fullLogo)
+  val manual=Project.read(old.put("auto",false))
+  assertEquals(StudioFont.VAZIR,manual.font);assertEquals(21f,manual.titleSize,0f);assertEquals(12f,manual.bodySize,0f)
+ }
+ @Test fun independentBodyFontsPreserveLongCopy(){
+  val body=(1..28).joinToString(" "){"جزئیات خبر شماره $it برای مطالعهٔ کامل"}
+  for(font in StudioFont.entries)for(ratio in Ratio.entries){
+   val plan=StudioRenderer.plan(c,Project(title=title,summary=body,bodyFont=font,ratio=ratio))
+   assertEquals(normalized(body),normalized(plan.pages.joinToString(" "){it.body}))
+   for(page in plan.pages)assertTrue("Body overflow $font $ratio",StudioRenderer.blockHeight(c,plan,page)<=StudioRenderer.pageBox(plan,page).height()+1)
+   StudioRenderer.draw(c,plan,0).recycle()
+  }
+ }
+ @Test fun originalLogoModesStayClearOfContent(){
+  for(ratio in Ratio.entries)for(full in listOf(false,true))for(size in listOf(8f,12f,18f)){
+   val p=Project(title=title,summary=summary,ratio=ratio,fullLogo=full,brandSize=size)
+   val plan=StudioRenderer.plan(c,p);val rect=requireNotNull(StudioRenderer.logoBox(plan))
+   val s=minOf(ratio.w,ratio.h)/360f
+   assertTrue(rect.left>=0&&rect.top>=0&&rect.right<=ratio.w)
+   assertTrue(rect.bottom+5*s<plan.fullText.top-12*s)
+   val bitmap=StudioRenderer.draw(c,plan,0)
+   if(ratio==Ratio.STORY&&full&&size==12f)save("brand-full-logo",bitmap)
+   bitmap.recycle()
+  }
+  assertNull(StudioRenderer.logoBox(StudioRenderer.plan(c,Project(title=title,showBrand=false))))
+  assertNull(StudioRenderer.logoBox(StudioRenderer.plan(c,Project(title=title,useLogo=false))))
+ }
+ @Test fun typographyChoicesPreview(){
+  val board=Bitmap.createBitmap(1128,724,Bitmap.Config.ARGB_8888);val canvas=Canvas(board)
+  canvas.drawColor(Color.rgb(235,237,240));val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  val variants=listOf(
+   "هویت برند · استعداد / قاهره" to Project(title=title,summary=summary),
+   "نمایشی · لاله‌زار / استعداد" to Project(title=title,summary=summary,font=StudioFont.LALEZAR,bodyFont=StudioFont.ESTEDAD,titleSize=28f),
+   "کلاسیک · امیری / استعداد" to Project(title=title,summary=summary,font=StudioFont.AMIRI,bodyFont=StudioFont.ESTEDAD,titleSize=28f)
+  )
+  for((i,entry)in variants.withIndex()){
+   val plan=StudioRenderer.plan(c,entry.second);val bitmap=StudioRenderer.draw(c,plan,0)
+   val x=12f+i*372f;canvas.drawBitmap(bitmap,null,RectF(x,12f,x+360,652f),paint);bitmap.recycle()
+   val caption=StudioRenderer.layout(entry.first,360,16f,StudioFont.ESTEDAD.bodyFace(c),Color.rgb(26,28,33))
+   canvas.save();canvas.translate(x,666f);caption.draw(canvas);canvas.restore()
+  }
+  save("typography-options",board);board.recycle()
+ }
  @Test fun allFontsStylesRatiosRender(){val photo=photo();for(font in StudioFont.entries)for(style in Style.entries)for(ratio in Ratio.entries)for(hasPhoto in listOf(false,true)){
   val p=Project(title=title,summary=summary,font=font,style=style,ratio=ratio);val plan=try{StudioRenderer.plan(c,p,if(hasPhoto)photo else null)}catch(e:Exception){throw AssertionError("Render failed: $font $style $ratio photo=$hasPhoto",e)}
   assertEquals(normalized(title),normalized(plan.pages.joinToString(" "){it.title}));assertEquals(normalized(summary),normalized(plan.pages.joinToString(" "){it.body}))
-  for(i in plan.pages.indices){assertTrue("Text overflow: $font $style $ratio page $i",StudioRenderer.blockHeight(c,plan,plan.pages[i])<=StudioRenderer.pageBox(plan,plan.pages[i]).height()+1f);val b=StudioRenderer.draw(c,plan,i,if(hasPhoto)photo else null);assertEquals(ratio.w,b.width);assertEquals(ratio.h,b.height);if(font==StudioFont.VAZIR&&i==0)save("${style}-${ratio}-${hasPhoto}",b);b.recycle()}
+  for(i in plan.pages.indices){assertTrue("Text overflow: $font $style $ratio page $i",StudioRenderer.blockHeight(c,plan,plan.pages[i])<=StudioRenderer.pageBox(plan,plan.pages[i]).height()+1f);val b=StudioRenderer.draw(c,plan,i,if(hasPhoto)photo else null);assertEquals(ratio.w,b.width);assertEquals(ratio.h,b.height);if(font==StudioFont.ESTEDAD&&i==0)save("${style}-${ratio}-${hasPhoto}",b);b.recycle()}
  };photo.recycle()}
 }

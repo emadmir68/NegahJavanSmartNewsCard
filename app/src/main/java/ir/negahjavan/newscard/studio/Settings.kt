@@ -23,8 +23,16 @@ import androidx.compose.ui.unit.dp
   }
   1->{
    Style.entries.chunked(2).forEach{row->Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){row.forEach{v->FilterChip(p.style==v,{change(p.copy(style=v))},label={Text(v.fa)},modifier=Modifier.weight(1f))}}}
-   Text("فونت خروجی")
+   Text("ترکیب آمادهٔ تایپوگرافی")
+   Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
+    FilterChip(p.font==StudioFont.ESTEDAD&&p.bodyFont==StudioFont.CAIRO,{change(p.copy(font=StudioFont.ESTEDAD,bodyFont=StudioFont.CAIRO,titleSize=26f,bodySize=13f,auto=true))},label={Text("هویت برند")})
+    FilterChip(p.font==StudioFont.LALEZAR&&p.bodyFont==StudioFont.ESTEDAD,{change(p.copy(font=StudioFont.LALEZAR,bodyFont=StudioFont.ESTEDAD,titleSize=28f,bodySize=13f,auto=true))},label={Text("نمایشی")})
+    FilterChip(p.font==StudioFont.AMIRI&&p.bodyFont==StudioFont.ESTEDAD,{change(p.copy(font=StudioFont.AMIRI,bodyFont=StudioFont.ESTEDAD,titleSize=28f,bodySize=13f,auto=true))},label={Text("کلاسیک")})
+   }
+   Text("فونت تیتر")
    StudioFont.entries.chunked(3).forEach{row->Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){row.forEach{v->FilterChip(p.font==v,{change(p.copy(font=v))},label={Text(v.fa)},modifier=Modifier.weight(1f))}}}
+   Text("فونت متن خبر و خلاصه")
+   StudioFont.entries.chunked(3).forEach{row->Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){row.forEach{v->FilterChip(p.bodyFont==v,{change(p.copy(bodyFont=v))},label={Text(v.fa)},modifier=Modifier.weight(1f))}}}
    if(p.style==Style.QUOTE)OutlinedTextField(p.byline,{change(p.copy(byline=it))},label={Text("گویندهٔ نقل‌قول (اختیاری)")},modifier=Modifier.fillMaxWidth())
   }
   2->{
@@ -42,8 +50,17 @@ import androidx.compose.ui.unit.dp
    }
   }
   3->{
-   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("نام رسانه");Switch(p.showBrand,{change(p.copy(showBrand=it))})}
-   if(p.showBrand){OutlinedTextField(p.brand,{change(p.copy(brand=it))},label={Text("نام رسانه · حداکثر ۶۰ نویسه")},modifier=Modifier.fillMaxWidth());SettingSlider("اندازهٔ نام رسانه",p.brandSize,8f..18f){change(p.copy(brandSize=it))}}
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("لوگو و نام رسانه");Switch(p.showBrand,{change(p.copy(showBrand=it))})}
+   if(p.showBrand){
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("لوگوی اصلی نگاه جوان");Switch(p.useLogo,{change(p.copy(useLogo=it))})}
+    if(p.useLogo){
+     Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
+      FilterChip(!p.fullLogo,{change(p.copy(fullLogo=false))},label={Text("نوشتار لوگو")})
+      FilterChip(p.fullLogo,{change(p.copy(fullLogo=true))},label={Text("لوگوی کامل")})
+     }
+    }else OutlinedTextField(p.brand,{change(p.copy(brand=it))},label={Text("نام رسانه · حداکثر ۶۰ نویسه")},modifier=Modifier.fillMaxWidth())
+    SettingSlider(if(p.useLogo)"اندازهٔ لوگو"else"اندازهٔ نام رسانه",p.brandSize,8f..18f){change(p.copy(brandSize=it))}
+   }
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("نشانی سایت");Switch(p.showSite,{change(p.copy(showSite=it))})}
    if(p.showSite)OutlinedTextField(p.site,{change(p.copy(site=it))},label={Text("نشانی سایت · حداکثر ۸۰ نویسه")},modifier=Modifier.fillMaxWidth())
   }
