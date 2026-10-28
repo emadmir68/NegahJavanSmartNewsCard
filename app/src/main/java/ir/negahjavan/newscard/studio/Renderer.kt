@@ -285,7 +285,8 @@ object StudioRenderer{
    val category=label(p,page.kind)
    if(category.isNotBlank()){
     val labelWidth=(w-22*s).toInt()
-    val cat=layout(category,labelWidth,9*s,font,t.accent)
+    val categoryInk=if(p.style==Style.SIGNATURE||p.style==Style.EDITORIAL||p.style==Style.QUOTE)t.ink else t.accent
+    val cat=layout(category,labelWidth,9*s,font,categoryInk)
     val lineWidth=(0 until cat.lineCount).maxOf{cat.getLineWidth(it)}
     val badgeWidth=min(w.toFloat(),lineWidth+20*s)
     if(p.style==Style.BREAKING&&page.kind=="cover"){
