@@ -10,4 +10,4 @@ The two Android layers are `res/drawable/negahjavan_mark_ink.xml` and `negahjava
 
 Estedad Black (900) and Regular (400) are unmodified upstream TTF files from [Amin Abedi's Estedad repository](https://github.com/aminabedi68/Estedad), commit `0dbe689787b8c2ea302373cb601d0f352f9f98e5`. Black source Git blob: `2efa43f5c681a303a5bb414e8b75d523ba7fe07d`; Regular: `450fe89141fa068d1111f86e4d8d5d644e297bdd`.
 
-The complete SIL OFL license and copyright notice are in `docs/licenses/Estedad-OFL.txt`, the APK's `assets/licenses/Estedad-OFL.txt`, and the install ZIP. Existing bundled Cairo is the default independent body face at weight 400.
+The complete SIL OFL license and copyright notice are in `docs/licenses/Estedad-OFL.txt`, the APK's `assets/licenses/Estedad-OFL.txt`, and the install ZIP. Since 1.8.0 the existing variable Cairo font is the default independent body face at weight 500; variable Kufi also uses 500 for body text. Other selected body families retain their bundled regular face.

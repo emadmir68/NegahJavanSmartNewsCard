@@ -284,6 +284,7 @@ class StudioRegressionTest{
   val height=StudioRenderer.layout(first+" این جمله",420,30f,font,spacing=1.06f).height.toFloat()
   val parts=StudioRenderer.split(first+rest,420,height,30f,font,1.06f,sentences=true)
   assertEquals(first,parts.first());assertEquals(first+rest,normalized(parts.joinToString(" ")))
+  for(part in parts)assertTrue(StudioRenderer.layout(part,420,30f,font,spacing=1.06f).height<=height)
  }
  @Test fun specializedTemplatesHaveTheirOwnVisualFocus(){
   val samples=listOf(
@@ -315,6 +316,12 @@ class StudioRegressionTest{
      val fit=StudioRenderer.containedPhotoRect(b.width,b.height,frame)
      assertEquals(b.width.toFloat()/b.height,fit.width()/fit.height(),.001f)
      assertFalse(RectF.intersects(fit,plan.text))
+     if(ratio==Ratio.STORY&&plan.pages.size==1){
+      val top=StudioRenderer.contentTop(c,plan,plan.pages.first())
+      val groupTop=minOf(frame.top,top)
+      val groupBottom=maxOf(frame.bottom,top+StudioRenderer.blockHeight(c,plan,plan.pages.first()))
+      assertEquals("Photo and copy should balance together",groupTop-plan.fullText.top,plan.fullText.bottom-groupBottom,2f)
+     }
      val output=StudioRenderer.draw(c,plan,0,b)
      save("real-${row}-${style}-${ratio}",output)
      if(ratio==Ratio.STORY){

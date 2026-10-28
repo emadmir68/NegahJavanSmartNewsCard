@@ -34,8 +34,12 @@ object StudioRenderer{
    if(l.height<=height){result+=rest;break}
    var count=(0 until l.lineCount).takeWhile{l.getLineBottom(it)<=height}.size
    while(count>0&&layout(rest.substring(0,l.getLineEnd(count-1)).trimEnd(),width,size,font,spacing=spacing).height>height)count--
-   require(count>0){"فضای متن کافی نیست؛ اندازهٔ فونت را کاهش دهید."}
-   var end=l.getLineEnd(count-1)
+   // Balanced wrapping can change when a measured paragraph becomes a page.
+   // If its first line no longer fits on its own, try earlier word boundaries.
+   var end=if(count>0)l.getLineEnd(count-1)else Regex("\\s+").findAll(rest.take(l.getLineEnd(0)))
+    .map{it.range.first}.filter{it>0}.toList().asReversed()
+    .firstOrNull{layout(rest.take(it).trimEnd(),width,size,font,spacing=spacing).height<=height}?:0
+   require(end>0){"فضای متن کافی نیست؛ اندازهٔ فونت را کاهش دهید."}
    if(sentences){
     val boundary=sentenceEnd.findAll(rest.take(end)).lastOrNull()?.range?.last?.plus(1)
     if(boundary!=null&&boundary>=end*.45f)end=boundary
@@ -128,7 +132,8 @@ object StudioRenderer{
     val minimum=reserve(c,p,tw,s,"cover")+layout(firstLine,tw,minimumSize,font).height+8*s
     val textHeight=measured.coerceIn(max(full.height()*.22f,minimum),max(full.height()*.64f,minimum))
     if(p.style==Style.PHOTO){image.left=0f;image.right=width.toFloat()}
-    val preferred=when(p.style){Style.PHOTO->.62f;Style.EDITORIAL->.44f;Style.BREAKING->.38f;Style.QUOTE->.28f;Style.STAT->.32f;else->.50f}
+    val portrait=!p.crop&&photo.height>photo.width*1.15f
+    val preferred=when(p.style){Style.PHOTO->if(portrait).72f else .62f;Style.EDITORIAL->if(portrait).64f else .44f;Style.BREAKING->.38f;Style.QUOTE->.28f;Style.STAT->.32f;else->if(portrait).66f else .50f}
     val photoHeight=min(image.width()*photo.height/photo.width,min(full.height()*preferred,full.height()-textHeight-gap)).coerceAtLeast(24*s)
     if(p.style in listOf(Style.BREAKING,Style.QUOTE,Style.STAT)){
      box.bottom=full.top+max(textHeight,full.height()-photoHeight-gap)
@@ -182,6 +187,21 @@ object StudioRenderer{
    split(p.article,fw,fullAvailable,p.bodySize*s,bodyFont,BODY_SPACING,sentences=true).forEach{pages+=Page("",it,size,"article")}
    split(p.closingText,fw,fullAvailable,p.bodySize*s,bodyFont,BODY_SPACING,sentences=true).forEach{pages+=Page("",it,size,"closing")}
   }
+  // Center a short photo-and-copy composition as one group. The first page's
+  // measured text still fits; continuations retain the full original text area.
+  if(image!=null&&p.position==Position.AUTO&&!overlay&&image.left<box.right&&image.right>box.left){
+   val actual=reserve(c,p,w,s,"cover")+contentHeight(c,p,pages.first(),w,s)
+   val gap=20*s
+   if(image.top>=box.bottom){
+    val photoHeight=image.height();box.bottom=box.top+actual
+    image.top=box.bottom+gap;image.bottom=image.top+photoHeight
+    val shift=max(0f,(full.bottom-image.bottom)/2)
+    box.offset(0f,shift);image.offset(0f,shift)
+   }else{
+    val shift=max(0f,(full.bottom-box.top-actual)/2)
+    image.offset(0f,shift);box.top+=shift
+   }
+  }
   return Plan(p,width,height,box,image,pages,overlay,full)
  }
  fun cropRect(sw:Int,sh:Int,dw:Float,dh:Float,x:Float,y:Float,zoom:Float):RectF{
@@ -215,7 +235,7 @@ object StudioRenderer{
   val p=plan.project;val box=pageBox(plan,page)
   val factor=when(p.position){
    Position.TOP->0f;Position.CENTER->.5f;Position.BOTTOM->1f
-   Position.AUTO->when{plan.overlay->1f;page.kind!="cover"->0f;plan.photo==null->.5f;p.style in listOf(Style.QUOTE,Style.STAT)->.5f;else->0f}
+   Position.AUTO->when{plan.overlay->1f;page.kind!="cover"->0f;plan.photo==null->.5f;plan.photo.right<plan.text.left->.5f;p.style in listOf(Style.QUOTE,Style.STAT)->.5f;else->0f}
   }
   return box.top+max(0f,box.height()-blockHeight(c,plan,page))*factor
  }
