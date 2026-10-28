@@ -52,12 +52,13 @@ import androidx.compose.ui.unit.dp
   3->{
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("لوگو و نام رسانه");Switch(p.showBrand,{change(p.copy(showBrand=it))})}
    if(p.showBrand){
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("لوگوی اصلی نگاه جوان");Switch(p.useLogo,{change(p.copy(useLogo=it))})}
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("نشان نگاه جوان");Switch(p.useLogo,{change(p.copy(useLogo=it))})}
     if(p.useLogo){
      Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
-      FilterChip(!p.fullLogo,{change(p.copy(fullLogo=false))},label={Text("نوشتار لوگو")})
-      FilterChip(p.fullLogo,{change(p.copy(fullLogo=true))},label={Text("لوگوی کامل")})
+      FilterChip(!p.fullLogo,{change(p.copy(fullLogo=false))},label={Text("نوشتار")})
+      FilterChip(p.fullLogo,{change(p.copy(fullLogo=true))},label={Text("با عنوان رسانه")})
      }
+     Text("رنگ نشان با زمینهٔ کارت هماهنگ می‌شود.",style=MaterialTheme.typography.bodySmall)
     }else OutlinedTextField(p.brand,{change(p.copy(brand=it))},label={Text("نام رسانه · حداکثر ۶۰ نویسه")},modifier=Modifier.fillMaxWidth())
     SettingSlider(if(p.useLogo)"اندازهٔ لوگو"else"اندازهٔ نام رسانه",p.brandSize,8f..18f){change(p.copy(brandSize=it))}
    }

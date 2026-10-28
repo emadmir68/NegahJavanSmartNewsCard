@@ -113,14 +113,14 @@ class StudioRegressionTest{
    canvas.save();canvas.translate(left,top+652);label.draw(canvas);canvas.restore()
   }
   save("design-contact-sheet",board)
-  val reference=File("../docs/design/previews/4bd6ee589f935cc4cee458101fba1cb632cc7f7e/design-contact-sheet.png")
+  val reference=File("../docs/design/previews/c24a75dcfeaa1b1a523bf9a1c22439f30c703966/design-contact-sheet.png")
   if(reference.isFile){
    val before=BitmapFactory.decodeFile(reference.path)
    val comparison=Bitmap.createBitmap(760,724,Bitmap.Config.ARGB_8888);val compare=Canvas(comparison)
    compare.drawColor(Color.rgb(235,237,240))
    compare.drawBitmap(before,Rect(12,12,372,652),RectF(12f,12f,372f,652f),paint)
    compare.drawBitmap(board,Rect(12,12,372,652),RectF(388f,12f,748f,652f),paint)
-   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۶.۰","لوگو و تایپوگرافی · ۱.۷.۰").withIndex()){
+   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۷.۰","نشان هماهنگ با کارت · ۱.۷.۱").withIndex()){
     val caption=StudioRenderer.layout(labelText,360,19f,StudioFont.VAZIR.face(c),Color.rgb(26,28,33))
     compare.save();compare.translate(12f+i*376,664f);caption.draw(compare);compare.restore()
    }
@@ -162,7 +162,7 @@ class StudioRegressionTest{
    StudioRenderer.draw(c,plan,0).recycle()
   }
  }
- @Test fun originalLogoModesStayClearOfContent(){
+ @Test fun integratedLogoModesStayClearOfContent(){
   for(ratio in Ratio.entries)for(full in listOf(false,true))for(size in listOf(8f,12f,18f)){
    val p=Project(title=title,summary=summary,ratio=ratio,fullLogo=full,brandSize=size)
    val plan=StudioRenderer.plan(c,p);val rect=requireNotNull(StudioRenderer.logoBox(plan))
@@ -170,11 +170,47 @@ class StudioRegressionTest{
    assertTrue(rect.left>=0&&rect.top>=0&&rect.right<=ratio.w)
    assertTrue(rect.bottom+5*s<plan.fullText.top-12*s)
    val bitmap=StudioRenderer.draw(c,plan,0)
-   if(ratio==Ratio.STORY&&full&&size==12f)save("brand-full-logo",bitmap)
+   if(ratio==Ratio.STORY&&full&&size==12f)save("brand-with-tagline",bitmap)
    bitmap.recycle()
   }
   assertNull(StudioRenderer.logoBox(StudioRenderer.plan(c,Project(title=title,showBrand=false))))
   assertNull(StudioRenderer.logoBox(StudioRenderer.plan(c,Project(title=title,useLogo=false))))
+ }
+ @Test fun wordmarkHasTransparentCountersAndUsesCardColors(){
+  for(style in Style.entries)for(tagline in listOf(false,true)){
+   val p=Project(title=title,style=style,fullLogo=tagline)
+   val bitmap=Bitmap.createBitmap(600,280,Bitmap.Config.ARGB_8888)
+   val(w,h)=StudioBrandMark.size(p,4f);val rect=RectF(20f,20f,20+w,20+h)
+   StudioBrandMark.draw(c,Canvas(bitmap),rect,p,4f)
+   val top=rect.bottom-rect.width()*StudioBrandMark.ASPECT
+   fun pixel(x:Int,y:Int)=bitmap.getPixel((rect.left+x*rect.width()/1264).toInt(),(top+y*rect.width()/1264).toInt())
+   // Both enclosed letter counters and the open space above the lettering
+   // must remain transparent, including in the reversed (white) variant.
+   for((x,y)in listOf(425 to 215,811 to 226,660 to 44,10 to 10))assertEquals("Opaque logo background: $style $tagline",0,Color.alpha(pixel(x,y)))
+   val colors=StudioBrandMark.colors(style)
+   assertEquals("Wrong wordmark ink: $style",colors.ink,pixel(40,244))
+   assertEquals("Wrong accent ink: $style",colors.accent,pixel(1110,44))
+   bitmap.recycle()
+  }
+ }
+ @Test fun logoInHeaderHasNoStickerBacking(){
+  val backgrounds=mapOf(Style.SIGNATURE to "#111419",Style.EDITORIAL to "#FFFFFF",Style.PHOTO to "#090D11",Style.BREAKING to "#D9082D",Style.QUOTE to "#F0EFEC",Style.STAT to "#E8E9EB")
+  val board=Bitmap.createBitmap(1080,720,Bitmap.Config.ARGB_8888);val canvas=Canvas(board);canvas.drawColor(Color.rgb(30,34,40))
+  val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  for((i,style)in Style.entries.withIndex()){
+   val p=Project(title=title,summary=summary,style=style)
+   val plan=StudioRenderer.plan(c,p);val rect=requireNotNull(StudioRenderer.logoBox(plan))
+   val bitmap=StudioRenderer.draw(c,plan,0)
+   val expected=Color.parseColor(requireNotNull(backgrounds[style]))
+   // This exact pixel was the white support rectangle in version 1.7.0.
+   assertEquals("White backing returned: $style",expected,bitmap.getPixel((rect.left-5).toInt(),(rect.top+10).toInt()))
+   assertEquals("Counter must reveal header: $style",expected,bitmap.getPixel((rect.left+425*rect.width()/1264).toInt(),(rect.top+215*rect.width()/1264).toInt()))
+   canvas.drawBitmap(bitmap,Rect(0,120,1080,390),RectF((i%2)*540f,(i/2)*240f,(i%2)*540f+540,(i/2)*240f+135),paint)
+   val caption=StudioRenderer.layout(style.fa,480,25f,StudioFont.ESTEDAD.bodyFace(c),Color.rgb(240,240,240))
+   canvas.save();canvas.translate((i%2)*540f+30,(i/2)*240f+160);caption.draw(canvas);canvas.restore()
+   bitmap.recycle()
+  }
+  save("brand-header-variants",board);board.recycle()
  }
  @Test fun typographyChoicesPreview(){
   val board=Bitmap.createBitmap(1128,724,Bitmap.Config.ARGB_8888);val canvas=Canvas(board)

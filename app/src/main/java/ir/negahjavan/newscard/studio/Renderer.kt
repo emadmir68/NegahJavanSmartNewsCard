@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.text.LineBreaker
 import android.text.*
-import ir.negahjavan.newscard.R
 import kotlin.math.*
 
 data class Page(val title:String,val body:String,val titleSize:Float,val kind:String="cover")
@@ -36,20 +35,13 @@ object StudioRenderer{
  }
  private const val BODY_SPACING=1.16f
  private fun bodyLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE)=layout(text,w,p.bodySize*s,p.bodyFont.bodyFace(c),color,spacing=BODY_SPACING)
- private fun logoSize(p:Project,s:Float):Pair<Float,Float>{
-  if(p.fullLogo){val d=64*s*p.brandSize/12f;return d to d}
-  val w=126*s*p.brandSize/12f
-  return w to w*540f/1264f
- }
- private fun brandHeight(c:Context,p:Project,width:Int,s:Float)=if(p.useLogo)logoSize(p,s).second else max(28*s,brandLayout(c,p,width,s).height.toFloat())
+ private fun brandHeight(c:Context,p:Project,width:Int,s:Float)=if(p.useLogo)StudioBrandMark.size(p,s).second else max(28*s,brandLayout(c,p,width,s).height.toFloat())
  fun logoBox(plan:Plan):RectF?{
   val p=plan.project;if(!p.showBrand||!p.useLogo)return null
-  val s=min(plan.width,plan.height)/360f;val(w,h)=logoSize(p,s)
+  val s=min(plan.width,plan.height)/360f;val(w,h)=StudioBrandMark.size(p,s)
   val y=(if(plan.height>plan.width*1.5f)52 else 26)*s
   return RectF(plan.width-24*s-w,y,plan.width-24*s,y+h)
  }
- @Volatile private var cachedLogo:Bitmap?=null
- private fun logo(c:Context):Bitmap=cachedLogo?:synchronized(this){cachedLogo?:requireNotNull(BitmapFactory.decodeResource(c.resources,R.drawable.negahjavan_logo,BitmapFactory.Options().apply{inScaled=false})).also{cachedLogo=it}}
  private fun label(p:Project,kind:String)=when(kind){
   "article","continued","title"->"ادامهٔ خبر"
   "closing"->"همراه ما"
@@ -238,14 +230,7 @@ object StudioRenderer{
     }
     val logoRect=logoBox(plan)
     if(logoRect!=null){
-     val b=logo(c)
-     // Display pixels from the uploaded logo. Keep the untouched full asset in the APK.
-     val source=if(p.fullLogo)Rect(0,0,b.width,b.height)else Rect((b.width*140f/1536).toInt(),(b.height*466f/1536).toInt(),(b.width*1404f/1536).toInt(),(b.height*1006f/1536).toInt())
-     paint.color=Color.WHITE
-     if(p.fullLogo)canvas.drawOval(RectF(logoRect).apply{inset(-2*s,-2*s)},paint)else canvas.drawRect(RectF(logoRect).apply{inset(-5*s,-5*s)},paint)
-     canvas.save()
-     if(p.fullLogo)canvas.clipPath(Path().apply{addOval(logoRect,Path.Direction.CW)})
-     canvas.drawBitmap(b,source,logoRect,paint);canvas.restore()
+     StudioBrandMark.draw(c,canvas,logoRect,p,s)
     }else{
      val brand=brandLayout(c,p,plan.width,s,headerInk)
      drawLayout(brand,118*s,headerY+(headerH-brand.height)/2)
