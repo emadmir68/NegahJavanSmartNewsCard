@@ -258,6 +258,9 @@ class StudioRegressionTest{
   assertTrue(noNumber.pages.all{it.feature.isEmpty()})
   val decimal=StudioRenderer.plan(c,Project(title="تغییر شاخص به −۱۲٫۵ درصد رسید",style=Style.STAT))
   assertEquals("−۱۲٫۵ درصد",decimal.pages.first().feature)
+  val word=StudioRenderer.plan(c,Project(title="۲۰ مترجم در برنامه شرکت کردند",style=Style.STAT))
+  assertEquals("۲۰",word.pages.first().feature)
+  assertTrue(word.pages.first().visualTitle.contains("مترجم"))
  }
  @Test fun quotationAttributionIsSeparateAndNeverTruncated(){
   for(byline in listOf("گویندهٔ نمونه",("شرح گوینده و سمت سازمانی ").repeat(100))){
@@ -266,6 +269,7 @@ class StudioRegressionTest{
    assertEquals(summary,normalized(plan.pages.joinToString(" "){it.body}))
    for(page in plan.pages)assertTrue(StudioRenderer.blockHeight(c,plan,page)<=StudioRenderer.pageBox(plan,page).height()+1)
   }
+  assertTrue(Project(title=title,style=Style.QUOTE,byline="گویندهٔ نمونه").caption().contains("گویندهٔ نمونه"))
   val pages=listOf(Page("خبر","",26f,byline="الف".repeat(300)),Page("پایان","",26f))
   assertEquals(0,StudioVideo.pageAt(15_000_000,24000,pages))
  }

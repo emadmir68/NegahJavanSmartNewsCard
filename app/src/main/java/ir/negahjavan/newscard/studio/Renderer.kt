@@ -65,7 +65,7 @@ object StudioRenderer{
   val labelHeight=if(label(p,kind).isBlank())0f else labelLayout(c,p,w,s,kind,Color.WHITE).height+10*s
   return labelHeight+if(p.style==Style.QUOTE&&kind=="cover")30*s else 0f
  }
- private val metric=Regex("[+−-]?[0-9۰-۹٠-٩]+(?:[٫.,٬][0-9۰-۹٠-٩]+)*(?:[ \\u00a0]*(?:درصد|میلیون|میلیارد|تومان|ریال|دلار|نفر|کیلومتر|متر|٪))*")
+ private val metric=Regex("[+−-]?[0-9۰-۹٠-٩]+(?:[٫.,٬][0-9۰-۹٠-٩]+)*(?:[ \\u00a0]*(?:درصد|میلیون|میلیارد|تومان|ریال|دلار|نفر|کیلومتر|متر|٪)(?![\\p{L}\\p{N}_]))*")
  private fun cover(p:Project,text:String,size:Float,feature:Boolean=true):Page{
   val match=if(feature&&p.style==Style.STAT&&text.length<=180)metric.find(text)else null
   return if(match==null)Page(text,"",size)else Page(text,"",size,feature=match.value,visualTitle=text.removeRange(match.range).trim().replace(Regex("[ \\t]{2,}")," "))

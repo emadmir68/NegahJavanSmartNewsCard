@@ -31,7 +31,7 @@ data class Project(
  val site:String="negahjavan.ir",val showSite:Boolean=true,val category:String="خبر",val byline:String="",
  val carousel:Boolean=false,val closingText:String="",val fullHd:Boolean=true,val exports:List<String> = emptyList()
 ){
- fun caption()=listOf(title.trim(),article.ifBlank{summary}.trim(),if(showBrand)brand else "",if(showSite)site else "").filter{it.isNotBlank()}.distinct().joinToString("\n\n")
+ fun caption()=listOf(title.trim(),article.ifBlank{summary}.trim(),if(style==Style.QUOTE)byline.trim()else "",if(showBrand)brand else "",if(showSite)site else "").filter{it.isNotBlank()}.distinct().joinToString("\n\n")
  fun json()=JSONObject().apply{
   put("id",id);put("name",name);put("raw",raw);put("title",title);put("summary",summary);put("article",article)
   put("image",image);put("video",video);put("mode",mode);put("ratio",ratio.name);put("font",font.name);put("style",style.name);put("bodyFont",bodyFont.name);put("typographyVersion",2)
