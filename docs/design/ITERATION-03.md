@@ -10,4 +10,6 @@ Text pagination measures the exact label width, quote reserve and headline/body 
 
 Native Android screenshots include the same synthetic sample used in 1.5.9, a six-template contact sheet and a direct before/after comparison. The comparison is intentionally based on the same source image and copy. Visual approval belongs to the user; successful geometry and rendering tests do not establish aesthetic approval.
 
+Saved exports carry the renderer build version. Opening an older saved project invalidates only its cached export references so Share generates the current design rather than silently sharing a previous-version card. Gallery files and all editable project fields are preserved.
+
 Validation is provided by CI test reports, Android lint, APK assembly and inspection of the resulting native screenshots. Real-device video and Instagram delivery are not verified by this environment.

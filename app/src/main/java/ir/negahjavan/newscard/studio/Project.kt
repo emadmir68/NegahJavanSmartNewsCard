@@ -3,6 +3,7 @@ package ir.negahjavan.newscard.studio
 import android.content.Context
 import android.graphics.Typeface
 import android.util.AtomicFile
+import ir.negahjavan.newscard.BuildConfig
 import ir.negahjavan.newscard.R
 import org.json.JSONObject
 import java.io.File
@@ -35,7 +36,7 @@ data class Project(
   put("auto",auto);put("titleSize",titleSize);put("bodySize",bodySize);put("position",position.name)
   put("crop",crop);put("x",x);put("y",y);put("zoom",zoom);put("videoCrop",videoCrop);put("vx",vx);put("vy",vy);put("vz",vz)
   put("brand",brand);put("showBrand",showBrand);put("brandSize",brandSize);put("site",site);put("showSite",showSite)
-  put("category",category);put("byline",byline);put("carousel",carousel);put("closingText",closingText);put("fullHd",fullHd);put("exports",org.json.JSONArray(exports))
+  put("category",category);put("byline",byline);put("carousel",carousel);put("closingText",closingText);put("fullHd",fullHd);put("exports",org.json.JSONArray(exports));put("exportRendererVersion",BuildConfig.VERSION_CODE)
  }
  companion object{
   fun read(j:JSONObject):Project{
@@ -44,7 +45,7 @@ data class Project(
     ratio=Ratio.entries.firstOrNull{it.name==j.optString("ratio")}?:Ratio.STORY,font=StudioFont.entries.firstOrNull{it.name==j.optString("font")}?:StudioFont.VAZIR,style=Style.entries.firstOrNull{it.name==j.optString("style")}?:Style.SIGNATURE,
     auto=j.optBoolean("auto",true),titleSize=f("titleSize",21f,16f,40f),bodySize=f("bodySize",12f,10f,18f),position=Position.entries.firstOrNull{it.name==j.optString("position")}?:Position.AUTO,
     crop=j.optBoolean("crop"),x=f("x",.5f,0f,1f),y=f("y",.5f,0f,1f),zoom=f("zoom",1f,1f,3f),videoCrop=j.optBoolean("videoCrop"),vx=f("vx",.5f,0f,1f),vy=f("vy",.5f,0f,1f),vz=f("vz",1f,1f,3f),
-    brand=j.optString("brand","نگاه جوان"),showBrand=j.optBoolean("showBrand",true),brandSize=f("brandSize",12f,8f,18f),site=j.optString("site","negahjavan.ir"),showSite=j.optBoolean("showSite",true),category=j.optString("category","خبر"),byline=j.optString("byline"),carousel=j.optBoolean("carousel"),closingText=j.optString("closingText"),fullHd=j.optBoolean("fullHd",true),exports=j.optJSONArray("exports")?.let{a->List(a.length()){a.getString(it)}}?:emptyList())
+    brand=j.optString("brand","نگاه جوان"),showBrand=j.optBoolean("showBrand",true),brandSize=f("brandSize",12f,8f,18f),site=j.optString("site","negahjavan.ir"),showSite=j.optBoolean("showSite",true),category=j.optString("category","خبر"),byline=j.optString("byline"),carousel=j.optBoolean("carousel"),closingText=j.optString("closingText"),fullHd=j.optBoolean("fullHd",true),exports=if(j.optInt("exportRendererVersion",0)==BuildConfig.VERSION_CODE)j.optJSONArray("exports")?.let{a->List(a.length()){a.getString(it)}}?:emptyList()else emptyList())
   }
  }
 }
