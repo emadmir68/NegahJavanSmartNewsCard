@@ -16,7 +16,7 @@ object StudioRenderer{
   }
   return StaticLayout.Builder.obtain(safe,0,safe.length,TextPaint(Paint.ANTI_ALIAS_FLAG).apply{textSize=size;typeface=font;this.color=color},width.coerceAtLeast(1))
    .setTextDirection(if(rtl)TextDirectionHeuristics.RTL else TextDirectionHeuristics.FIRSTSTRONG_LTR).setAlignment(Layout.Alignment.ALIGN_NORMAL)
-   .setBreakStrategy(LineBreaker.BREAK_STRATEGY_BALANCED).setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE).setIncludePad(true).setLineSpacing(0f,1.04f).build()
+   .setBreakStrategy(LineBreaker.BREAK_STRATEGY_BALANCED).setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE).setIncludePad(true).setLineSpacing(0f,1.08f).build()
  }
  fun split(text:String,width:Int,height:Float,size:Float,font:Typeface):List<String>{
   if(text.isBlank())return emptyList()
@@ -40,8 +40,8 @@ object StudioRenderer{
  }
  private fun reserve(c:Context,p:Project,w:Int,s:Float,kind:String):Float{
   val category=label(p,kind)
-  val labelHeight=if(category.isBlank())0f else layout(category,w,9*s,p.font.face(c)).height+12*s
-  val quote=if(p.style==Style.QUOTE&&kind=="cover")layout("“",w,26*s,p.font.face(c)).height+2*s else 0f
+  val labelHeight=if(category.isBlank())0f else layout(category,(w-22*s).toInt(),9*s,p.font.face(c)).height+16*s
+  val quote=if(p.style==Style.QUOTE&&kind=="cover")38*s else 0f
   return labelHeight+quote
  }
  fun pageBox(plan:Plan,page:Page)=RectF(if(page.kind=="cover")plan.text else plan.fullText)
@@ -52,10 +52,10 @@ object StudioRenderer{
   return reserve(c,p,w,s,page.kind)+2*pad+
    (if(page.title.isBlank())0 else layout(page.title,w,page.titleSize*s,p.font.face(c)).height)+
    (if(page.body.isBlank())0 else layout(page.body,w,p.bodySize*s,p.font.bodyFace(c)).height)+
-   (if(page.title.isNotBlank()&&page.body.isNotBlank())12*s else 0f)
+   (if(page.title.isNotBlank()&&page.body.isNotBlank())16*s else 0f)
  }
  private fun brandLayout(c:Context,p:Project,width:Int,s:Float,color:Int=Color.WHITE):StaticLayout{
-  val font=p.font.face(c);val w=(width-60*s).toInt();var size=p.brandSize*s
+  val font=p.font.face(c);val w=(width-142*s).toInt();var size=p.brandSize*s
   while(layout(p.brand,w,size,font).lineCount>1&&size>6*s)size-=.5f*s
   return layout(p.brand,w,size,font,color)
  }
@@ -64,8 +64,8 @@ object StudioRenderer{
   require(p.brand.length<=60&&p.site.length<=80&&p.category.length<=30){"نام رسانه، نشانی یا دسته‌بندی بیش از اندازه طولانی است."}
   val s=min(width,height)/360f;val margin=24*s;val story=height>width*1.5f
   val headerY=(if(story)52 else 26)*s
-  val top=if(p.showBrand)max((if(story)90 else 66)*s,headerY+brandLayout(c,p,width,s).height+24*s)else (if(story)64 else 26)*s
-  val bottom=height-(if(story)84 else 56)*s
+  val top=if(p.showBrand)headerY+max(28*s,brandLayout(c,p,width,s).height)+28*s else (if(story)64 else 32)*s
+  val bottom=height-(if(story)100 else 66)*s
   val full=RectF(margin,top,width-margin,bottom)
   val box=RectF(full);var image:RectF?=null
   val font=p.font.face(c);val bodyFont=p.font.bodyFace(c)
@@ -74,19 +74,20 @@ object StudioRenderer{
    image=RectF(full)
    val portraitColumn=!p.crop&&photo.height>photo.width*1.15f&&height<width*1.5f
    if(width>height*1.3f||portraitColumn){
-    image.right=width*(if(portraitColumn).46f else .48f);box.left=image.right+18*s
+    image.right=width*(if(portraitColumn).43f else .46f);box.left=image.right+18*s
    }else{
-    val gap=(if(p.style==Style.EDITORIAL)20 else 16)*s
+    val gap=(if(p.style==Style.EDITORIAL)26 else 24)*s
+    box.inset(10*s,0f)
     val textWidth=box.width().toInt()
     val measured=reserve(c,p,textWidth,s,"cover")+layout(p.title,textWidth,p.titleSize*s,font).height+
-     (if(p.summary.isBlank())0 else min(layout(p.summary,textWidth,p.bodySize*s,bodyFont).height,layout("آ",textWidth,p.bodySize*s,bodyFont).height*3))+12*s
+     (if(p.summary.isBlank())0 else min(layout(p.summary,textWidth,p.bodySize*s,bodyFont).height,layout("آ",textWidth,p.bodySize*s,bodyFont).height*3))+16*s
     val minTitleSize=(if(p.auto)min(p.titleSize,16f)else p.titleSize)*s
     val firstLine=layout(p.title,textWidth,minTitleSize,font)
     val oneLine=layout(p.title.substring(0,firstLine.getLineEnd(0)).trimEnd(),textWidth,minTitleSize,font).height
     val minimum=reserve(c,p,textWidth,s,"cover")+oneLine+8*s
     val textHeight=measured.coerceIn(max(full.height()*.27f,minimum),max(full.height()*.59f,minimum))
     val natural=box.width()*photo.height/photo.width
-    val preferred=when(p.style){Style.PHOTO->.57f;Style.EDITORIAL->.43f;Style.BREAKING->.55f;Style.QUOTE->.35f;else->.49f}
+    val preferred=when(p.style){Style.PHOTO->.62f;Style.EDITORIAL->.45f;Style.BREAKING->.54f;Style.QUOTE->.32f;Style.STAT->.42f;else->.49f}
     val photoHeight=min(natural, min(full.height()*preferred,full.height()-textHeight-gap)).coerceAtLeast(24*s)
     if(p.style==Style.BREAKING){
      box.bottom=full.top+textHeight
@@ -103,7 +104,7 @@ object StudioRenderer{
   val fullAvailable=full.height()-2*pad-reserve(c,p,fw,s,"continued")
   require(available>35*s){"فضای قابل استفاده برای این چیدمان کافی نیست."}
   var size=p.titleSize*s
-  val bodyReserve=if(p.summary.isBlank())0f else min(available*.40f,layout(p.summary,w,p.bodySize*s,bodyFont).height.toFloat())+12*s
+  val bodyReserve=if(p.summary.isBlank())0f else min(available*.40f,layout(p.summary,w,p.bodySize*s,bodyFont).height.toFloat())+16*s
   if(p.auto)while(size>16*s&&layout(p.title,w,size,font).height>available-bodyReserve)size=max(16*s,size-s)
   val first=split(p.title,w,available,size,font).first()
   val pages=mutableListOf(Page(first,"",size/s))
@@ -112,7 +113,7 @@ object StudioRenderer{
   var summary=listOf(p.summary,if(p.style==Style.QUOTE)p.byline else "").map{it.trim()}.filter{it.isNotBlank()}.joinToString("\n")
   if(summary.isNotBlank()){
    val last=pages.last();val lw=if(last.kind=="cover")w else fw
-   val remaining=(if(last.kind=="cover")available else fullAvailable)-layout(last.title,lw,size,font).height-12*s
+   val remaining=(if(last.kind=="cover")available else fullAvailable)-layout(last.title,lw,size,font).height-16*s
    if(remaining>=layout("آ",lw,p.bodySize*s,bodyFont).height){
     val firstBody=split(summary,lw,remaining,p.bodySize*s,bodyFont).first()
     pages[pages.lastIndex]=last.copy(body=firstBody);summary=summary.substring(firstBody.length).trimStart()
@@ -152,90 +153,189 @@ object StudioRenderer{
   }
   canvas.restore()
  }
+ private data class Palette(val background:Int,val surface:Int,val ink:Int,val muted:Int,val accent:Int,val chrome:Int)
+ private fun palette(style:Style):Palette{
+  fun c(hex:String)=Color.parseColor(hex)
+  return when(style){
+   Style.SIGNATURE->Palette(c("#081F1C"),c("#F2ECDF"),c("#193A31"),c("#53665C"),c("#AC854D"),c("#F4ECDD"))
+   Style.EDITORIAL->Palette(c("#F1EEE4"),c("#F1EEE4"),c("#203A31"),c("#5F695F"),c("#977344"),c("#203A31"))
+   Style.PHOTO->Palette(c("#101A20"),c("#15282A"),c("#F5F0E4"),c("#B5C5BF"),c("#D2B782"),c("#F5F0E4"))
+   Style.BREAKING->Palette(c("#171B1D"),c("#22282A"),c("#F6F0E7"),c("#BBC4BE"),c("#E37D69"),c("#F6F0E7"))
+   Style.QUOTE->Palette(c("#EAE3D5"),c("#F8F3E9"),c("#303C32"),c("#626A5D"),c("#9B7544"),c("#303C32"))
+   Style.STAT->Palette(c("#DAE5DD"),c("#123E34"),c("#F6F2E7"),c("#B9D3C3"),c("#E5C87F"),c("#173E33"))
+  }
+ }
+ fun contentTop(c:Context,plan:Plan,page:Page):Float{
+  val p=plan.project;val box=pageBox(plan,page)
+  val factor=when(p.position){
+   Position.TOP->0f;Position.CENTER->.5f;Position.BOTTOM->1f
+   Position.AUTO->if(plan.overlay)1f else if(plan.photo!=null&&page.kind=="cover"||page.kind!="cover")0f else when(p.style){Style.EDITORIAL,Style.BREAKING->.12f;Style.QUOTE->.20f;else->.24f}
+  }
+  return box.top+max(0f,box.height()-blockHeight(c,plan,page))*factor
+ }
+ fun surfaceBox(c:Context,plan:Plan,page:Page):RectF{
+  val s=min(plan.width,plan.height)/360f;val box=pageBox(plan,page)
+  val y=contentTop(c,plan,page);val actual=blockHeight(c,plan,page)
+  return if(plan.overlay)RectF(box.left,y,box.right,y+actual)else RectF(box.left-10*s,y-18*s,box.right+10*s,y+actual+20*s)
+ }
+ private fun diamond(canvas:Canvas,x:Float,y:Float,r:Float,paint:Paint){
+  canvas.drawPath(Path().apply{moveTo(x,y-r);lineTo(x+r,y);lineTo(x,y+r);lineTo(x-r,y);close()},paint)
+ }
+ private fun emblem(canvas:Canvas,x:Float,y:Float,s:Float,color:Int,paint:Paint){
+  paint.color=color;paint.style=Paint.Style.STROKE;paint.strokeWidth=.85f*s
+  diamond(canvas,x,y,16*s,paint)
+  val lens=Path().apply{moveTo(x-10*s,y);quadTo(x,y-11*s,x+10*s,y);quadTo(x,y+11*s,x-10*s,y)}
+  canvas.drawPath(lens,paint);canvas.drawCircle(x,y,3.2f*s,paint)
+  paint.style=Paint.Style.FILL;canvas.drawCircle(x,y,1.1f*s,paint)
+ }
+ private fun foil(paint:Paint,x:Float,y:Float,right:Float,bottom:Float){
+  paint.shader=LinearGradient(x,y,right,bottom,intArrayOf(Color.rgb(112,81,43),Color.rgb(223,202,153),Color.rgb(153,113,58),Color.rgb(238,219,177)),floatArrayOf(0f,.38f,.7f,1f),Shader.TileMode.CLAMP)
+ }
+ private fun background(canvas:Canvas,plan:Plan,t:Palette,s:Float,paint:Paint){
+  val w=plan.width.toFloat();val h=plan.height.toFloat();val style=plan.project.style
+  canvas.drawColor(t.background)
+  if(style==Style.SIGNATURE||style==Style.PHOTO||style==Style.BREAKING){
+   val glow=when(style){Style.SIGNATURE->Color.rgb(37,78,60);Style.PHOTO->Color.rgb(39,60,65);else->Color.rgb(62,40,39)}
+   paint.shader=RadialGradient(w*.9f,h*.15f,h*.85f,glow,t.background,Shader.TileMode.CLAMP)
+   canvas.drawRect(0f,0f,w,h,paint);paint.shader=null
+  }
+  // Engraved arcs are decoration, never invented data or extra headline copy.
+  paint.color=when(style){Style.SIGNATURE->Color.argb(34,211,183,121);Style.PHOTO->Color.argb(24,209,190,149);Style.BREAKING->Color.argb(25,232,120,98);else->Color.argb(22,79,96,73)}
+  paint.style=Paint.Style.STROKE;paint.strokeWidth=.6f*s
+  for(i in 0..4)canvas.drawCircle(20*s,h-70*s,(76+i*13)*s,paint)
+  paint.style=Paint.Style.FILL
+  if(style==Style.EDITORIAL){
+   paint.color=Color.argb(25,139,116,73)
+   canvas.drawRect(12*s,14*s,14*s,h-14*s,paint)
+  }
+  if(style==Style.SIGNATURE){
+   foil(paint,0f,0f,w,h);paint.style=Paint.Style.STROKE;paint.strokeWidth=.7f*s
+   canvas.drawRect(12*s,(if(h>w*1.5f)38 else 12)*s,w-12*s,h-(if(h>w*1.5f)38 else 12)*s,paint)
+   paint.shader=null;paint.style=Paint.Style.FILL
+  }
+  if(style==Style.BREAKING){paint.color=t.accent;canvas.drawRect(w-8*s,0f,w,h,paint)}
+ }
+ private fun photoFinish(canvas:Canvas,frame:RectF,style:Style,t:Palette,s:Float,paint:Paint){
+  if(style==Style.PHOTO)return
+  paint.style=Paint.Style.STROKE;paint.strokeWidth=.8f*s
+  paint.color=if(style==Style.STAT)Color.rgb(78,116,93)else t.accent
+  if(style==Style.SIGNATURE||style==Style.QUOTE)foil(paint,frame.left,frame.top,frame.right,frame.bottom)
+  canvas.drawRect(RectF(frame).apply{inset(-3*s,-3*s)},paint)
+  paint.shader=null;paint.style=Paint.Style.FILL
+  // Corner bars survive thumbnail size, unlike a hairline by itself.
+  val length=26*s;paint.color=if(style==Style.STAT)Color.rgb(36,82,63)else t.accent
+  canvas.drawRect(frame.right-length,frame.top-3*s,frame.right+3*s,frame.top,paint)
+  canvas.drawRect(frame.right,frame.top-3*s,frame.right+3*s,frame.top+length,paint)
+  canvas.drawRect(frame.left-3*s,frame.bottom,frame.left+length,frame.bottom+3*s,paint)
+ }
  fun draw(c:Context,plan:Plan,index:Int,photo:Bitmap?=null):Bitmap{
-  val p=plan.project;val page=plan.pages[index];val s=min(plan.width,plan.height)/360f
-  val light=p.style==Style.EDITORIAL||p.style==Style.QUOTE
-  val bg=if(light)Color.rgb(247,243,233)else if(p.style==Style.BREAKING)Color.rgb(23,17,21)else Color.rgb(10,30,29)
-  val ink=if(light)Color.rgb(25,40,35)else Color.rgb(246,242,231)
-  val muted=if(light)Color.rgb(83,95,87)else Color.rgb(184,199,190)
-  val accent=if(p.style==Style.BREAKING)Color.rgb(239,91,84)else if(p.style==Style.STAT)Color.rgb(53,174,156)else Color.rgb(184,151,92)
-  val font=p.font.face(c);val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  val p=plan.project;val page=plan.pages[index];val s=min(plan.width,plan.height)/360f;val t=palette(p.style)
+  val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG);val font=p.font.face(c)
   val bitmap=Bitmap.createBitmap(plan.width,plan.height,Bitmap.Config.ARGB_8888)
   try{
-   val canvas=Canvas(bitmap)
-   if(!plan.overlay){
-    canvas.drawColor(bg)
-    if(!light){val glow=when(p.style){Style.BREAKING->Color.rgb(62,26,30);Style.PHOTO->Color.rgb(30,48,60);else->Color.rgb(28,64,54)};paint.shader=RadialGradient(plan.width*.85f,plan.height*.15f,plan.height*.9f,glow,bg,Shader.TileMode.CLAMP);canvas.drawRect(0f,0f,plan.width.toFloat(),plan.height.toFloat(),paint);paint.shader=null}
-   }
+   val canvas=Canvas(bitmap);val margin=24*s;val story=plan.height>plan.width*1.5f
+   if(!plan.overlay)background(canvas,plan,t,s,paint)
    val visiblePhoto=photo!=null&&plan.photo!=null&&page.kind=="cover"
-   if(visiblePhoto)this.photo(canvas,requireNotNull(photo),requireNotNull(plan.photo),p,paint)
-   val margin=24*s
-   fun text(value:String,x:Float,y:Float,w:Int,size:Float,color:Int=ink):Int{
-    if(value.isBlank())return 0
-    val l=layout(value,w,size,font,color);canvas.save();canvas.translate(x,y);l.draw(canvas);canvas.restore();return l.height
+   if(visiblePhoto){
+    val frame=requireNotNull(plan.photo)
+    this.photo(canvas,requireNotNull(photo),frame,p,paint)
+    photoFinish(canvas,frame,p.style,t,s,paint)
    }
-   val story=plan.height>plan.width*1.5f
+   fun drawLayout(l:StaticLayout,x:Float,y:Float){canvas.save();canvas.translate(x,y);l.draw(canvas);canvas.restore()}
+   fun persian(n:Int)=n.toString().padStart(2,'0').map{if(it in '0'..'9')'۰'+(it-'0')else it}.joinToString("")
    val headerY=(if(story)52 else 26)*s
-   val masthead=brandLayout(c,p,plan.width,s,if(plan.overlay)Color.WHITE else ink)
-   if(!plan.overlay){
-    // A restrained masthead and a consistent green/gold signature leave the headline in charge.
-    if(p.showBrand){
-     paint.color=if(light)Color.rgb(212,210,199)else Color.rgb(63,82,72);paint.strokeWidth=.45f*s
-     canvas.drawLine(margin,headerY+masthead.height+8*s,plan.width-margin,headerY+masthead.height+8*s,paint)
-     paint.color=accent;canvas.drawRect(plan.width-margin-2*s,headerY+3*s,plan.width-margin,headerY+17*s,paint)
-    }
-    if(p.style==Style.SIGNATURE){
-     paint.color=Color.argb(100,184,151,92);paint.style=Paint.Style.STROKE;paint.strokeWidth=.5f*s
-     canvas.drawRect(12*s,(if(story)40 else 14)*s,plan.width-12*s,plan.height-(if(story)43 else 14)*s,paint)
-     paint.style=Paint.Style.FILL
-    }
-   }
+   val masthead=brandLayout(c,p,plan.width,s,t.chrome)
    if(p.showBrand){
-    if(plan.overlay){paint.color=Color.argb(210,10,25,23);canvas.drawRoundRect(RectF(margin,headerY-2*s,plan.width-margin,headerY+masthead.height+4*s),3*s,3*s,paint)}
-    canvas.save();canvas.translate(margin,headerY);masthead.draw(canvas);canvas.restore()
+    val headerH=max(28*s,masthead.height.toFloat())
+    if(plan.overlay){
+     paint.color=t.background;paint.alpha=242
+     canvas.drawRoundRect(RectF(margin-8*s,headerY-7*s,plan.width-margin+8*s,headerY+headerH+6*s),3*s,3*s,paint);paint.alpha=255
+    }
+    emblem(canvas,plan.width-margin-16*s,headerY+14*s,s,if(p.style==Style.STAT)t.chrome else t.accent,paint)
+    drawLayout(masthead,margin+52*s,headerY+(headerH-masthead.height)/2)
+    paint.typeface=Typeface.create("serif",Typeface.NORMAL);paint.textSize=28*s;paint.color=t.chrome;paint.alpha=160
+    canvas.drawText(persian(index+1),margin,headerY+24*s,paint);paint.alpha=255
+    if(!plan.overlay){
+     paint.color=t.chrome;paint.alpha=60;paint.strokeWidth=.65f*s
+     canvas.drawLine(margin,headerY+headerH+10*s,plan.width-margin,headerY+headerH+10*s,paint);paint.alpha=255
+     paint.color=if(p.style==Style.STAT)t.chrome else t.accent
+     canvas.drawRect(plan.width-margin-40*s,headerY+headerH+9*s,plan.width-margin,headerY+headerH+11*s,paint)
+    }
    }
-
-   val box=pageBox(plan,page)
-   val panel=plan.overlay
-   val pad=if(panel)14*s else 0f;val w=(box.width()-pad*2).toInt()
-   val title=if(page.title.isBlank())null else layout(page.title,w,page.titleSize*s,font,ink,emphasis=if(p.style==Style.STAT)accent else null)
-   val body=if(page.body.isBlank())null else layout(page.body,w,p.bodySize*s,p.font.bodyFace(c),muted)
-   val gap=if(title!=null&&body!=null)12*s else 0f
-   val actual=blockHeight(c,plan,page)
-   val factor=when(p.position){Position.AUTO->if(plan.overlay)1f else if(visiblePhoto||page.kind=="article"||page.kind=="continued"||page.kind=="title")0f else when(p.style){Style.EDITORIAL,Style.BREAKING->.12f;Style.PHOTO->.28f;Style.QUOTE->.25f;Style.STAT->.20f;else->.20f};Position.TOP->0f;Position.CENTER->.5f;Position.BOTTOM->1f}
-   var y=box.top+max(0f,box.height()-actual)*factor
-   if(panel){paint.color=if(light)Color.argb(244,247,243,233)else Color.argb(233,8,25,25);canvas.drawRoundRect(RectF(box.left,y,box.right,y+actual),6*s,6*s,paint)}
-   y+=pad
+   val box=pageBox(plan,page);val pad=if(plan.overlay)14*s else 0f;val w=(box.width()-2*pad).toInt()
+   val plate=surfaceBox(c,plan,page)
+   val plated=p.style!=Style.EDITORIAL||plan.overlay
+   if(plated){
+    paint.color=t.surface
+    if(!plan.overlay&&(p.style==Style.SIGNATURE||p.style==Style.QUOTE||p.style==Style.PHOTO))paint.setShadowLayer(9*s,0f,5*s,Color.argb(65,0,0,0))
+    canvas.drawRoundRect(plate,2*s,2*s,paint);paint.clearShadowLayer()
+    if(p.style==Style.SIGNATURE){
+     foil(paint,plate.left,plate.top,plate.right,plate.bottom);paint.style=Paint.Style.STROKE;paint.strokeWidth=.65f*s
+     canvas.drawRect(RectF(plate).apply{inset(4*s,4*s)},paint);paint.shader=null;paint.style=Paint.Style.FILL
+    }else if(p.style==Style.QUOTE){
+     paint.color=t.accent;canvas.drawRect(plate.right-3*s,plate.top,plate.right,plate.bottom,paint)
+    }else if(p.style==Style.STAT||p.style==Style.PHOTO){
+     paint.color=t.accent;canvas.drawRect(plate.left,plate.top,plate.left+44*s,plate.top+3*s,paint)
+    }else if(p.style==Style.BREAKING){
+     paint.color=t.accent;canvas.drawRect(plate.right-3*s,plate.top,plate.right,plate.bottom,paint)
+    }
+   }
+   var y=contentTop(c,plan,page)+pad
    val category=label(p,page.kind)
    if(category.isNotBlank()){
-    val categoryLayout=layout(category,w,9*s,font,accent)
-    if(!plan.overlay&&p.style==Style.BREAKING&&page.kind=="cover"){
-     paint.color=accent
-     val badgeWidth=min(w.toFloat(),categoryLayout.getLineWidth(0)+16*s)
-     canvas.drawRect(box.right-pad-badgeWidth,y,box.right-pad,y+categoryLayout.height+4*s,paint)
-     text(category,box.left+pad-8*s,y+2*s,w,9*s,Color.WHITE)
-    }else text(category,box.left+pad,y,w,9*s,accent)
-    y+=categoryLayout.height+12*s
+    val labelWidth=(w-22*s).toInt()
+    val cat=layout(category,labelWidth,9*s,font,t.accent)
+    val lineWidth=(0 until cat.lineCount).maxOf{cat.getLineWidth(it)}
+    val badgeWidth=min(w.toFloat(),lineWidth+20*s)
+    if(p.style==Style.BREAKING&&page.kind=="cover"){
+     paint.color=t.accent;canvas.drawRect(box.right-pad-badgeWidth,y-3*s,box.right-pad,y+cat.height+3*s,paint)
+     drawLayout(layout(category,labelWidth,9*s,font,Color.rgb(28,30,30)),box.left+pad+11*s,y)
+    }else{
+     drawLayout(cat,box.left+pad+22*s,y)
+     paint.color=t.accent
+     diamond(canvas,box.right-pad-lineWidth-10*s,y+cat.height/2,2.2f*s,paint)
+     if(w-badgeWidth>32*s){
+      paint.alpha=80;paint.strokeWidth=.65f*s
+      canvas.drawLine(box.left+pad,y+cat.height/2,box.right-pad-badgeWidth-8*s,y+cat.height/2,paint);paint.alpha=255
+     }
+    }
+    y+=cat.height+16*s
    }
-   if(p.style==Style.QUOTE&&page.kind=="cover")y+=text("“",box.left+pad,y,w,26*s,accent)+2*s
-
-   fun drawLayout(l:StaticLayout){canvas.save();canvas.translate(box.left+pad,y);l.draw(canvas);canvas.restore();y+=l.height}
-   title?.let{drawLayout(it);y+=gap};body?.let{drawLayout(it)}
-   val footer=plan.height-(if(plan.height>plan.width*1.5f)63 else 32)*s
-   if(plan.overlay&&(p.showSite||plan.pages.size>1)){paint.color=if(light)Color.argb(235,247,243,233)else Color.argb(210,8,25,25);canvas.drawRoundRect(RectF(margin-5*s,footer-12*s,plan.width-margin+5*s,footer+22*s),4*s,4*s,paint)}
+   if(p.style==Style.QUOTE&&page.kind=="cover"){
+    paint.typeface=Typeface.create("serif",Typeface.NORMAL);paint.textSize=72*s;paint.color=t.accent
+    canvas.drawText("“",box.right-pad-32*s,y+48*s,paint)
+    y+=38*s
+   }
+   val title=if(page.title.isBlank())null else layout(page.title,w,page.titleSize*s,font,t.ink,emphasis=if(p.style==Style.STAT)t.accent else null)
+   val body=if(page.body.isBlank())null else layout(page.body,w,p.bodySize*s,p.font.bodyFace(c),t.muted)
+   if(title!=null){
+    drawLayout(title,box.left+pad,y);y+=title.height
+    if(body!=null){
+     paint.color=t.accent;paint.strokeWidth=1f*s
+     canvas.drawLine(box.right-pad-24*s,y+8*s,box.right-pad,y+8*s,paint);y+=16*s
+    }
+   }
+   if(body!=null)drawLayout(body,box.left+pad,y)
+   val footer=plan.height-(if(story)63 else 32)*s
    if(p.showSite||plan.pages.size>1){
-    paint.color=if(light)Color.rgb(212,210,199)else Color.rgb(63,82,72);paint.strokeWidth=.45f*s
-    canvas.drawLine(margin,footer-9*s,plan.width-margin,footer-9*s,paint)
+    if(plan.overlay){
+     paint.color=t.background;paint.alpha=242;canvas.drawRoundRect(RectF(margin-8*s,footer-13*s,plan.width-margin+8*s,footer+23*s),3*s,3*s,paint);paint.alpha=255
+    }
+    paint.color=t.chrome;paint.alpha=65;paint.strokeWidth=.7f*s
+    canvas.drawLine(margin,footer-9*s,plan.width-margin,footer-9*s,paint);paint.alpha=255
+    paint.color=if(p.style==Style.STAT)t.chrome else t.accent
+    diamond(canvas,plan.width-margin-3*s,footer-9*s,2.4f*s,paint)
+    if(p.showSite){
+     var size=9*s;val fw=(plan.width-margin*2-70*s).toInt()
+     while(layout(p.site,fw,size,p.font.bodyFace(c),rtl=false).lineCount>1&&size>6*s)size-=.5f*s
+     val site=layout(p.site,fw,size,p.font.bodyFace(c),t.chrome,rtl=false)
+     drawLayout(site,margin,footer)
+    }
+    if(plan.pages.size>1){
+     val counter=layout("${persian(index+1)} / ${persian(plan.pages.size)}",(60*s).toInt(),9*s,font,t.chrome,rtl=false)
+     drawLayout(counter,plan.width-margin-60*s,footer)
+    }
    }
-   if(p.showSite){
-    var size=9*s;val fw=(plan.width-margin*2-55*s).toInt()
-    while(layout(p.site,fw,size,font).lineCount>1&&size>6*s)size-=s
-    val site=layout(p.site,fw,size,p.font.bodyFace(c),ink,rtl=false);canvas.save();canvas.translate(margin,footer);site.draw(canvas);canvas.restore()
-   }
-   if(plan.pages.size>1){
- val counter=layout("${index+1} / ${plan.pages.size}",(50*s).toInt(),10*s,font,accent,rtl=false)
- canvas.save();canvas.translate(plan.width-margin-50*s,footer);counter.draw(canvas);canvas.restore()
- }
    return bitmap
   }catch(t:Throwable){bitmap.recycle();throw t}
  }

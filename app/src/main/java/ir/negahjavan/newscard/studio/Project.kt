@@ -13,7 +13,7 @@ enum class StudioFont(val fa:String,val res:Int) {
  fun face(c:Context)=Typeface.create(c.resources.getFont(res),700,false)
  fun bodyFace(c:Context)=if(this==VAZIR)c.resources.getFont(R.font.vazirmatn_regular)else Typeface.create(c.resources.getFont(res),400,false)
 }
-enum class Style(val fa:String){SIGNATURE("امضای طلایی"),EDITORIAL("صفحهٔ مجله"),PHOTO("عکس‌محور"),BREAKING("خبر فوری"),QUOTE("نقل‌قول"),STAT("عدد خبر")}
+enum class Style(val fa:String){SIGNATURE("زمرد و عاج"),EDITORIAL("مجلهٔ عاجی"),PHOTO("گالری شب"),BREAKING("بولتن فوری"),QUOTE("نقل‌قول کلاسیک"),STAT("گزارش آماری")}
 enum class Ratio(val fa:String,val w:Int,val h:Int){STORY("استوری",1080,1920),POST("پست ۴:۵",1080,1350),SQUARE("مربع",1080,1080),WIDE("افقی",1920,1080)}
 enum class Position(val fa:String){AUTO("هوشمند"),TOP("بالا"),CENTER("وسط"),BOTTOM("پایین")}
 data class Project(
