@@ -64,7 +64,7 @@ object StudioRenderer{
   require(p.brand.length<=60&&p.site.length<=80&&p.category.length<=30){"نام رسانه، نشانی یا دسته‌بندی بیش از اندازه طولانی است."}
   val s=min(width,height)/360f;val margin=24*s;val story=height>width*1.5f
   val headerY=(if(story)52 else 26)*s
-  val top=if(p.showBrand)headerY+max(28*s,brandLayout(c,p,width,s).height)+28*s else (if(story)64 else 32)*s
+  val top=if(p.showBrand)headerY+max(28*s,brandLayout(c,p,width,s).height.toFloat())+28*s else (if(story)64 else 32)*s
   val bottom=height-(if(story)100 else 66)*s
   val full=RectF(margin,top,width-margin,bottom)
   val box=RectF(full);var image:RectF?=null
@@ -86,14 +86,14 @@ object StudioRenderer{
     val oneLine=layout(p.title.substring(0,firstLine.getLineEnd(0)).trimEnd(),textWidth,minTitleSize,font).height
     val minimum=reserve(c,p,textWidth,s,"cover")+oneLine+8*s
     val textHeight=measured.coerceIn(max(full.height()*.27f,minimum),max(full.height()*.59f,minimum))
-    val natural=box.width()*photo.height/photo.width
+    if(p.style==Style.PHOTO){image.left=0f;image.right=width.toFloat()}
+    val natural=image.width()*photo.height/photo.width
     val preferred=when(p.style){Style.PHOTO->.62f;Style.EDITORIAL->.45f;Style.BREAKING->.54f;Style.QUOTE->.32f;Style.STAT->.42f;else->.49f}
     val photoHeight=min(natural, min(full.height()*preferred,full.height()-textHeight-gap)).coerceAtLeast(24*s)
     if(p.style==Style.BREAKING){
      box.bottom=full.top+textHeight
      image.top=box.bottom+gap;image.bottom=min(full.bottom,image.top+photoHeight)
     }else{
-     if(p.style==Style.PHOTO){image.left=0f;image.right=width.toFloat()}
      image.bottom=full.top+photoHeight;box.top=image.bottom+gap
     }
    }
@@ -189,6 +189,7 @@ object StudioRenderer{
   paint.style=Paint.Style.FILL;canvas.drawCircle(x,y,1.1f*s,paint)
  }
  private fun foil(paint:Paint,x:Float,y:Float,right:Float,bottom:Float){
+  paint.alpha=255
   paint.shader=LinearGradient(x,y,right,bottom,intArrayOf(Color.rgb(112,81,43),Color.rgb(223,202,153),Color.rgb(153,113,58),Color.rgb(238,219,177)),floatArrayOf(0f,.38f,.7f,1f),Shader.TileMode.CLAMP)
  }
  private fun background(canvas:Canvas,plan:Plan,t:Palette,s:Float,paint:Paint){
