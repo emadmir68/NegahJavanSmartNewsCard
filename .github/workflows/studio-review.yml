@@ -44,7 +44,7 @@ jobs:
       - name: Preserve APK
         uses: actions/upload-artifact@v4
         with:
-          name: studio-1.8.1-apk-${{ github.sha }}
+          name: studio-1.8.2-apk-${{ github.sha }}
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 90
@@ -53,12 +53,12 @@ jobs:
         run: |
           set -euo pipefail
           package_dir="$(mktemp -d)"
-          cp app/build/outputs/apk/debug/app-debug.apk "$package_dir/NegahJavan-Studio-1.8.1.apk"
-          cp RELEASE-1.8.1.md "$package_dir/"
+          cp app/build/outputs/apk/debug/app-debug.apk "$package_dir/NegahJavan-Studio-1.8.2.apk"
+          cp RELEASE-1.8.2.md "$package_dir/"
           cp docs/licenses/Estedad-OFL.txt "$package_dir/"
           printf '%s\n' "$GITHUB_SHA" > "$package_dir/SOURCE_COMMIT.txt"
           mkdir -p dist
-          zip -j -9 dist/NegahJavan-Studio-1.8.1.zip "$package_dir/"*
+          zip -j -9 dist/NegahJavan-Studio-1.8.2.zip "$package_dir/"*
 
       - name: Commit APK and native review previews to this branch
         run: |
@@ -70,6 +70,6 @@ jobs:
           printf 'Native Android renders for commit %s. Synthetic samples and archival NASA photo reviews; see app/src/test/resources/photos/README.md for credits.\n' "$GITHUB_SHA" > "$preview_dir/README.txt"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$preview_dir" dist/NegahJavan-Studio-1.8.1.zip app/src/test/resources/photos/
+          git add "$preview_dir" dist/NegahJavan-Studio-1.8.2.zip app/src/test/resources/photos/
           git diff --cached --quiet || git commit -m "Save APK and native card previews for $GITHUB_SHA"
           git push origin "HEAD:$GITHUB_REF_NAME"

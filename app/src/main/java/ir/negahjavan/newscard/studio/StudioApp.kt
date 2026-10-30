@@ -86,7 +86,7 @@ private data class Preview(val key:Project,val plan:Plan,val bitmap:Bitmap,val i
   }
  }
  CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){
-  Scaffold(topBar={TopAppBar(title={Column{Text("نگاه جوان");Text("استودیوی کارت · ۱.۸.۱",style=MaterialTheme.typography.labelSmall)}},actions={TextButton({projects=true},enabled=!busy){Text("پروژه‌ها")}})},bottomBar={
+  Scaffold(topBar={TopAppBar(title={Column{Text("نگاه جوان");Text("استودیوی کارت · ۱.۸.۲",style=MaterialTheme.typography.labelSmall)}},actions={TextButton({projects=true},enabled=!busy){Text("پروژه‌ها")}})},bottomBar={
    Surface(shadowElevation=8.dp){Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp)){
     if(busy){LinearProgressIndicator(progress={progress/100f},modifier=Modifier.fillMaxWidth());TextButton({job?.cancel()}){Text("لغو خروجی")}}
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){

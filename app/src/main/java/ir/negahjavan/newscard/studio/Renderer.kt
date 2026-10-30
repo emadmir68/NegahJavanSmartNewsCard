@@ -15,31 +15,34 @@ object StudioRenderer{
  private const val HEAD_SPACING=.92f
  private const val BODY_SPACING=1.06f
  private const val TEXT_GAP=12f
- fun layout(text:String,width:Int,size:Float,font:Typeface,color:Int=Color.WHITE,rtl:Boolean=true,emphasis:Int?=null,spacing:Float=HEAD_SPACING,center:Boolean=false):StaticLayout{
-  val safe=SpannableString(StudioText.keepPhrases(text))
+ fun layout(text:String,width:Int,size:Float,font:Typeface,color:Int=Color.WHITE,rtl:Boolean=true,emphasis:Int?=null,spacing:Float=HEAD_SPACING,center:Boolean=false,paragraphs:Boolean=false,listGutter:Boolean=false,markerColor:Int=color):StaticLayout{
+  val safe=if(paragraphs)ParagraphText.styled(text,size,markerColor,listGutter)else SpannableString(StudioText.keepPhrases(text))
   if(emphasis!=null)Regex("[0-9۰-۹٠-٩]+(?:[٫.,][0-9۰-۹٠-٩]+)?(?:\\u00a0(?:درصد|میلیون|میلیارد|تومان|ریال|دلار|٪))*").find(safe)?.let{
    safe.setSpan(android.text.style.ForegroundColorSpan(emphasis),it.range.first,it.range.last+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
   }
   return StaticLayout.Builder.obtain(safe,0,safe.length,TextPaint(Paint.ANTI_ALIAS_FLAG).apply{textSize=size;typeface=font;this.color=color},width.coerceAtLeast(1))
    .setTextDirection(if(rtl)TextDirectionHeuristics.RTL else TextDirectionHeuristics.FIRSTSTRONG_LTR)
    .setAlignment(if(center)Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
-   .setBreakStrategy(LineBreaker.BREAK_STRATEGY_BALANCED).setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+   .setBreakStrategy(if(paragraphs)LineBreaker.BREAK_STRATEGY_HIGH_QUALITY else LineBreaker.BREAK_STRATEGY_BALANCED)
+   .setJustificationMode(if(paragraphs)LineBreaker.JUSTIFICATION_MODE_INTER_WORD else LineBreaker.JUSTIFICATION_MODE_NONE)
+   .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
    .setIncludePad(true).setLineSpacing(0f,spacing).build()
  }
  private val sentenceEnd=Regex("[.!?؟؛](?:[»”\"])?(?:\\s+|$)|\\n+")
- fun split(text:String,width:Int,height:Float,size:Float,font:Typeface,spacing:Float=HEAD_SPACING,sentences:Boolean=false):List<String>{
+ fun split(text:String,width:Int,height:Float,size:Float,font:Typeface,spacing:Float=HEAD_SPACING,sentences:Boolean=false,paragraphs:Boolean=false,listGutter:Boolean=false):List<String>{
   if(text.isBlank())return emptyList()
+  fun measured(value:String)=layout(value,width,size,font,spacing=spacing,paragraphs=paragraphs,listGutter=listGutter)
   val result=mutableListOf<String>();var rest=text.trim()
   while(rest.isNotEmpty()){
-   val l=layout(rest,width,size,font,spacing=spacing)
+   val l=measured(rest)
    if(l.height<=height){result+=rest;break}
    var count=(0 until l.lineCount).takeWhile{l.getLineBottom(it)<=height}.size
-   while(count>0&&layout(rest.substring(0,l.getLineEnd(count-1)).trimEnd(),width,size,font,spacing=spacing).height>height)count--
+   while(count>0&&measured(rest.substring(0,l.getLineEnd(count-1)).trimEnd()).height>height)count--
    // Balanced wrapping can change when a measured paragraph becomes a page.
    // If its first line no longer fits on its own, try earlier word boundaries.
    var end=if(count>0)l.getLineEnd(count-1)else Regex("\\s+").findAll(rest.take(l.getLineEnd(0)))
     .map{it.range.first}.filter{it>0}.toList().asReversed()
-    .firstOrNull{layout(rest.take(it).trimEnd(),width,size,font,spacing=spacing).height<=height}?:0
+    .firstOrNull{measured(rest.take(it).trimEnd()).height<=height}?:0
    require(end>0){"فضای متن کافی نیست؛ اندازهٔ فونت را کاهش دهید."}
    if(sentences){
     val boundary=sentenceEnd.findAll(rest.take(end)).lastOrNull()?.range?.last?.plus(1)
@@ -49,7 +52,8 @@ object StudioRenderer{
   }
   return result
  }
- private fun bodyLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE,fit:CardTypography=CardTypography(p.bodySize))=layout(text,w,fit.bodySize*s,p.bodyFont.bodyFace(c),color,spacing=fit.bodySpacing)
+ private fun listGutter(p:Project)=ParagraphText.hasBullets(p.summary)||(p.carousel&&(ParagraphText.hasBullets(p.article)||ParagraphText.hasBullets(p.closingText)))
+ fun bodyLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE,fit:CardTypography=CardTypography(p.bodySize),markerColor:Int=color)=layout(text,w,fit.bodySize*s,p.bodyFont.bodyFace(c),color,spacing=fit.bodySpacing,paragraphs=true,listGutter=listGutter(p),markerColor=markerColor)
  private fun creditLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE,fit:CardTypography=CardTypography(p.bodySize))=layout(text,w,fit.bodySize*.92f*s,p.bodyFont.bodyFace(c),color,spacing=fit.bodySpacing)
  private fun headerY(width:Int,height:Int,s:Float)=(if(height>width*1.5f)36 else 18)*s
  private fun brandHeight(c:Context,p:Project,width:Int,s:Float)=if(p.useLogo)StudioBrandMark.size(p,s).second else max(22*s,brandLayout(c,p,width,s).height.toFloat())
@@ -117,7 +121,7 @@ object StudioRenderer{
   fun candidate(step:Int):Pair<Float,CardTypography>{
    val amount=step/20f
    return (p.titleSize-(p.titleSize-minTitle)*amount) to CardTypography(
-    p.bodySize-(p.bodySize-minBody)*amount,BODY_SPACING-.06f*amount,TEXT_GAP-6f*amount)
+    p.bodySize-(p.bodySize-minBody)*amount,max(1f,BODY_SPACING-.06f*amount),TEXT_GAP-6f*amount)
   }
   fun fits(choice:Pair<Float,CardTypography>):Boolean{
    val page=cover(p,p.title.trim(),choice.first).copy(body=p.summary.trim(),byline=if(p.style==Style.QUOTE)p.byline.trim()else "")
@@ -196,11 +200,11 @@ object StudioRenderer{
     val fitsFresh=bodyLayout(c,p,summary,fw,s,fit=typography).height<=fullAvailable
     // Prefer a complete short sentence on a fresh page over half a sentence.
     if(wholeFits||summary.length>240||!fitsFresh){
-     val firstBody=split(summary,lw,remaining,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).first()
+     val firstBody=split(summary,lw,remaining,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true,paragraphs=true,listGutter=listGutter(p)).first()
      pages[pages.lastIndex]=last.copy(body=firstBody);summary=summary.substring(firstBody.length).trimStart()
     }
    }
-   split(summary,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).forEach{pages+=Page("",it,size,"continued")}
+   split(summary,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true,paragraphs=true,listGutter=listGutter(p)).forEach{pages+=Page("",it,size,"continued")}
   }
   if(p.style==Style.QUOTE&&p.byline.isNotBlank()){
    val last=pages.last();val lw=if(last.kind=="cover")w else fw
@@ -211,8 +215,8 @@ object StudioRenderer{
   }
   if(p.carousel&&!overlay){
    // Full-copy preparation already includes the article in the cover sequence.
-   if(p.article.trim()!=p.summary.trim())split(p.article,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).forEach{pages+=Page("",it,size,"article")}
-   split(p.closingText,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).forEach{pages+=Page("",it,size,"closing")}
+   if(p.article.trim()!=p.summary.trim())split(p.article,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true,paragraphs=true,listGutter=listGutter(p)).forEach{pages+=Page("",it,size,"article")}
+   split(p.closingText,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true,paragraphs=true,listGutter=listGutter(p)).forEach{pages+=Page("",it,size,"closing")}
   }
   // Center a short photo-and-copy composition as one group. The first page's
   // measured text still fits; continuations retain the full original text area.
@@ -327,7 +331,7 @@ object StudioRenderer{
     if(page.body.isNotBlank())y+=plan.typography.textGap*s
    }else if(page.feature.isNotBlank()&&page.body.isNotBlank())y+=plan.typography.textGap*s
    if(page.body.isNotBlank()){
-    val body=bodyLayout(c,p,page.body,w,s,t.muted,plan.typography);drawLayout(body,box.left+pad,y);y+=body.height
+    val body=bodyLayout(c,p,page.body,w,s,t.muted,plan.typography,t.accent);drawLayout(body,box.left+pad,y);y+=body.height
    }
    if(page.byline.isNotBlank()){
     paint.color=t.chrome;paint.alpha=90;paint.strokeWidth=.5f*s

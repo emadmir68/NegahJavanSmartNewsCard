@@ -54,14 +54,15 @@ class SmartTextFitTest {
   val output=StudioRenderer.draw(c,current,0);save("smart-fit-user-text",output)
   // Reproduce the old prepare button's one-sentence output for comparison.
   val previous=StudioRenderer.plan(c,p.copy(summary=StudioText.summary(p.title,p.article),auto=false))
-  val before=StudioRenderer.draw(c,previous,0)
+  val reference=File("../docs/design/previews/abf5d556a59c91e0967597fb4b1530945579936e/smart-fit-user-text.png")
+  val before=if(reference.isFile)BitmapFactory.decodeFile(reference.path)else StudioRenderer.draw(c,previous,0)
   val board=Bitmap.createBitmap(760,724,Bitmap.Config.ARGB_8888)
   val canvas=Canvas(board);canvas.drawColor(Color.rgb(235,237,240))
   val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
   for((i,b) in listOf(before,output).withIndex()){
    val x=12f+i*376
    canvas.drawBitmap(b,null,RectF(x,12f,x+360,652f),paint)
-   val label=if(i==0)"پیشین · فقط یک بند"else"۱.۸.۱ · تمام چهار بند"
+   val label=if(i==0)"۱.۸.۱ · سطرهای نامنظم"else"۱.۸.۲ · بندهای هم‌تراز"
    val caption=StudioRenderer.layout(label,360,19f,StudioFont.ESTEDAD.bodyFace(c),Color.BLACK)
    canvas.save();canvas.translate(x,665f);caption.draw(canvas);canvas.restore()
   }

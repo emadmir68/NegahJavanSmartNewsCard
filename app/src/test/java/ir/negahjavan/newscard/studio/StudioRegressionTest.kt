@@ -120,7 +120,7 @@ class StudioRegressionTest{
    compare.drawColor(Color.rgb(235,237,240))
    compare.drawBitmap(before,Rect(12,12,372,652),RectF(12f,12f,372f,652f),paint)
    compare.drawBitmap(board,Rect(12,12,372,652),RectF(388f,12f,748f,652f),paint)
-   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۷.۱","چیدمان تازه · ۱.۸.۰").withIndex()){
+   for((i,labelText)in listOf("نسخهٔ قبل · ۱.۷.۱","چیدمان تازه · ۱.۸.۲").withIndex()){
     val caption=StudioRenderer.layout(labelText,360,19f,StudioFont.VAZIR.face(c),Color.rgb(26,28,33))
     compare.save();compare.translate(12f+i*376,664f);caption.draw(compare);compare.restore()
    }
