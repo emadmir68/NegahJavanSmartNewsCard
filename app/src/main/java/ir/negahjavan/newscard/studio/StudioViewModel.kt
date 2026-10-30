@@ -17,5 +17,5 @@ class StudioViewModel(app:Application):AndroidViewModel(app){
  fun open(p:Project){project=p;writes.trySend(p)}
  fun archive(announce:Boolean=true){val p=project;viewModelScope.launch{try{withContext(Dispatchers.IO){ProjectStore.save(getApplication(),p,true)};saved=withContext(Dispatchers.IO){ProjectStore.list(getApplication())};if(announce)status="پروژه ذخیره شد"}catch(cancel:CancellationException){throw cancel}catch(e:Exception){status="ذخیرهٔ پروژه ناموفق بود: ${e.message}"}}}
  fun fresh(){archive();open(Project())}
- fun prepare(){val raw=project.raw;viewModelScope.launch{val result=withContext(Dispatchers.Default){val(t,b)=StudioText.prepare(raw);Triple(t,b,StudioText.summary(t,b))};if(project.raw==raw)update(project.copy(title=result.first,article=result.second,summary=result.third));status="تیتر و خلاصهٔ پیشنهادی را پیش از خروجی بررسی کنید."}}
+ fun prepare(){val source=project;viewModelScope.launch{val result=withContext(Dispatchers.Default){StudioText.prepareProject(source)};if(project.raw==source.raw){update(project.copy(title=result.title,article=result.article,summary=result.summary));status="تیتر و تمام بندهای خبر آماده شدند؛ متن را پیش از خروجی بررسی کنید."}}}
 }

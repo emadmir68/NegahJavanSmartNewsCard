@@ -33,7 +33,7 @@ data class Project(
 ){
  fun caption()=listOf(title.trim(),article.ifBlank{summary}.trim(),if(style==Style.QUOTE)byline.trim()else "",if(showBrand)brand else "",if(showSite)site else "").filter{it.isNotBlank()}.distinct().joinToString("\n\n")
  fun json()=JSONObject().apply{
-  put("id",id);put("name",name);put("raw",raw);put("title",title);put("summary",summary);put("article",article)
+  put("id",id);put("name",name);put("raw",raw);put("title",title);put("summary",summary);put("article",article);put("cardTextVersion",1)
   put("image",image);put("video",video);put("mode",mode);put("ratio",ratio.name);put("font",font.name);put("style",style.name);put("bodyFont",bodyFont.name);put("typographyVersion",2)
   put("auto",auto);put("titleSize",titleSize);put("bodySize",bodySize);put("position",position.name)
   put("crop",crop);put("x",x);put("y",y);put("zoom",zoom);put("videoCrop",videoCrop);put("vx",vx);put("vy",vy);put("vz",vz)
@@ -47,7 +47,13 @@ data class Project(
    val headline=if(oldDefaults)StudioFont.ESTEDAD else StudioFont.entries.firstOrNull{it.name==j.optString("font")}?:StudioFont.ESTEDAD
    val titleSize=f("titleSize",26f,16f,40f).let{if(oldDefaults&&it==21f)26f else it}
    val bodySize=f("bodySize",13f,10f,18f).let{if(oldDefaults&&it==12f)13f else it}
-   return Project(id=j.optString("id",UUID.randomUUID().toString()),name=j.optString("name","پروژهٔ تازه"),raw=j.optString("raw"),title=j.optString("title"),summary=j.optString("summary"),article=j.optString("article"),image=j.optString("image"),video=j.optString("video"),mode=j.optString("mode","card"),
+   val raw=j.optString("raw");val title=j.optString("title");val article=j.optString("article");val oldSummary=j.optString("summary")
+   val prepared=StudioText.prepare(raw)
+   // Restore only the exact, untouched one-sentence suggestion from old builds.
+   // Edited copy and intentionally shortened text saved by this build stay intact.
+   val generatedSummary=j.optInt("cardTextVersion",0)<1&&article.isNotBlank()&&prepared.first==title&&prepared.second==article&&oldSummary==StudioText.summary(title,article)
+   val cardText=if(generatedSummary)article else oldSummary
+   return Project(id=j.optString("id",UUID.randomUUID().toString()),name=j.optString("name","پروژهٔ تازه"),raw=raw,title=title,summary=cardText,article=article,image=j.optString("image"),video=j.optString("video"),mode=j.optString("mode","card"),
     ratio=Ratio.entries.firstOrNull{it.name==j.optString("ratio")}?:Ratio.STORY,font=headline,bodyFont=StudioFont.entries.firstOrNull{it.name==j.optString("bodyFont")}?:StudioFont.CAIRO,style=Style.entries.firstOrNull{it.name==j.optString("style")}?:Style.SIGNATURE,
     auto=j.optBoolean("auto",true),titleSize=titleSize,bodySize=bodySize,position=Position.entries.firstOrNull{it.name==j.optString("position")}?:Position.AUTO,
     crop=j.optBoolean("crop"),x=f("x",.5f,0f,1f),y=f("y",.5f,0f,1f),zoom=f("zoom",1f,1f,3f),videoCrop=j.optBoolean("videoCrop"),vx=f("vx",.5f,0f,1f),vy=f("vy",.5f,0f,1f),vz=f("vz",1f,1f,3f),
@@ -66,6 +72,10 @@ object ProjectStore{
  fun list(c:Context)=dir(c).listFiles().orEmpty().filter{it.name.startsWith("project-")}.sortedByDescending{it.lastModified()}.mapNotNull{runCatching{Project.read(JSONObject(it.readText()))}.getOrNull()}
 }
 object StudioText{
+ fun prepareProject(p:Project):Project{
+  val(title,body)=prepare(p.raw)
+  return p.copy(title=title,summary=body,article=body,exports=emptyList())
+ }
  fun prepare(raw:String):Pair<String,String>{
   val text=raw.trim();val first=text.lineSequence().firstOrNull().orEmpty().trim()
   val title=if(text.contains('\n')&&first.length<=320)first else Regex("[.!؟?\\n]").find(text)?.let{text.substring(0,it.range.last+1)}?:text

@@ -86,7 +86,7 @@ private data class Preview(val key:Project,val plan:Plan,val bitmap:Bitmap,val i
   }
  }
  CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){
-  Scaffold(topBar={TopAppBar(title={Column{Text("نگاه جوان");Text("استودیوی کارت · ۱.۸.۰",style=MaterialTheme.typography.labelSmall)}},actions={TextButton({projects=true},enabled=!busy){Text("پروژه‌ها")}})},bottomBar={
+  Scaffold(topBar={TopAppBar(title={Column{Text("نگاه جوان");Text("استودیوی کارت · ۱.۸.۱",style=MaterialTheme.typography.labelSmall)}},actions={TextButton({projects=true},enabled=!busy){Text("پروژه‌ها")}})},bottomBar={
    Surface(shadowElevation=8.dp){Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp)){
     if(busy){LinearProgressIndicator(progress={progress/100f},modifier=Modifier.fillMaxWidth());TextButton({job?.cancel()}){Text("لغو خروجی")}}
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -114,9 +114,13 @@ private data class Preview(val key:Project,val plan:Plan,val bitmap:Bitmap,val i
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("متن خبر","طراحی","رسانه").forEachIndexed{i,label->FilterChip(editor==i,{editor=i},enabled=!busy,label={Text(label)},modifier=Modifier.weight(1f))}}
     if(editor==0){
      OutlinedTextField(p.raw,{vm.update(p.copy(raw=it))},enabled=!busy,label={Text("متن کامل خبر")},modifier=Modifier.fillMaxWidth(),minLines=3,maxLines=7)
-     Button({page=0;vm.prepare()},enabled=!busy&&p.raw.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text("آماده‌سازی تیتر و خلاصه")}
+     Button({page=0;vm.prepare()},enabled=!busy&&p.raw.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text("آماده‌سازی تیتر و متن کامل")}
      OutlinedTextField(p.title,{page=0;vm.update(p.copy(title=it))},enabled=!busy,label={Text("تیتر · قابل ویرایش")},modifier=Modifier.fillMaxWidth(),maxLines=5)
-     OutlinedTextField(p.summary,{page=0;vm.update(p.copy(summary=it))},enabled=!busy,label={Text("خلاصه · اختیاری")},modifier=Modifier.fillMaxWidth(),maxLines=5)
+     OutlinedTextField(p.summary,{page=0;vm.update(p.copy(summary=it))},enabled=!busy,label={Text("متن روی کارت · قابل ویرایش")},modifier=Modifier.fillMaxWidth(),maxLines=7)
+     if(p.article.isNotBlank())Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+      TextButton({page=0;vm.update(p.copy(summary=p.article));vm.status="تمام متن روی کارت قرار گرفت."},enabled=!busy&&p.summary!=p.article){Text("استفاده از متن کامل")}
+      TextButton({page=0;val short=StudioText.summary(p.title,p.article);if(short.isNotBlank()){vm.update(p.copy(summary=short));vm.status="خلاصهٔ پیشنهادی را بررسی کنید؛ متن کامل در کپشن حفظ شده است."}else vm.status="خلاصهٔ مناسبی پیدا نشد؛ متن روی کارت را ویرایش کنید."},enabled=!busy){Text("خلاصه‌سازی اختیاری")}
+     }
      OutlinedTextField(p.article,{vm.update(p.copy(article=it))},enabled=!busy,label={Text("متن کامل کپشن / اسلایدها")},modifier=Modifier.fillMaxWidth(),maxLines=5)
      OutlinedTextField(p.category,{vm.update(p.copy(category=it))},enabled=!busy,label={Text("دسته‌بندی")},modifier=Modifier.fillMaxWidth())
     }

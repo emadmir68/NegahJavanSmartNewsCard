@@ -9,7 +9,8 @@ import kotlin.math.*
 // Source text stays intact for captions and pagination. Feature/visualTitle are a
 // measured presentation of the same words, used only by the statistical cover.
 data class Page(val title:String,val body:String,val titleSize:Float,val kind:String="cover",val feature:String="",val visualTitle:String=title,val byline:String="")
-data class Plan(val project:Project,val width:Int,val height:Int,val text:RectF,val photo:RectF?,val pages:List<Page>,val overlay:Boolean=false,val fullText:RectF=RectF(text))
+data class CardTypography(val bodySize:Float,val bodySpacing:Float=1.06f,val textGap:Float=12f)
+data class Plan(val project:Project,val width:Int,val height:Int,val text:RectF,val photo:RectF?,val pages:List<Page>,val overlay:Boolean=false,val fullText:RectF=RectF(text),val typography:CardTypography=CardTypography(project.bodySize))
 object StudioRenderer{
  private const val HEAD_SPACING=.92f
  private const val BODY_SPACING=1.06f
@@ -48,8 +49,8 @@ object StudioRenderer{
   }
   return result
  }
- private fun bodyLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE)=layout(text,w,p.bodySize*s,p.bodyFont.bodyFace(c),color,spacing=BODY_SPACING)
- private fun creditLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE)=layout(text,w,p.bodySize*.92f*s,p.bodyFont.bodyFace(c),color,spacing=BODY_SPACING)
+ private fun bodyLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE,fit:CardTypography=CardTypography(p.bodySize))=layout(text,w,fit.bodySize*s,p.bodyFont.bodyFace(c),color,spacing=fit.bodySpacing)
+ private fun creditLayout(c:Context,p:Project,text:String,w:Int,s:Float,color:Int=Color.WHITE,fit:CardTypography=CardTypography(p.bodySize))=layout(text,w,fit.bodySize*.92f*s,p.bodyFont.bodyFace(c),color,spacing=fit.bodySpacing)
  private fun headerY(width:Int,height:Int,s:Float)=(if(height>width*1.5f)36 else 18)*s
  private fun brandHeight(c:Context,p:Project,width:Int,s:Float)=if(p.useLogo)StudioBrandMark.size(p,s).second else max(22*s,brandLayout(c,p,width,s).height.toFloat())
  fun logoBox(plan:Plan):RectF?{
@@ -85,17 +86,17 @@ object StudioRenderer{
   val title=if(page.visualTitle.isBlank())0f else layout(page.visualTitle,w,page.titleSize*s,p.font.face(c)).height.toFloat()
   return feature+title+if(feature>0&&title>0)8*s else 0f
  }
- private fun contentHeight(c:Context,p:Project,page:Page,w:Int,s:Float):Float{
+ private fun contentHeight(c:Context,p:Project,page:Page,w:Int,s:Float,fit:CardTypography=CardTypography(p.bodySize)):Float{
   val title=titleHeight(c,p,page,w,s)
-  val body=if(page.body.isBlank())0f else bodyLayout(c,p,page.body,w,s).height.toFloat()
-  val credit=if(page.byline.isBlank())0f else creditLayout(c,p,page.byline,w,s).height+14*s
-  return title+body+credit+if(title>0&&body>0)TEXT_GAP*s else 0f
+  val body=if(page.body.isBlank())0f else bodyLayout(c,p,page.body,w,s,fit=fit).height.toFloat()
+  val credit=if(page.byline.isBlank())0f else creditLayout(c,p,page.byline,w,s,fit=fit).height+14*s
+  return title+body+credit+if(title>0&&body>0)fit.textGap*s else 0f
  }
  fun pageBox(plan:Plan,page:Page)=RectF(if(page.kind=="cover")plan.text else plan.fullText)
  fun blockHeight(c:Context,plan:Plan,page:Page):Float{
   val p=plan.project;val s=min(plan.width,plan.height)/360f;val pad=if(plan.overlay)14*s else 0f
   val w=(pageBox(plan,page).width()-2*pad).toInt()
-  return reserve(c,p,w,s,page.kind)+2*pad+contentHeight(c,p,page,w,s)
+  return reserve(c,p,w,s,page.kind)+2*pad+contentHeight(c,p,page,w,s,plan.typography)
  }
  private fun brandLayout(c:Context,p:Project,width:Int,s:Float,color:Int=Color.WHITE):StaticLayout{
   val font=StudioFont.ESTEDAD.face(c);val w=(width-120*s).toInt();var size=p.brandSize*s
@@ -106,6 +107,28 @@ object StudioRenderer{
   if(p.summary.length<=240)return p.summary
   val end=sentenceEnd.find(p.summary)?.range?.last?.plus(1)
   return if(end!=null&&end<=240)p.summary.take(end)else p.summary.take(160).substringBeforeLast(' ',p.summary.take(160))
+ }
+ // Fit the complete copy before considering pagination. The chosen typography
+ // is a render result, not a change to the user's saved maximum sizes.
+ private fun fitCompleteCover(c:Context,p:Project,w:Int,s:Float,available:Float):Pair<Float,CardTypography>?{
+  if(!p.auto)return null
+  val minBody=min(p.bodySize,max(11f,p.bodySize*.8f))
+  val minTitle=min(p.titleSize,max(16f,minBody*1.45f))
+  fun candidate(step:Int):Pair<Float,CardTypography>{
+   val amount=step/20f
+   return (p.titleSize-(p.titleSize-minTitle)*amount) to CardTypography(
+    p.bodySize-(p.bodySize-minBody)*amount,BODY_SPACING-.06f*amount,TEXT_GAP-6f*amount)
+  }
+  fun fits(choice:Pair<Float,CardTypography>):Boolean{
+   val page=cover(p,p.title.trim(),choice.first).copy(body=p.summary.trim(),byline=if(p.style==Style.QUOTE)p.byline.trim()else "")
+   return contentHeight(c,p,page,w,s,choice.second)<=available
+  }
+  val original=candidate(0)
+  if(fits(original))return original
+  // Very long input keeps comfortable type and paginates instead of shrinking
+  // every card just because a one-card composition is impossible.
+  if(!fits(candidate(20)))return null
+  return (1..20).asSequence().map(::candidate).firstOrNull(::fits)
  }
  fun plan(c:Context,p:Project,photo:Bitmap?=null,overlay:Boolean=false,width:Int=p.ratio.w,height:Int=p.ratio.h):Plan{
   require(p.title.isNotBlank()){ "تیتر را وارد کنید." }
@@ -149,10 +172,13 @@ object StudioRenderer{
   val fullAvailable=full.height()-2*pad-reserve(c,p,fw,s,"continued")
   require(available>35*s){"فضای قابل استفاده برای این چیدمان کافی نیست."}
   var size=p.titleSize
+  var typography=CardTypography(p.bodySize)
   var first=cover(p,p.title.trim(),size)
   val wantedBody=if(target.isBlank())0f else bodyLayout(c,p,target,w,s).height+TEXT_GAP*s
   val wantedCredit=if(p.style==Style.QUOTE&&p.byline.isNotBlank()&&p.byline.length<120)creditLayout(c,p,p.byline,w,s).height+14*s else 0f
-  if(p.auto)while(size>16f&&titleHeight(c,p,first,w,s)+wantedBody+wantedCredit>available){size=max(16f,size-.5f);first=cover(p,p.title.trim(),size)}
+  val complete=fitCompleteCover(c,p,w,s,available)
+  if(complete!=null){size=complete.first;typography=complete.second;first=cover(p,p.title.trim(),size)}
+  else if(p.auto)while(size>16f&&titleHeight(c,p,first,w,s)+wantedBody+wantedCredit>available){size=max(16f,size-.5f);first=cover(p,p.title.trim(),size)}
   val pages=mutableListOf<Page>()
   if(titleHeight(c,p,first,w,s)<=available){pages+=first}
   else{
@@ -164,33 +190,34 @@ object StudioRenderer{
   var summary=p.summary.trim()
   if(summary.isNotBlank()){
    val last=pages.last();val lw=if(last.kind=="cover")w else fw
-   val remaining=(if(last.kind=="cover")available else fullAvailable)-titleHeight(c,p,last,lw,s)-TEXT_GAP*s
-   if(remaining>=bodyLayout(c,p,"آ",lw,s).height){
-    val wholeFits=bodyLayout(c,p,summary,lw,s).height<=remaining
-    val fitsFresh=bodyLayout(c,p,summary,fw,s).height<=fullAvailable
+   val remaining=(if(last.kind=="cover")available else fullAvailable)-titleHeight(c,p,last,lw,s)-typography.textGap*s
+   if(remaining>=bodyLayout(c,p,"آ",lw,s,fit=typography).height){
+    val wholeFits=bodyLayout(c,p,summary,lw,s,fit=typography).height<=remaining
+    val fitsFresh=bodyLayout(c,p,summary,fw,s,fit=typography).height<=fullAvailable
     // Prefer a complete short sentence on a fresh page over half a sentence.
     if(wholeFits||summary.length>240||!fitsFresh){
-     val firstBody=split(summary,lw,remaining,p.bodySize*s,bodyFont,BODY_SPACING,sentences=true).first()
+     val firstBody=split(summary,lw,remaining,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).first()
      pages[pages.lastIndex]=last.copy(body=firstBody);summary=summary.substring(firstBody.length).trimStart()
     }
    }
-   split(summary,fw,fullAvailable,p.bodySize*s,bodyFont,BODY_SPACING,sentences=true).forEach{pages+=Page("",it,size,"continued")}
+   split(summary,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).forEach{pages+=Page("",it,size,"continued")}
   }
   if(p.style==Style.QUOTE&&p.byline.isNotBlank()){
    val last=pages.last();val lw=if(last.kind=="cover")w else fw
    val budget=if(last.kind=="cover")available else fullAvailable
    val withCredit=last.copy(byline=p.byline.trim())
-   if(contentHeight(c,p,withCredit,lw,s)<=budget)pages[pages.lastIndex]=withCredit
-   else split(p.byline,fw,fullAvailable-14*s,p.bodySize*.92f*s,bodyFont,BODY_SPACING,sentences=true).forEach{pages+=Page("","",size,"attribution",byline=it)}
+   if(contentHeight(c,p,withCredit,lw,s,typography)<=budget)pages[pages.lastIndex]=withCredit
+   else split(p.byline,fw,fullAvailable-14*s,typography.bodySize*.92f*s,bodyFont,typography.bodySpacing,sentences=true).forEach{pages+=Page("","",size,"attribution",byline=it)}
   }
   if(p.carousel&&!overlay){
-   split(p.article,fw,fullAvailable,p.bodySize*s,bodyFont,BODY_SPACING,sentences=true).forEach{pages+=Page("",it,size,"article")}
-   split(p.closingText,fw,fullAvailable,p.bodySize*s,bodyFont,BODY_SPACING,sentences=true).forEach{pages+=Page("",it,size,"closing")}
+   // Full-copy preparation already includes the article in the cover sequence.
+   if(p.article.trim()!=p.summary.trim())split(p.article,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).forEach{pages+=Page("",it,size,"article")}
+   split(p.closingText,fw,fullAvailable,typography.bodySize*s,bodyFont,typography.bodySpacing,sentences=true).forEach{pages+=Page("",it,size,"closing")}
   }
   // Center a short photo-and-copy composition as one group. The first page's
   // measured text still fits; continuations retain the full original text area.
   if(image!=null&&p.position==Position.AUTO&&!overlay&&image.left<box.right&&image.right>box.left){
-   val actual=reserve(c,p,w,s,"cover")+contentHeight(c,p,pages.first(),w,s)
+   val actual=reserve(c,p,w,s,"cover")+contentHeight(c,p,pages.first(),w,s,typography)
    val gap=20*s
    if(image.top>=box.bottom){
     val photoHeight=image.height();box.bottom=box.top+actual
@@ -202,7 +229,7 @@ object StudioRenderer{
     image.offset(0f,shift);box.top+=shift
    }
   }
-  return Plan(p,width,height,box,image,pages,overlay,full)
+  return Plan(p,width,height,box,image,pages,overlay,full,typography)
  }
  fun cropRect(sw:Int,sh:Int,dw:Float,dh:Float,x:Float,y:Float,zoom:Float):RectF{
   val scale=max(dw/sw,dh/sh)*zoom.coerceIn(1f,3f);val w=dw/scale;val h=dh/scale
@@ -297,15 +324,15 @@ object StudioRenderer{
    if(page.visualTitle.isNotBlank()){
     val title=layout(page.visualTitle,w,page.titleSize*s,p.font.face(c),t.ink)
     drawLayout(title,box.left+pad,y);y+=title.height
-    if(page.body.isNotBlank())y+=TEXT_GAP*s
-   }else if(page.feature.isNotBlank()&&page.body.isNotBlank())y+=TEXT_GAP*s
+    if(page.body.isNotBlank())y+=plan.typography.textGap*s
+   }else if(page.feature.isNotBlank()&&page.body.isNotBlank())y+=plan.typography.textGap*s
    if(page.body.isNotBlank()){
-    val body=bodyLayout(c,p,page.body,w,s,t.muted);drawLayout(body,box.left+pad,y);y+=body.height
+    val body=bodyLayout(c,p,page.body,w,s,t.muted,plan.typography);drawLayout(body,box.left+pad,y);y+=body.height
    }
    if(page.byline.isNotBlank()){
     paint.color=t.chrome;paint.alpha=90;paint.strokeWidth=.5f*s
     canvas.drawLine(box.right-pad-22*s,y+7*s,box.right-pad,y+7*s,paint);paint.alpha=255
-    y+=14*s;drawLayout(creditLayout(c,p,page.byline,w,s,t.ink),box.left+pad,y)
+    y+=14*s;drawLayout(creditLayout(c,p,page.byline,w,s,t.ink,plan.typography),box.left+pad,y)
    }
    val footer=plan.height-(if(story)63 else 32)*s
    if(p.showSite||showsPageNumber(plan)){
