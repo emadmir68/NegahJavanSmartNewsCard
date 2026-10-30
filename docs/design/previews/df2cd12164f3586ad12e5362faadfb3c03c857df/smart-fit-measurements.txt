@@ -1,0 +1,6 @@
+pages=1
+titleSize=22.5
+bodySize=12.3
+bodySpacing=1.0389999
+textGap=9.9
+bodyParagraphs=4
