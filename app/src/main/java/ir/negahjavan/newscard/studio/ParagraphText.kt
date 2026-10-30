@@ -13,12 +13,17 @@ import kotlin.math.ceil
 /** Display-only paragraph styling: source characters and pagination offsets stay intact. */
 object ParagraphText {
  private val marker=Regex("^[ \\t]*(?:🔹|🔸|🔺|🔻|♦\\uFE0F?|▪\\uFE0F?|▫\\uFE0F?|[•●◦‣]|[-–—](?=[ \\t]))[ \\t]*")
+ private val tail=Regex("(?m)(\\S+)([ \\t]+)(\\S+)(?=[ \\t]*\\r?$)")
  fun hasBullets(text:String)=text.lineSequence().any{marker.containsMatchIn(it)}
  fun gutter(size:Float)=ceil(size*.9f).toInt()
  fun styled(text:String,size:Float,color:Int,listGutter:Boolean):SpannableString {
   // Short function words may wrap normally in prose. Keep only numbers and units
   // together so full-width lines do not acquire artificial gaps.
-  val result=SpannableString(StudioText.keepUnits(text))
+  val prose=tail.replace(StudioText.keepUnits(text)){match->
+   val last=match.groupValues[3].trimEnd('.','!','؟','?','؛','،','»','”','"')
+   if(last.length in 1..6&&match.groupValues[1].length<=14)match.groupValues[1]+match.groupValues[2].replace(' ','\u00a0').replace('\t','\u00a0')+match.groupValues[3]else match.value
+  }
+  val result=SpannableString(prose)
   var start=0
   while(start<text.length){
    val next=text.indexOf('\n',start).let{if(it<0)text.length else it+1}
